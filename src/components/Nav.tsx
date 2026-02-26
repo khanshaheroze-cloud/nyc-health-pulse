@@ -14,6 +14,7 @@ const navItems = [
   { href: "/overdose", label: "Overdose & Lead" },
   { href: "/nutrition", label: "Nutrition" },
   { href: "/demographics", label: "Demographics" },
+  { href: "/neighborhood", label: "Neighborhoods" },
   { href: "/sources", label: "All Sources" },
 ];
 
