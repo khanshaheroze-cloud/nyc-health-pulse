@@ -399,3 +399,70 @@ export const deficiencyRisk = [
   { group: "Other Hispanic",           pct: 8,  nutrient: "Vitamin D" },
   { group: "Non-Hispanic White",       pct: 3,  nutrient: "Vitamin D" },
 ];
+
+// ─── Demographics — Race / Ethnicity by Borough ───────────────────────────────
+// U.S. Census ACS 5-year estimates 2022 · B03002: Hispanic or Latino Origin by Race
+// nhWhite = Non-Hispanic White alone · nhBlack = Non-Hispanic Black alone
+// nhAsian = Non-Hispanic Asian alone · hispanic = Hispanic or Latino (any race)
+// other   = AIAN + NHPI + Two or More Races + Some Other Race (non-Hispanic)
+
+export const raceByBorough = [
+  { borough: "Bronx",      nhWhite: 123902, nhBlack: 408777, nhAsian:  54493, hispanic: 814017, other:  42040 },
+  { borough: "Brooklyn",   nhWhite: 966614, nhBlack: 759133, nhAsian: 319099, hispanic: 506473, other: 128301 },
+  { borough: "Manhattan",  nhWhite: 749800, nhBlack: 203409, nhAsian: 197451, hispanic: 428297, other:  66910 },
+  { borough: "Queens",     nhWhite: 560919, nhBlack: 394824, nhAsian: 611350, hispanic: 661807, other: 131926 },
+  { borough: "Staten Is.", nhWhite: 285903, nhBlack:  44626, nhAsian:  56162, hispanic:  92411, other:  13823 },
+];
+
+// ─── Asian Subgroups — NYC Citywide ──────────────────────────────────────────
+// U.S. Census ACS 5-year estimates 2022 · B02015 · NYC total ~1.24 million
+// Note: Middle Eastern / North African (MENA) populations are classified as
+// "White" in Census B03002 — no separate ACS table for MENA at county level.
+
+export const asianSubgroupsCitywide = [
+  { group: "Chinese / Taiwanese", count: 396000, category: "East Asian"      },
+  { group: "Indian",              count: 285000, category: "South Asian"     },
+  { group: "Korean",              count: 111000, category: "East Asian"      },
+  { group: "Filipino",            count:  92000, category: "Southeast Asian" },
+  { group: "Bangladeshi",         count:  83000, category: "South Asian"     },
+  { group: "Pakistani",           count:  69000, category: "South Asian"     },
+  { group: "Japanese",            count:  47000, category: "East Asian"      },
+  { group: "Vietnamese",          count:  37000, category: "Southeast Asian" },
+  { group: "Other SE Asian",      count:  28000, category: "Southeast Asian" },
+  { group: "Nepalese",            count:  17000, category: "South Asian"     },
+  { group: "Sri Lankan",          count:  11000, category: "South Asian"     },
+  { group: "Other Asian",         count:  62000, category: "Other"           },
+];
+
+// ─── Age Distribution by Borough (%) ─────────────────────────────────────────
+// U.S. Census ACS 5-year estimates 2022 · B01001 · % of total borough population
+
+export const ageByBorough = [
+  { borough: "Bronx",      u18: 24, a18_34: 27, a35_54: 25, a55_64: 12, a65p: 12 },
+  { borough: "Brooklyn",   u18: 22, a18_34: 26, a35_54: 26, a55_64: 12, a65p: 14 },
+  { borough: "Manhattan",  u18: 16, a18_34: 26, a35_54: 28, a55_64: 14, a65p: 16 },
+  { borough: "Queens",     u18: 22, a18_34: 24, a35_54: 27, a55_64: 13, a65p: 14 },
+  { borough: "Staten Is.", u18: 22, a18_34: 22, a35_54: 27, a55_64: 15, a65p: 14 },
+];
+
+// ─── Health Disparities by Race / Ethnicity ───────────────────────────────────
+// NYC DOHMH Community Health Survey 2022 · Adults 18+ · % unless noted
+// NH = Non-Hispanic. Estimates carry uncertainty — based on weighted survey data.
+
+export const healthDisparitiesByRace = [
+  { metric: "Diabetes (%)",     "NH Black": 14.9, "Hispanic": 17.5, "NH White":  7.7, "NH Asian": 10.4 },
+  { metric: "Obesity (%)",      "NH Black": 36.1, "Hispanic": 33.4, "NH White": 21.3, "NH Asian": 12.1 },
+  { metric: "Hypertension (%)", "NH Black": 37.8, "Hispanic": 28.1, "NH White": 24.6, "NH Asian": 20.8 },
+  { metric: "Uninsured (%)",    "NH Black":  8.4, "Hispanic": 16.9, "NH White":  5.8, "NH Asian": 10.2 },
+  { metric: "Smoking (%)",      "NH Black": 17.4, "Hispanic": 13.6, "NH White": 14.8, "NH Asian":  9.8 },
+];
+
+// ─── Life Expectancy by Race — NYC ────────────────────────────────────────────
+// NYC DOHMH Summary of Vital Statistics 2019 (pre-COVID baseline)
+
+export const lifeExpectancyByRace = [
+  { group: "NH Asian",    years: 87.1 },
+  { group: "Hispanic",    years: 82.8 },
+  { group: "NH White",    years: 81.2 },
+  { group: "NH Black",    years: 74.5 },
+];

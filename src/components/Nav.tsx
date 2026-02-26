@@ -13,6 +13,7 @@ const navItems = [
   { href: "/chronic-disease", label: "Chronic Disease" },
   { href: "/overdose", label: "Overdose & Lead" },
   { href: "/nutrition", label: "Nutrition" },
+  { href: "/demographics", label: "Demographics" },
   { href: "/sources", label: "All Sources" },
 ];
 

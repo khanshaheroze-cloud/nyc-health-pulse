@@ -1,4 +1,4 @@
-// Server-side data fetching from live NYC/CDC APIs.
+// Server-side data fetching from live NYC/CDC APIs + Census ACS.
 // All functions return null on failure — callers fall back to static data.ts values.
 
 const FOOD_API   = "https://data.cityofnewyork.us/resource/43nn-pn8j.json";
@@ -213,5 +213,51 @@ export async function fetchCovidByBorough(): Promise<{ borough: string; cases: n
       { borough: "Queens",     cases: parseInt(r.qn_cases) || 0, hosp: parseInt(r.qn_hosp) || 0 },
       { borough: "Staten Is.", cases: parseInt(r.si_cases) || 0, hosp: parseInt(r.si_hosp) || 0 },
     ].sort((a, b) => b.cases - a.cases);
+  } catch { return null; }
+}
+
+// ─── Census ACS Demographics ──────────────────────────────────────────────────
+
+const CENSUS_BASE = "https://api.census.gov/data/2022/acs/acs5";
+
+const COUNTY_TO_BOROUGH: Record<string, string> = {
+  "005": "Bronx",
+  "047": "Brooklyn",
+  "061": "Manhattan",
+  "081": "Queens",
+  "085": "Staten Is.",
+};
+
+export type RaceRow = {
+  borough: string;
+  nhWhite: number;
+  nhBlack: number;
+  nhAsian: number;
+  hispanic: number;
+  other: number;
+};
+
+export async function fetchRaceByBorough(): Promise<RaceRow[] | null> {
+  try {
+    const vars = ["B03002_001E", "B03002_003E", "B03002_004E", "B03002_006E", "B03002_012E"].join(",");
+    const url = `${CENSUS_BASE}?get=NAME,${vars}&for=county:005,047,061,081,085&in=state:36`;
+    const res = await fetch(url, { next: { revalidate: 86400 * 30 } }); // cache 30 days
+    if (!res.ok) return null;
+    const raw = (await res.json()) as string[][];
+    const [header, ...rows] = raw;
+    const idx = (name: string) => header.indexOf(name);
+    const ORDER = ["Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Is."];
+    return rows
+      .map(row => {
+        const total    = parseInt(row[idx("B03002_001E")]);
+        const nhWhite  = parseInt(row[idx("B03002_003E")]);
+        const nhBlack  = parseInt(row[idx("B03002_004E")]);
+        const nhAsian  = parseInt(row[idx("B03002_006E")]);
+        const hispanic = parseInt(row[idx("B03002_012E")]);
+        const other    = Math.max(0, total - nhWhite - nhBlack - nhAsian - hispanic);
+        return { borough: COUNTY_TO_BOROUGH[row[idx("county")]], nhWhite, nhBlack, nhAsian, hispanic, other };
+      })
+      .filter(r => r.borough)
+      .sort((a, b) => ORDER.indexOf(a.borough) - ORDER.indexOf(b.borough));
   } catch { return null; }
 }

@@ -221,6 +221,45 @@ const SOURCES: { section: string; icon: string; sources: Source[] }[] = [
     ],
   },
   {
+    section: "Demographics",
+    icon: "👥",
+    sources: [
+      {
+        name: "U.S. Census ACS 5-Year Estimates (B03002)",
+        status: "live" as const,
+        org: "U.S. Census Bureau",
+        endpoint: "api.census.gov/data/2022/acs/acs5",
+        updateFreq: "Annual (5-year rolling)",
+        desc: "Hispanic or Latino Origin by Race at the county (borough) level. Variables B03002_001E (total), B03002_003E (NH White), B03002_004E (NH Black), B03002_006E (NH Asian), B03002_012E (Hispanic). Queried for all 5 NYC counties (FIPS 005, 047, 061, 081, 085).",
+        methodNote: "No API key required for low-volume queries (<500/day). Cached server-side for 30 days (ACS releases annually). 2022 5-year estimates used.",
+      },
+      {
+        name: "U.S. Census ACS 5-Year Estimates (B02015)",
+        status: "seed" as const,
+        org: "U.S. Census Bureau",
+        endpoint: "api.census.gov/data/2022/acs/acs5",
+        updateFreq: "Annual (5-year rolling)",
+        desc: "Asian Alone by Selected Groups (citywide). Covers 20+ distinct Asian subgroups including Indian, Bangladeshi, Chinese, Filipino, Korean, Pakistani, Vietnamese, and others. Grouped into East Asian, South Asian, Southeast Asian, and Other for display.",
+        methodNote: "Shown as citywide NYC aggregate. Borough-level subgroup data is available but requires additional processing.",
+      },
+      {
+        name: "NYC DOHMH Community Health Survey (CHS)",
+        status: "seed" as const,
+        org: "NYC DOHMH",
+        updateFreq: "Annual",
+        desc: "Annual telephone survey of ~10,000 NYC adults. Health disparities data by race/ethnicity: diabetes, obesity, hypertension, uninsured rate, smoking. 2022 figures used. Estimates are weighted to represent NYC adults 18+.",
+        methodNote: "IMPORTANT: Survey estimates carry ±2–4 percentage point margin of error. Asian health data may under-represent newer immigrant groups due to language barriers in survey administration.",
+      },
+      {
+        name: "NYC DOHMH Vital Statistics — Life Expectancy by Race",
+        status: "seed" as const,
+        org: "NYC DOHMH",
+        updateFreq: "Annual",
+        desc: "Life expectancy at birth by race/ethnicity. 2019 pre-COVID baseline. NH Asian: 87.1y, Hispanic: 82.8y, NH White: 81.2y, NH Black: 74.5y. The 12.6-year Asian–Black gap is a key health equity indicator.",
+      },
+    ],
+  },
+  {
     section: "Nutrition",
     icon: "🥗",
     sources: [
