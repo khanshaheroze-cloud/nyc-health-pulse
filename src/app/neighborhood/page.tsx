@@ -2,6 +2,7 @@ import Link from "next/link";
 import { neighborhoods, BOROUGH_ORDER, cityAvg } from "@/lib/neighborhoodData";
 import { SectionShell } from "@/components/SectionShell";
 import { KPICard } from "@/components/KPICard";
+import { NeighborhoodMapPanel } from "@/components/NeighborhoodMapPanel";
 
 const BOROUGH_COLORS: Record<string, string> = {
   Bronx:          "#f07070",
@@ -62,6 +63,9 @@ export default function NeighborhoodIndexPage() {
           color="orange"
         />
       </div>
+
+      {/* Interactive map */}
+      <NeighborhoodMapPanel />
 
       {/* Borough sections */}
       {BOROUGH_ORDER.map(borough => {
