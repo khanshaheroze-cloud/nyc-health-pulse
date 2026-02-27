@@ -5,11 +5,15 @@ import {
   IliChart,
   ChronicChart,
 } from "@/components/OverviewCharts";
+import { NeighborhoodLookup } from "@/components/NeighborhoodLookup";
 import { kpiCards } from "@/lib/data";
 
 export default function OverviewPage() {
   return (
     <>
+      {/* Neighborhood lookup */}
+      <NeighborhoodLookup />
+
       {/* KPI Grid */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
         {kpiCards.map((kpi) => (

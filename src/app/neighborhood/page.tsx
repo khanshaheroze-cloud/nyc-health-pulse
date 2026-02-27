@@ -3,6 +3,8 @@ import { neighborhoods, BOROUGH_ORDER, cityAvg } from "@/lib/neighborhoodData";
 import { SectionShell } from "@/components/SectionShell";
 import { KPICard } from "@/components/KPICard";
 import { NeighborhoodMapPanel } from "@/components/NeighborhoodMapPanel";
+import { NeighborhoodSearch } from "@/components/NeighborhoodSearch";
+import { CensusTractMapPanel } from "@/components/CensusTractMapPanel";
 
 const BOROUGH_COLORS: Record<string, string> = {
   Bronx:          "#f07070",
@@ -64,8 +66,16 @@ export default function NeighborhoodIndexPage() {
         />
       </div>
 
+      {/* Search */}
+      <div className="mb-4">
+        <NeighborhoodSearch placeholder="Search 42 neighborhoods — try 'Harlem', 'Astoria', 'Bronx'…" />
+      </div>
+
       {/* Interactive map */}
       <NeighborhoodMapPanel />
+
+      {/* Census tract detail map */}
+      <CensusTractMapPanel />
 
       {/* Borough sections */}
       {BOROUGH_ORDER.map(borough => {
