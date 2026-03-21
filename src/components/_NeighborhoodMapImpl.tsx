@@ -18,7 +18,9 @@ const METRIC_CONFIG: Record<MapMetric, { label: string; unit: string; invert: bo
   obesity:  { label: "Obesity Rate",   unit: "%",     invert: true,  min: 12,  max: 37  },
   pm25:     { label: "PM2.5",          unit: "μg/m³", invert: true,  min: 6.1, max: 8.0 },
   lifeExp:  { label: "Life Expectancy",unit: "y",     invert: false, min: 76,  max: 90  },
-  poverty:  { label: "Poverty Rate",   unit: "%",     invert: true,  min: 10,  max: 43  },
+  poverty:      { label: "Poverty Rate",      unit: "%",     invert: true,  min: 10,  max: 43  },
+  overdoseRate: { label: "Overdose Deaths",  unit: "/100K", invert: true,  min: 5,   max: 45  },
+  pretermBirth: { label: "Preterm Births",   unit: "%",     invert: true,  min: 5,   max: 14  },
 };
 
 // green → yellow → red scale

@@ -23,7 +23,7 @@ type NoiseTypeRow     = { type: string; count: number; fill: string };
 
 export function RodentByBoroughChart({ data = STATIC_RODENT_BOROUGH }: { data?: RodentBoroughRow[] }) {
   return (
-    <ChartCard title="Rodent Inspections by Borough" subtitle="Active infestations vs. passed · last 30 days">
+    <ChartCard title="Rodent Inspections by Borough" subtitle="Active infestations vs. passed · last 30 days" tag="LIVE" whyItMatters="Rat populations correlate with building violations and sanitation gaps. Report sightings via 311 — it triggers DOHMH inspections.">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barGap={2}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />
@@ -43,16 +43,16 @@ export function RodentByBoroughChart({ data = STATIC_RODENT_BOROUGH }: { data?: 
 
 export function RodentHotspotsChart() {
   return (
-    <ChartCard title="Top Rat Activity Neighborhoods" subtitle="Confirmed active infestations · NYC 311 + DOHMH" tall>
+    <ChartCard title="Top Rat Activity Neighborhoods" subtitle="Confirmed active infestations · NYC 311 + DOHMH" tag="2024" fill>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={[...STATIC_HOTSPOTS].reverse()}
           layout="vertical"
-          margin={{ left: 8, right: 24, top: 4, bottom: 4 }}
+          margin={{ left: 0, right: 20, top: 0, bottom: 0 }}
         >
           <CartesianGrid {...chartTheme.grid} horizontal={false} />
           <XAxis type="number" {...chartTheme.axis} />
-          <YAxis type="category" dataKey="neighborhood" width={120} {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
+          <YAxis type="category" dataKey="neighborhood" width={110} {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
           <Tooltip {...chartTheme.tooltip} />
           <Bar dataKey="active" name="Active Infestations" fill={COLORS.red + "cc"} radius={[0, 3, 3, 0]} />
         </BarChart>
@@ -65,7 +65,7 @@ export function RodentHotspotsChart() {
 
 export function NoiseByBoroughChart({ data = STATIC_NOISE_BOROUGH }: { data?: NoiseBoroughRow[] }) {
   return (
-    <ChartCard title="311 Noise Complaints by Borough" subtitle="Last 7 days · NYC Open Data">
+    <ChartCard title="311 Noise Complaints by Borough" subtitle="Last 7 days · NYC Open Data" tag="LIVE" whyItMatters="Chronic noise exposure above 70 dB increases risk of hearing loss and cardiovascular disease. NYC averages 80+ dB on many streets.">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barGap={4}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />
@@ -84,7 +84,7 @@ export function NoiseByBoroughChart({ data = STATIC_NOISE_BOROUGH }: { data?: No
 export function NoiseByTypeChart({ data = STATIC_NOISE_TYPE }: { data?: NoiseTypeRow[] }) {
   const total = data.reduce((s, d) => s + d.count, 0);
   return (
-    <ChartCard title="Noise Complaint Categories" subtitle="311 breakdown by type · last 7 days">
+    <ChartCard title="Noise Complaint Categories" subtitle="311 breakdown by type · last 7 days" tag="LIVE">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="count">
@@ -109,7 +109,7 @@ export function NoiseByTypeChart({ data = STATIC_NOISE_TYPE }: { data?: NoiseTyp
 
 export function FoodDesertChart() {
   return (
-    <ChartCard title="Food Desert Prevalence by Borough" subtitle="% low-access census tracts · USDA Food Access Atlas">
+    <ChartCard title="Food Desert Prevalence by Borough" subtitle="% low-access census tracts · USDA Food Access Atlas" tag="2019">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={STATIC_FOOD_DESERT} barGap={4}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />

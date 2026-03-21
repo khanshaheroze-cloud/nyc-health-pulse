@@ -1,0 +1,130 @@
+import { ImageResponse } from "next/og";
+import { getNeighborhood } from "@/lib/neighborhoodData";
+
+export const runtime = "edge";
+export const alt = "Neighborhood Health Profile";
+export const size = { width: 1200, height: 630 };
+export const contentType = "image/png";
+
+const BOROUGH_COLORS: Record<string, string> = {
+  Bronx:          "#EE352E",
+  Brooklyn:       "#FF6319",
+  Manhattan:      "#2850AD",
+  Queens:         "#B933AD",
+  "Staten Island":"#6CBE45",
+};
+
+function getRisk(asthmaED: number, obesity: number, diabetes: number, poverty: number) {
+  const score = (asthmaED / 163.8) * 0.35 + (obesity / 36.1) * 0.25 + (diabetes / 18.4) * 0.25 + (poverty / 42.1) * 0.15;
+  if (score > 0.65) return { label: "HIGH RISK", color: "#d44" };
+  if (score > 0.40) return { label: "MODERATE", color: "#c89520" };
+  return { label: "LOW RISK", color: "#1a9a6e" };
+}
+
+export default function NeighborhoodOGImage({ params }: { params: { slug: string } }) {
+  const n = getNeighborhood(params.slug);
+  if (!n) return new ImageResponse(<div style={{ background: "#f8fafb" }} />, { ...size });
+
+  const color = BOROUGH_COLORS[n.borough] ?? "#2850AD";
+  const risk = getRisk(n.metrics.asthmaED, n.metrics.obesity, n.metrics.diabetes, n.metrics.poverty);
+
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          background: "linear-gradient(135deg, #f8fafb 0%, #eef4f0 100%)",
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          padding: "64px 80px",
+          fontFamily: "system-ui, sans-serif",
+        }}
+      >
+        {/* Top accent bar in borough color */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 6,
+            background: color,
+          }}
+        />
+
+        {/* Borough tag + risk */}
+        <div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
+          <div
+            style={{
+              background: "#ffffff",
+              border: `2px solid ${color}`,
+              borderRadius: 100,
+              padding: "6px 18px",
+              color,
+              fontSize: 14,
+              fontWeight: 700,
+            }}
+          >
+            {n.borough}
+          </div>
+          <div
+            style={{
+              background: "#ffffff",
+              border: `2px solid ${risk.color}`,
+              borderRadius: 100,
+              padding: "6px 18px",
+              color: risk.color,
+              fontSize: 14,
+              fontWeight: 700,
+            }}
+          >
+            {risk.label}
+          </div>
+        </div>
+
+        {/* Neighborhood name */}
+        <div style={{ color: "#1e2d2a", fontSize: 60, fontWeight: 900, lineHeight: 1.1, marginBottom: 12 }}>
+          {n.name}
+        </div>
+        <div style={{ color: "#5a7a6e", fontSize: 20, marginBottom: 48 }}>
+          Health Profile · Pop. {n.population.toLocaleString()} · UHF42 Public Health District
+        </div>
+
+        {/* Metric chips */}
+        <div style={{ display: "flex", gap: 20 }}>
+          {[
+            { label: "Asthma ED", value: `${n.metrics.asthmaED}/10K`, color: "#d44" },
+            { label: "Life Exp.", value: `${n.metrics.lifeExp}y`, color: "#1a9a6e" },
+            { label: "Poverty", value: `${n.metrics.poverty}%`, color: "#c89520" },
+            { label: "PM2.5", value: `${Number(n.metrics.pm25).toFixed(1)} μg/m³`, color: "#2850AD" },
+          ].map(({ label, value, color: c }) => (
+            <div
+              key={label}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8e4",
+                borderRadius: 14,
+                padding: "14px 24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+              }}
+            >
+              <span style={{ color: "#5a7a6e", fontSize: 12, fontWeight: 600, letterSpacing: 1 }}>
+                {label.toUpperCase()}
+              </span>
+              <span style={{ color: c, fontSize: 24, fontWeight: 700 }}>{value}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ color: "#8ba89c", fontSize: 15, position: "absolute", bottom: 48, right: 80 }}>
+          pulsenyc.app
+        </div>
+      </div>
+    ),
+    { ...size }
+  );
+}

@@ -19,11 +19,13 @@ type CuisineRow  = { cuisine: string; violations: number };
 type BoroughRow  = { borough: string; avgScore: number };
 type GradeRow    = { name: string; value: number; fill: string };
 
-export function ViolationsByCuisineChart({ data = STATIC_CUISINE }: { data?: CuisineRow[] }) {
+export function ViolationsByCuisineChart({ data }: { data?: CuisineRow[] }) {
+  const chartData = data ?? STATIC_CUISINE;
+  const tag = data ? "LIVE" : "2024";
   return (
-    <ChartCard title="Critical Violations by Cuisine Type" subtitle="Recent inspections · lower is better">
+    <ChartCard title="Critical Violations by Cuisine Type" subtitle="Recent inspections · lower is better" tag={tag}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} layout="vertical" margin={{ left: 8, right: 24, top: 4, bottom: 4 }}>
+        <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 24, top: 4, bottom: 4 }}>
           <CartesianGrid {...chartTheme.grid} horizontal={false} />
           <XAxis type="number" {...chartTheme.axis} />
           <YAxis type="category" dataKey="cuisine" width={110} {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
@@ -37,11 +39,13 @@ export function ViolationsByCuisineChart({ data = STATIC_CUISINE }: { data?: Cui
 
 // ─── Avg Score by Borough ─────────────────────────────────────────────────────
 
-export function ScoreByBoroughChart({ data = STATIC_BOROUGH }: { data?: BoroughRow[] }) {
+export function ScoreByBoroughChart({ data }: { data?: BoroughRow[] }) {
+  const chartData = data ?? STATIC_BOROUGH;
+  const tag = data ? "LIVE" : "2024";
   return (
-    <ChartCard title="Avg Inspection Score by Borough" subtitle="NYC DOHMH · lower score = better performance">
+    <ChartCard title="Avg Inspection Score by Borough" subtitle="NYC DOHMH · lower score = better performance" tag={tag}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} barGap={4}>
+        <BarChart data={chartData} barGap={4}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />
           <XAxis dataKey="borough" {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
           <YAxis domain={[0, 40]} {...chartTheme.axis} />
@@ -55,14 +59,16 @@ export function ScoreByBoroughChart({ data = STATIC_BOROUGH }: { data?: BoroughR
 
 // ─── Grade Distribution ───────────────────────────────────────────────────────
 
-export function GradeDistributionChart({ data = STATIC_GRADES }: { data?: GradeRow[] }) {
-  const total = data.reduce((s, d) => s + d.value, 0);
+export function GradeDistributionChart({ data }: { data?: GradeRow[] }) {
+  const chartData = data ?? STATIC_GRADES;
+  const total = chartData.reduce((s, d) => s + d.value, 0);
+  const tag = data ? "LIVE" : "2024";
   return (
-    <ChartCard title="Inspection Grade Distribution" subtitle="Graded restaurants · NYC DOHMH">
+    <ChartCard title="Inspection Grade Distribution" subtitle="Graded restaurants · NYC DOHMH" tag={tag} whyItMatters="49% of NYC restaurants earn an A grade. A 'Z' grade means they're appealing a low score — check inspection details before eating there.">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
-            data={data}
+            data={chartData}
             cx="50%"
             cy="50%"
             innerRadius={60}
@@ -72,7 +78,7 @@ export function GradeDistributionChart({ data = STATIC_GRADES }: { data?: GradeR
             label={({ name, value }) => `${name}: ${Math.round((value / total) * 100)}%`}
             labelLine={false}
           >
-            {data.map((entry) => (
+            {chartData.map((entry) => (
               <Cell key={entry.name} fill={entry.fill} />
             ))}
           </Pie>

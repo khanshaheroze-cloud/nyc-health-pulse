@@ -44,6 +44,13 @@ const METRIC_LABELS: Record<string, string> = {
   asthma:          "Asthma ED Rate/10K",
 };
 
+const METRIC_TABS: { key: MapMetric; label: string }[] = [
+  { key: "pm25",            label: "PM2.5"    },
+  { key: "obesity",         label: "Obesity"  },
+  { key: "life_expectancy", label: "Life Exp" },
+  { key: "asthma",          label: "Asthma ED"},
+];
+
 // For life_expectancy, higher = better (invert color scale)
 const INVERT_SCALE = new Set(["life_expectancy"]);
 
@@ -68,14 +75,11 @@ function valueToColor(value: number, min: number, max: number, invert: boolean):
 
 export type MapMetric = "pm25" | "obesity" | "life_expectancy" | "asthma";
 
-interface Props {
-  metric: MapMetric;
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GeoJsonData = any;
 
-export default function BoroughMapImpl({ metric }: Props) {
+export default function BoroughMapImpl() {
+  const [metric, setMetric] = useState<MapMetric>("pm25");
   const [geoJson, setGeoJson] = useState<GeoJsonData>(null);
   const [error, setError] = useState(false);
 
@@ -124,25 +128,48 @@ export default function BoroughMapImpl({ metric }: Props) {
   }
 
   return (
-    <MapContainer
-      center={[40.7128, -74.006]}
-      zoom={10}
-      scrollWheelZoom={false}
-      style={{ height: "100%", width: "100%", background: "#10151e" }}
-      className="rounded-lg"
-    >
-      <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-      />
-      {geoJson && (
-        <GeoJSON key={metric} data={geoJson} style={style} onEachFeature={onEachFeature} />
-      )}
-      {!geoJson && (
-        <div className="absolute inset-0 flex items-center justify-center z-[1000]">
-          <span className="text-dim text-xs">Loading borough data…</span>
-        </div>
-      )}
-    </MapContainer>
+    <div className="flex flex-col gap-2 h-full">
+      {/* Metric tab row */}
+      <div className="flex gap-1.5 flex-wrap">
+        {METRIC_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setMetric(tab.key)}
+            className={
+              "px-3 py-1 text-[11px] font-semibold rounded-lg border transition-colors " +
+              (metric === tab.key
+                ? "bg-hp-blue/15 border-hp-blue/40 text-hp-blue"
+                : "bg-surface border-border text-dim hover:text-text")
+            }
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Map */}
+      <div className="flex-1" style={{ minHeight: 0 }}>
+        <MapContainer
+          center={[40.7128, -74.006]}
+          zoom={10}
+          scrollWheelZoom={false}
+          style={{ height: "100%", width: "100%", background: "#10151e" }}
+          className="rounded-lg"
+        >
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+          />
+          {geoJson && (
+            <GeoJSON key={metric} data={geoJson} style={style} onEachFeature={onEachFeature} />
+          )}
+          {!geoJson && (
+            <div className="absolute inset-0 flex items-center justify-center z-[1000]">
+              <span className="text-dim text-xs">Loading borough data…</span>
+            </div>
+          )}
+        </MapContainer>
+      </div>
+    </div>
   );
 }

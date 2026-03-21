@@ -65,7 +65,7 @@ export function RacePctByBoroughChart({ data = STATIC_RACE }: { data?: RaceRow[]
   });
 
   return (
-    <ChartCard title="Race & Ethnicity by Borough" subtitle="% of borough population · ACS 2022" fullWidth>
+    <ChartCard title="Race & Ethnicity by Borough" subtitle="% of borough population · ACS 2022" fullWidth tag="LIVE">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />
@@ -134,7 +134,7 @@ export function AsianSubgroupsChart({ data = STATIC_ASIAN }: { data?: typeof STA
   const sorted = [...data].sort((a, b) => b.count - a.count);
 
   return (
-    <ChartCard title="Asian American Subgroups — NYC" subtitle="ACS 2022 · B02015 · NYC total ~1.24 million" tall>
+    <ChartCard title="Asian American Subgroups — NYC" subtitle="ACS 2022 · B02015 · NYC total ~1.24 million" tall tag="2022">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={sorted} layout="vertical" margin={{ left: 8 }}>
           <CartesianGrid {...chartTheme.grid} horizontal={false} />
@@ -168,7 +168,7 @@ export function AgeByBoroughChart({ data = STATIC_AGE }: { data?: typeof STATIC_
   }));
 
   return (
-    <ChartCard title="Age Distribution by Borough" subtitle="% of borough population · ACS 2022 estimates">
+    <ChartCard title="Age Distribution by Borough" subtitle="% of borough population · ACS 2022 estimates" tag="2022">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />
@@ -192,7 +192,7 @@ export function AgeByBoroughChart({ data = STATIC_AGE }: { data?: typeof STATIC_
 
 export function HealthDisparitiesChart({ data = STATIC_DISPARITIES }: { data?: typeof STATIC_DISPARITIES }) {
   return (
-    <ChartCard title="Health Disparities by Race / Ethnicity" subtitle="NYC DOHMH Community Health Survey 2022 · adults 18+" fullWidth>
+    <ChartCard title="Health Disparities by Race / Ethnicity" subtitle="NYC DOHMH Community Health Survey 2022 · adults 18+" fullWidth tag="2022">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barGap={2}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />
@@ -203,8 +203,8 @@ export function HealthDisparitiesChart({ data = STATIC_DISPARITIES }: { data?: t
             formatter={(value: number | undefined) => [`${value}%`]}
           />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
-          {(Object.keys(DISPARITY_COLORS) as (keyof typeof DISPARITY_COLORS)[]).map(key => (
-            <Bar key={key} dataKey={key} fill={DISPARITY_COLORS[key] + "cc"} radius={[3, 3, 0, 0]} />
+          {(Object.keys(DISPARITY_COLORS) as (keyof typeof DISPARITY_COLORS)[]).map((key, i) => (
+            <Bar key={key} dataKey={key} fill={DISPARITY_COLORS[key] + (["ee", "cc", "aa", "dd"] as const)[i]} radius={[3, 3, 0, 0]} />
           ))}
         </BarChart>
       </ResponsiveContainer>
@@ -223,7 +223,7 @@ export function LifeExpByRaceChart({ data = STATIC_LIFE_EXP }: { data?: typeof S
   };
 
   return (
-    <ChartCard title="Life Expectancy by Race / Ethnicity" subtitle="NYC · 2019 pre-COVID baseline · NYC DOHMH Vital Statistics">
+    <ChartCard title="Life Expectancy by Race / Ethnicity" subtitle="NYC · 2019 pre-COVID baseline · NYC DOHMH Vital Statistics" tag="2019">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ left: 8 }}>
           <CartesianGrid {...chartTheme.grid} horizontal={false} />
@@ -238,6 +238,71 @@ export function LifeExpByRaceChart({ data = STATIC_LIFE_EXP }: { data?: typeof S
               <Cell key={i} fill={COLORS_MAP[entry.group] ?? "#6b7a94"} />
             ))}
           </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
+// ─── Poverty Rate by Borough (live Census ACS) ────────────────────────────────
+
+export function PovertyByBoroughChart({ data }: { data: { borough: string; pct: number }[] }) {
+  return (
+    <ChartCard title="Poverty Rate by Borough" subtitle="% below federal poverty line · ACS 2022" tag="LIVE">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} barGap={4}>
+          <CartesianGrid {...chartTheme.grid} vertical={false} />
+          <XAxis dataKey="borough" {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
+          <YAxis {...chartTheme.axis} unit="%" domain={[0, 35]} />
+          <Tooltip
+            {...chartTheme.tooltip}
+            formatter={(v: number | undefined) => v != null ? [`${v}%`, "Poverty rate"] : [""]}
+          />
+          <Bar dataKey="pct" name="Poverty %" fill="#f07070cc" radius={[3, 3, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
+// ─── Median Household Income by Borough (live Census ACS) ─────────────────────
+
+export function MedianIncomeChart({ data }: { data: { borough: string; income: number }[] }) {
+  return (
+    <ChartCard title="Median Household Income by Borough" subtitle="Dollars · ACS 2022 5-year estimates" tag="LIVE">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} barGap={4}>
+          <CartesianGrid {...chartTheme.grid} vertical={false} />
+          <XAxis dataKey="borough" {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
+          <YAxis {...chartTheme.axis} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}K`} />
+          <Tooltip
+            {...chartTheme.tooltip}
+            formatter={(v: number | undefined) => v != null ? [`$${(v as number).toLocaleString()}`, "Median income"] : [""]}
+          />
+          <Bar dataKey="income" name="Median Income" fill="#5b9cf5cc" radius={[3, 3, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
+// ─── Uninsured Rate by Borough (live Census ACS S2701) ─────────────────────────
+
+export function UninsuredByBoroughChart({ data }: { data: { borough: string; pct: number; count: number }[] }) {
+  return (
+    <ChartCard title="Uninsured Rate by Borough" subtitle="% without health insurance · ACS 2022 5-year estimates" tag="LIVE">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} barGap={4}>
+          <CartesianGrid {...chartTheme.grid} vertical={false} />
+          <XAxis dataKey="borough" {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
+          <YAxis {...chartTheme.axis} unit="%" domain={[0, 12]} />
+          <Tooltip
+            {...chartTheme.tooltip}
+            formatter={(v: number | undefined, name: string | undefined) =>
+              v != null ? [name === "pct" ? `${v}%` : v.toLocaleString(), name === "pct" ? "Uninsured %" : "Uninsured count"] : [""]
+            }
+          />
+          <Bar dataKey="pct" name="Uninsured %" fill="#f07070cc" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </ChartCard>

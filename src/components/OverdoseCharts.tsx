@@ -23,6 +23,8 @@ export function OverdoseTrendChart() {
     <ChartCard
       title="Drug Overdose Deaths — NYC"
       subtitle="Annual total · 2017–2024 est. · NYC DOHMH"
+      tag="2024"
+      whyItMatters="NYC lost over 3,000 people to overdoses in 2023 — more than car accidents and homicides combined. Free naloxone (Narcan) is available at any NYC pharmacy."
     >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={overdoseTrend}>
@@ -55,6 +57,7 @@ export function OverdoseBoroughChart() {
     <ChartCard
       title="Overdose Deaths by Borough"
       subtitle="2024 estimate · NYC DOHMH"
+      tag="2024"
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={overdoseByBorough} barGap={4}>
@@ -79,6 +82,7 @@ export function LeadTrendChart() {
     <ChartCard
       title="Child Blood Lead Levels — Trend"
       subtitle="% of children tested with elevated BLL · NYC DOHMH 2015–2023"
+      tag="2023"
     >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={leadTrend}>
@@ -111,6 +115,7 @@ export function LeadBoroughChart() {
     <ChartCard
       title="Child Elevated Blood Lead by Borough"
       subtitle="% of tested children · NYC DOHMH 2023"
+      tag="2023"
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={leadByBorough} barGap={4}>

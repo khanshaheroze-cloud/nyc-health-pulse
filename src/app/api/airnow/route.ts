@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-// Hourly revalidation — AirNow updates observations every hour
+// Force dynamic — AirNow API can be slow and must not block static build
+export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
 const NYC_ZIPS = ["10001", "10451", "11201"]; // Manhattan, Bronx, Brooklyn

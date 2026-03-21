@@ -27,12 +27,12 @@ const iliChartData = iliWeeks.map((week, i) => ({
 }));
 
 const iliLines = [
-  { key: "Citywide",    color: COLORS.yellow },
-  { key: "Bronx",       color: COLORS.red },
-  { key: "Brooklyn",    color: COLORS.blue },
-  { key: "Manhattan",   color: COLORS.purple },
-  { key: "Queens",      color: COLORS.green },
-  { key: "Staten Is.",  color: COLORS.orange },
+  { key: "Citywide",    color: COLORS.yellow, dash: "5 3" },
+  { key: "Bronx",       color: COLORS.red,    dash: undefined },
+  { key: "Brooklyn",    color: COLORS.blue,   dash: "8 4" },
+  { key: "Manhattan",   color: COLORS.purple, dash: "4 3" },
+  { key: "Queens",      color: COLORS.green,  dash: "12 3 3 3" },
+  { key: "Staten Is.",  color: COLORS.orange, dash: "2 3" },
 ] as const;
 
 // ─── Full ILI Chart (with Citywide) ──────────────────────────────────────────
@@ -44,6 +44,8 @@ export function IliFullChart() {
       subtitle="% of all ER visits · Wk42 2025 – Wk3 2026"
       fullWidth
       tall
+      tag="Jan 2026"
+      whyItMatters="When flu-like illness spikes, ER wait times increase across the city. This helps you decide whether that cough is worth a trip to the ER."
     >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={iliChartData}>
@@ -55,14 +57,14 @@ export function IliFullChart() {
             formatter={(v: number | undefined) => v != null ? [`${v}%`] : [""]}
           />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
-          {iliLines.map(({ key, color }) => (
+          {iliLines.map(({ key, color, dash }) => (
             <Line
               key={key}
               type="monotone"
               dataKey={key}
               stroke={color}
               strokeWidth={key === "Citywide" ? 2.5 : 1.5}
-              strokeDasharray={key === "Citywide" ? "5 3" : undefined}
+              strokeDasharray={dash}
               dot={false}
               activeDot={{ r: 4 }}
             />
@@ -80,6 +82,7 @@ export function FluVaccinationChart() {
     <ChartCard
       title="Adult Flu Vaccination Rate by Borough"
       subtitle="% vaccinated · NYC DOHMH 2023–24 season"
+      tag="2023"
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart

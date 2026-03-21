@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 
 const NeighborhoodMapImpl = dynamic(() => import("./_NeighborhoodMapImpl"), { ssr: false });
 
-export type MapMetric = "asthmaED" | "obesity" | "pm25" | "lifeExp" | "poverty";
+export type MapMetric = "asthmaED" | "obesity" | "pm25" | "lifeExp" | "poverty" | "overdoseRate" | "pretermBirth";
 
 interface Props {
   metric?: MapMetric;

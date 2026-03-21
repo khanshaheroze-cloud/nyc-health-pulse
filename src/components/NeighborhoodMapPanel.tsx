@@ -8,7 +8,9 @@ const METRICS: { key: MapMetric; label: string }[] = [
   { key: "obesity",  label: "Obesity"   },
   { key: "poverty",  label: "Poverty"   },
   { key: "pm25",     label: "PM2.5"     },
-  { key: "lifeExp",  label: "Life Exp." },
+  { key: "lifeExp",       label: "Life Exp." },
+  { key: "overdoseRate",  label: "Overdose Deaths" },
+  { key: "pretermBirth",  label: "Preterm Births" },
 ];
 
 export function NeighborhoodMapPanel() {

@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
+export const metadata: Metadata = {
+  title: "NYC Demographics — Race, Income, Poverty & Insurance",
+  description: "Census demographic data for NYC. Race/ethnicity, median income, poverty rate, and uninsured rate by borough. Live data from U.S. Census ACS.",
+};
+import { datasetJsonLdString, CENSUS_LICENSE, NYC_OPEN_DATA_LICENSE } from "@/lib/jsonLd";
 import { SectionShell } from "@/components/SectionShell";
 import { KPICard } from "@/components/KPICard";
+import { SubwayBullet, BOROUGH_LINE } from "@/components/SubwayBullet";
 import {
   RacePctByBoroughChart,
   RaceCountsTable,
@@ -7,8 +14,11 @@ import {
   AgeByBoroughChart,
   HealthDisparitiesChart,
   LifeExpByRaceChart,
+  PovertyByBoroughChart,
+  MedianIncomeChart,
+  UninsuredByBoroughChart,
 } from "@/components/DemographicsCharts";
-import { fetchRaceByBorough } from "@/lib/liveData";
+import { fetchRaceByBorough, fetchPovertyByBorough, fetchMedianIncomeByBorough, fetchUninsuredByBorough } from "@/lib/liveData";
 import {
   raceByBorough,
   asianSubgroupsCitywide,
@@ -18,7 +28,12 @@ import {
 } from "@/lib/data";
 
 export default async function DemographicsPage() {
-  const liveRace = await fetchRaceByBorough();
+  const [liveRace, poverty, income, uninsured] = await Promise.all([
+    fetchRaceByBorough(),
+    fetchPovertyByBorough(),
+    fetchMedianIncomeByBorough(),
+    fetchUninsuredByBorough(),
+  ]);
   const raceData = liveRace ?? raceByBorough;
 
   // KPI computations
@@ -38,11 +53,52 @@ export default async function DemographicsPage() {
   const blackGap = (lifeExpectancyByRace.find(d => d.group === "NH Asian")?.years ?? 87.1)
                  - (lifeExpectancyByRace.find(d => d.group === "NH Black")?.years ?? 74.5);
 
+  const jsonLd = datasetJsonLdString([
+    {
+      name: "NYC Demographics — Race, Ethnicity & Age by Borough (U.S. Census ACS)",
+      description: "Population by race/ethnicity (NH White, NH Black, NH Asian, Hispanic, Other) and age distribution for all five NYC boroughs from the U.S. Census American Community Survey.",
+      pagePath: "/demographics",
+      license: CENSUS_LICENSE,
+      temporalCoverage: "2019/2023",
+      distribution: [
+        { name: "Census ACS B03002 (Race/Ethnicity)", contentUrl: "https://api.census.gov/data/2023/acs/acs5" },
+        { name: "Census ACS B01001 (Age/Sex)", contentUrl: "https://api.census.gov/data/2023/acs/acs5" },
+      ],
+      variableMeasured: ["Population by Race/Ethnicity", "Population by Age Group", "Asian Subgroup Populations"],
+    },
+    {
+      name: "NYC Economic Indicators — Poverty, Income & Uninsured by Borough",
+      description: "Poverty rate, median household income, and health insurance coverage by NYC borough from U.S. Census ACS.",
+      pagePath: "/demographics",
+      license: CENSUS_LICENSE,
+      temporalCoverage: "2019/2023",
+      distribution: [
+        { name: "Census ACS B17001 (Poverty)", contentUrl: "https://api.census.gov/data/2023/acs/acs5" },
+        { name: "Census ACS B19013 (Median Income)", contentUrl: "https://api.census.gov/data/2023/acs/acs5" },
+        { name: "Census ACS S2701 (Uninsured)", contentUrl: "https://api.census.gov/data/2023/acs/acs5/subject" },
+      ],
+      variableMeasured: ["Poverty Rate (%)", "Median Household Income ($)", "Uninsured Rate (%)"],
+    },
+    {
+      name: "NYC Health Disparities by Race — Life Expectancy & Chronic Disease",
+      description: "Health outcome disparities by race/ethnicity in NYC including life expectancy, obesity, diabetes, and smoking rates from NYC DOHMH Community Health Survey.",
+      pagePath: "/demographics",
+      license: NYC_OPEN_DATA_LICENSE,
+      temporalCoverage: "2019/2022",
+      distribution: [
+        { name: "NYC DOHMH Community Health Survey", contentUrl: "https://www.nyc.gov/site/doh/data/data-tools/community-health-survey.page" },
+      ],
+      variableMeasured: ["Life Expectancy by Race (years)", "Obesity Rate by Race (%)", "Diabetes Rate by Race (%)", "Smoking Rate by Race (%)"],
+    },
+  ]);
+
   return (
+    <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
     <SectionShell
       icon="👥"
       title="Demographics"
-      description="Borough population by race & ethnicity, age distribution, and health disparities · ACS 2022 + NYC DOHMH"
+      description="Borough population by race & ethnicity, age distribution, and health disparities · ACS 2023 + NYC DOHMH"
       accentColor="rgba(167,139,250,.12)"
     >
       {/* KPI row */}
@@ -50,27 +106,58 @@ export default async function DemographicsPage() {
         <KPICard
           label="NYC Population"
           value={(totalPop / 1_000_000).toFixed(2) + "M"}
-          sub="ACS 2022 · 5-year estimate"
+          sub="ACS 2023 · 5-year estimate"
           color="blue"
+          tag="2023"
         />
         <KPICard
           label="Most Diverse Borough"
           value={mostDiverse?.borough ?? "Queens"}
           sub="Smallest dominant-group share"
           color="purple"
+          tag="2023"
         />
         <KPICard
           label="Asian Americans"
           value={(totalAsian / 1_000_000).toFixed(2) + "M"}
           sub={`${((totalAsian / totalPop) * 100).toFixed(1)}% of NYC — 2nd largest US city`}
           color="cyan"
+          tag="2023"
         />
         <KPICard
           label="Hispanic / Latino"
           value={(totalHisp / 1_000_000).toFixed(2) + "M"}
           sub={`${((totalHisp / totalPop) * 100).toFixed(1)}% of NYC`}
           color="orange"
+          tag="2023"
         />
+        {poverty && (
+          <KPICard
+            label="Poverty (Highest)"
+            value={[...poverty].sort((a, b) => b.pct - a.pct)[0].borough}
+            sub={`${[...poverty].sort((a, b) => b.pct - a.pct)[0].pct}% below poverty line`}
+            color="red"
+            tag="2023"
+          />
+        )}
+        {income && (
+          <KPICard
+            label="Median Income (Highest)"
+            value={[...income].sort((a, b) => b.income - a.income)[0].borough}
+            sub={`$${[...income].sort((a, b) => b.income - a.income)[0].income.toLocaleString()}`}
+            color="green"
+            tag="2023"
+          />
+        )}
+        {uninsured && (
+          <KPICard
+            label="Uninsured (Highest)"
+            value={[...uninsured].sort((a, b) => b.pct - a.pct)[0].borough}
+            sub={`${[...uninsured].sort((a, b) => b.pct - a.pct)[0].pct}% without coverage`}
+            color="red"
+            tag="2023"
+          />
+        )}
       </div>
 
       {/* Race charts */}
@@ -153,19 +240,31 @@ export default async function DemographicsPage() {
         <div className="bg-surface border border-border rounded-xl p-4 flex flex-col justify-center gap-2">
           <h3 className="text-[13px] font-bold">Age Highlights</h3>
           {[
-            { label: "Bronx — youngest median age (~34)",       detail: "24% under 18 · highest child share of any borough" },
-            { label: "Manhattan — oldest median age (~37)",     detail: "Only 16% under 18 · 16% seniors" },
-            { label: "Queens — most working-age adults",        detail: "27% ages 35–54 · large immigrant workforce" },
-            { label: "Brooklyn — largest raw senior population",detail: "~380K adults 65+ — more than any other borough" },
-          ].map(({ label, detail }) => (
-            <div key={label}>
-              <p className="text-[11px] font-semibold text-text">{label}</p>
-              <p className="text-[10px] text-dim">{detail}</p>
+            { borough: "Bronx",     label: "Youngest median age (~34)",       detail: "24% under 18 · highest child share of any borough" },
+            { borough: "Manhattan", label: "Oldest median age (~37)",         detail: "Only 16% under 18 · 16% seniors" },
+            { borough: "Queens",    label: "Most working-age adults",         detail: "27% ages 35–54 · large immigrant workforce" },
+            { borough: "Brooklyn",  label: "Largest raw senior population",   detail: "~380K adults 65+ — more than any other borough" },
+          ].map(({ borough, label, detail }) => (
+            <div key={borough} className="flex items-start gap-2">
+              <SubwayBullet line={BOROUGH_LINE[borough] ?? "S"} size={18} />
+              <div>
+                <p className="text-[11px] font-semibold text-text">{borough} — {label}</p>
+                <p className="text-[10px] text-dim">{detail}</p>
+              </div>
             </div>
           ))}
-          <p className="text-[10px] text-muted mt-1">Source: ACS 2022 5-year estimates · B01001</p>
+          <p className="text-[10px] text-muted mt-1">Source: ACS 2023 5-year estimates · B01001</p>
         </div>
       </div>
+
+      {/* Poverty, Income & Uninsured */}
+      {(poverty || income || uninsured) && (
+        <div className={`grid grid-cols-1 gap-3 mb-3 ${poverty && income && uninsured ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
+          {poverty   && <PovertyByBoroughChart data={poverty} />}
+          {income    && <MedianIncomeChart data={income} />}
+          {uninsured && <UninsuredByBoroughChart data={uninsured} />}
+        </div>
+      )}
 
       {/* Health disparities */}
       <div className="mb-3">
@@ -187,7 +286,10 @@ export default async function DemographicsPage() {
             family support networks.
           </p>
           <div className="mt-2 bg-hp-red/5 border border-hp-red/20 rounded-lg p-2">
-            <p className="text-[10px] text-hp-red font-semibold">Bronx effect</p>
+            <p className="text-[10px] text-hp-red font-semibold flex items-center gap-1.5">
+              <SubwayBullet line="4" size={14} />
+              Bronx effect
+            </p>
             <p className="text-[10px] text-dim">
               The Bronx (life exp. 79.0y, lowest of any NYC borough) has the highest share of Black and
               Hispanic residents — health geography and race are deeply intertwined.
@@ -204,7 +306,7 @@ export default async function DemographicsPage() {
           <div>
             <p className="font-semibold text-text mb-1">Race / Ethnicity (B03002)</p>
             <p>
-              U.S. Census Bureau ACS 5-year estimates 2022. Population counts query the Census API daily
+              U.S. Census Bureau ACS 5-year estimates 2023 (released Dec 2024). Population counts query the Census API
               (revalidated monthly). Race categories follow the Census OMB standard: people can identify with
               one or more races; Hispanic / Latino is an ethnicity, not a race, and can be any race.
             </p>
@@ -219,13 +321,16 @@ export default async function DemographicsPage() {
             </p>
           </div>
         </div>
-        {liveRace && (
+        {(liveRace || poverty || income) && (
           <div className="mt-3 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse" />
-            <p className="text-[10px] text-hp-green font-semibold">Race / ethnicity data live from U.S. Census ACS API</p>
+            <p className="text-[10px] text-hp-green font-semibold">
+              Race, poverty, and income data live from U.S. Census ACS API · revalidates monthly
+            </p>
           </div>
         )}
       </div>
     </SectionShell>
+    </>
   );
 }

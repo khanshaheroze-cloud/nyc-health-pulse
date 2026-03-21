@@ -13,20 +13,22 @@ type BoroughRow = { borough: string; cases: number; hosp: number };
 
 // ─── COVID Monthly Trend ───────────────────────────────────────────────────────
 
-export function CovidMonthlyChart({ data = STATIC_MONTHLY }: { data?: MonthlyRow[] }) {
+export function CovidMonthlyChart({ data }: { data?: MonthlyRow[] }) {
+  const chartData = data ?? STATIC_MONTHLY;
+  const tag = data ? "LIVE" : "2025";
   return (
-    <ChartCard title="COVID-19 Monthly Trend" subtitle="Cases, hospitalizations & deaths" fullWidth>
+    <ChartCard title="COVID-19 Monthly Trend" subtitle="Cases, hospitalizations & deaths" fullWidth tag={tag} whyItMatters="Hospitalizations are the most reliable COVID indicator — case counts undercount due to home testing. Wastewater data provides the earliest warning signal.">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} barGap={2}>
+        <BarChart data={chartData} barGap={2}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />
           <XAxis dataKey="month" {...chartTheme.axis} />
           <YAxis yAxisId="left"  {...chartTheme.axis} />
           <YAxis yAxisId="right" orientation="right" {...chartTheme.axis} />
           <Tooltip {...chartTheme.tooltip} />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
-          <Bar  yAxisId="left"  dataKey="cases"  name="Cases"            fill={COLORS.blue   + "99"} radius={[3, 3, 0, 0]} />
+          <Bar  yAxisId="left"  dataKey="cases"  name="Cases"            fill={COLORS.blue   + "cc"} radius={[3, 3, 0, 0]} />
           <Bar  yAxisId="left"  dataKey="hosp"   name="Hospitalizations" fill={COLORS.orange + "99"} radius={[3, 3, 0, 0]} />
-          <Line yAxisId="right" type="monotone" dataKey="deaths" name="Deaths" stroke={COLORS.red} strokeWidth={2} dot={{ r: 3, fill: COLORS.red }} />
+          <Line yAxisId="right" type="monotone" dataKey="deaths" name="Deaths" stroke={COLORS.red} strokeWidth={2} strokeDasharray="6 3" dot={{ r: 3, fill: COLORS.red }} />
         </BarChart>
       </ResponsiveContainer>
     </ChartCard>
@@ -35,17 +37,19 @@ export function CovidMonthlyChart({ data = STATIC_MONTHLY }: { data?: MonthlyRow
 
 // ─── COVID by Borough ─────────────────────────────────────────────────────────
 
-export function CovidBoroughChart({ data = STATIC_BOROUGH }: { data?: BoroughRow[] }) {
+export function CovidBoroughChart({ data }: { data?: BoroughRow[] }) {
+  const chartData = data ?? STATIC_BOROUGH;
+  const tag = data ? "LIVE" : "2025";
   return (
-    <ChartCard title="COVID-19 by Borough (90-day)" subtitle="Cases & hospitalizations · most recent 90 days">
+    <ChartCard title="COVID-19 by Borough (90-day)" subtitle="Cases & hospitalizations · most recent 90 days" tag={tag}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} barGap={4}>
+        <BarChart data={chartData} barGap={4}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />
           <XAxis dataKey="borough" {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
           <YAxis {...chartTheme.axis} />
           <Tooltip {...chartTheme.tooltip} />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
-          <Bar dataKey="cases" name="Cases"            fill={COLORS.blue   + "99"} radius={[3, 3, 0, 0]} />
+          <Bar dataKey="cases" name="Cases"            fill={COLORS.blue   + "cc"} radius={[3, 3, 0, 0]} />
           <Bar dataKey="hosp"  name="Hospitalizations" fill={COLORS.orange + "99"} radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>

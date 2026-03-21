@@ -1,41 +1,466 @@
 @import "tailwindcss";
 
 @theme {
-  /* Backgrounds */
-  --color-bg: #090c11;
-  --color-surface: #10151e;
-  --color-surface-2: #171e2c;
-  --color-border: #1d2640;
+  /* Backgrounds — clean white wellness */
+  --color-bg: #f8fafb;
+  --color-surface: #ffffff;
+  --color-surface-2: #f0f5f2;
+  --color-border: #e2e8e4;
 
   /* Text */
-  --color-text: #e2e7f0;
-  --color-dim: #6b7a94;
-  --color-muted: #3d4b63;
+  --color-text: #1e2d2a;
+  --color-dim: #5a7a6e;
+  --color-muted: #9ab5ae;
 
-  /* Brand palette */
-  --color-hp-green: #2dd4a0;
-  --color-hp-blue: #5b9cf5;
-  --color-hp-purple: #a78bfa;
-  --color-hp-orange: #f59e42;
-  --color-hp-red: #f07070;
-  --color-hp-pink: #f472b6;
-  --color-hp-yellow: #f5c542;
-  --color-hp-cyan: #22d3ee;
+  /* Brand palette — natural, health-forward */
+  --color-hp-green: #10b981;
+  --color-hp-blue: #0ea5e9;
+  --color-hp-purple: #8b5cf6;
+  --color-hp-orange: #f97316;
+  --color-hp-red: #ef4444;
+  --color-hp-pink: #ec4899;
+  --color-hp-yellow: #d97706;
+  --color-hp-cyan: #06b6d4;
+
+  /* MTA Subway Line Colors — official Pantone-to-hex */
+  --color-mta-red: #EE352E;       /* 1, 2, 3 — IRT Broadway-7th Ave */
+  --color-mta-green: #00933C;     /* 4, 5, 6 — IRT Lexington Ave */
+  --color-mta-purple: #B933AD;    /* 7 — Flushing */
+  --color-mta-blue: #2850AD;      /* A, C, E — IND 8th Ave */
+  --color-mta-orange: #FF6319;    /* B, D, F, M — IND 6th Ave */
+  --color-mta-limegreen: #6CBE45; /* G — Crosstown */
+  --color-mta-brown: #996633;     /* J, Z — Nassau */
+  --color-mta-gray: #A7A9AC;      /* L — Canarsie */
+  --color-mta-yellow: #FCCC0A;    /* N, Q, R, W — Broadway */
+
+  /* NYC cultural palette */
+  --color-nyc-taxiyellow: #FCCC0A;
+  --color-nyc-ferryorange: #FF6319;
+
+  /* Borough identity — subway-line based */
+  --color-borough-bronx: #EE352E;      /* 4/5/6 serve the Bronx */
+  --color-borough-brooklyn: #FF6319;   /* B/D/F/M, G heavily serve Brooklyn */
+  --color-borough-manhattan: #2850AD;  /* A/C/E trunk of Manhattan */
+  --color-borough-queens: #B933AD;     /* 7 train = Queens line */
+  --color-borough-si: #6CBE45;         /* SIR / G */
 
   /* Fonts */
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
 }
 
+/* ===================================================================
+   ANIMATIONS
+   =================================================================== */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  14% { transform: scale(1.3); opacity: 1; }
+  28% { transform: scale(1); opacity: 0.7; }
+  42% { transform: scale(1.15); opacity: 1; }
+  70% { transform: scale(1); opacity: 0.5; }
+}
+
+@keyframes trendBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes pulseSlide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out both;
+}
+.animate-heartbeat {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+.animate-trend-bounce {
+  animation: trendBounce 0.6s ease-in-out 1;
+}
+
+/* ===================================================================
+   DARK THEME — overrides CSS custom properties
+   =================================================================== */
+[data-theme="dark"] {
+  --color-bg: #0f1613;
+  --color-surface: #1a2420;
+  --color-surface-2: #1f2e28;
+  --color-border: #2a3d35;
+
+  --color-text: #e8f0ec;
+  --color-dim: #9bb5a8;
+  --color-muted: #6b8f7e;
+
+  /* Accent colors — slightly brighter / more saturated for dark bg */
+  --color-hp-green: #34d399;
+  --color-hp-blue: #38bdf8;
+  --color-hp-purple: #a78bfa;
+  --color-hp-orange: #fb923c;
+  --color-hp-red: #f87171;
+  --color-hp-pink: #f472b6;
+  --color-hp-yellow: #fbbf24;
+  --color-hp-cyan: #22d3ee;
+}
+
 body {
-  background-color: #090c11;
-  color: #e2e7f0;
+  background-color: var(--color-bg, #f8fafb);
+  /* Very subtle sage-green warmth emanating from top-left (life, health) */
+  background-image:
+    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(16, 185, 129, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(14, 165, 233, 0.03) 0%, transparent 60%);
+  color: var(--color-text, #1e2d2a);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
+[data-theme="dark"] body {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(16, 185, 129, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(14, 165, 233, 0.04) 0%, transparent 60%);
+}
+
+/* Manhattan street grid texture —
+   Narrow E-W streets (28px) + wide N-S avenues (56px) + Broadway diagonal.
+   Block proportions mirror actual Manhattan grid (~900ft N-S : ~230ft E-W). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    /* Broadway — cuts diagonally ~NNW at 168° through the grid */
+    repeating-linear-gradient(
+      168deg,
+      transparent,
+      transparent 300px,
+      rgba(16,185,129,0.06) 300px,
+      rgba(16,185,129,0.06) 301px
+    ),
+    /* E-W cross streets — closer together */
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 27px,
+      rgba(30,45,42,0.028) 27px,
+      rgba(30,45,42,0.028) 28px
+    ),
+    /* N-S avenues — wider spacing */
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 55px,
+      rgba(30,45,42,0.02) 55px,
+      rgba(30,45,42,0.02) 56px
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme="dark"] body::before {
+  opacity: 0.3;
+}
+
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #090c11; }
-::-webkit-scrollbar-thumb { background: #1d2640; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #3d4b63; }
+::-webkit-scrollbar-track { background: var(--color-bg, #f8fafb); }
+::-webkit-scrollbar-thumb { background: var(--color-border, #c8ddd8); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-muted, #9ab5ae); }
+
+.scrollbar-hide { scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+@keyframes ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-ticker {
+  animation: ticker-scroll 80s linear infinite;
+  display: flex;
+  width: max-content;
+}
+.animate-ticker-slow {
+  animation: ticker-scroll 140s linear infinite;
+  display: flex;
+  width: max-content;
+}
+
+/* ===================================================================
+   PRINT STYLES — Neighborhood Health Report
+   =================================================================== */
+@media print {
+  /* Page setup */
+  @page {
+    size: A4 portrait;
+    margin: 1.8cm 1.5cm 2cm 1.5cm;
+  }
+
+  /* Print header/footer in page margins */
+  @page {
+    @top-center {
+      content: "Pulse NYC — Neighborhood Health Report";
+      font-size: 9pt;
+      color: #5a7a6e;
+      font-family: sans-serif;
+    }
+    @bottom-center {
+      content: "pulsenyc.app";
+      font-size: 8pt;
+      color: #8ba89c;
+      font-family: sans-serif;
+    }
+  }
+
+  /* Force white background, black text everywhere */
+  *,
+  *::before,
+  *::after {
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+    line-height: 1.4;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Remove the Manhattan street grid overlay */
+  body::before {
+    display: none !important;
+  }
+
+  /* Remove radial gradient backgrounds on body */
+  body {
+    background-image: none !important;
+  }
+
+  /* Full width — remove max-width container and padding */
+  .max-w-\[1400px\] {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* ---- HIDE non-printable elements ---- */
+
+  /* Nav bar + borough color bar */
+  nav,
+  nav + div[aria-hidden="true"] {
+    display: none !important;
+  }
+
+  /* Footer / NYC skyline ribbon — the wrapper div after main content */
+  body > div:last-child,
+  svg[class*="skyline"],
+  .relative.w-full.mt-2.overflow-hidden {
+    display: none !important;
+  }
+
+  /* Email signup form */
+  form[action*="subscribe"],
+  [class*="EmailSignup"],
+  input[type="email"] {
+    display: none !important;
+  }
+
+  /* Save / Share buttons */
+  button[aria-label*="Save"],
+  button[aria-label*="share"],
+  [class*="SaveNeighborhood"],
+  [class*="ShareNeighborhood"] {
+    display: none !important;
+  }
+
+  /* Saved neighborhoods panel */
+  [class*="SavedNeighborhoods"] {
+    display: none !important;
+  }
+
+  /* News ticker and health insights ticker */
+  .animate-ticker,
+  .animate-ticker-slow,
+  [class*="ticker"],
+  [class*="Ticker"] {
+    display: none !important;
+  }
+
+  /* News feed sidebar */
+  [class*="NewsFeed"],
+  [class*="HealthNews"] {
+    display: none !important;
+  }
+
+  /* Scrollbar-hide elements (horizontal scroll strips) */
+  .scrollbar-hide {
+    display: none !important;
+  }
+
+  /* Leaflet maps — they render as blank/broken in print */
+  .leaflet-container,
+  [class*="leaflet"],
+  [class*="MapPanel"],
+  [class*="MapImpl"],
+  [class*="BoroughMap"],
+  [class*="CensusTractMap"],
+  [class*="NeighborhoodMap"] {
+    display: none !important;
+  }
+
+  /* App waitlist / install prompts */
+  [class*="waitlist"],
+  [class*="Waitlist"],
+  [class*="app-install"],
+  [class*="pwa-prompt"] {
+    display: none !important;
+  }
+
+  /* Service worker registration (hidden anyway, but be safe) */
+  [class*="ServiceWorker"] {
+    display: none !important;
+  }
+
+  /* Green bloom decorative element behind title */
+  div[aria-hidden="true"] {
+    display: none !important;
+  }
+
+  /* "Live Data" badge pulse dot */
+  .animate-pulse {
+    animation: none !important;
+  }
+
+  /* ---- PRINTABLE ELEMENTS — style for paper ---- */
+
+  /* Re-show the nav container's parent (the mb-6 wrapper) but hide only nav inside it.
+     The header/title should still show. */
+  .mb-7.relative {
+    margin-bottom: 0.5cm !important;
+  }
+
+  /* App title — print in solid black */
+  h1 {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    -webkit-text-fill-color: #000 !important;
+    font-size: 18pt !important;
+  }
+
+  /* Subtitle line */
+  h1 + span {
+    display: none !important;
+  }
+
+  /* Subtitle description */
+  .text-dim.text-\[13px\] {
+    font-size: 9pt !important;
+  }
+
+  /* KPI cards — clean bordered cards for paper */
+  [class*="rounded-xl"] {
+    border: 1px solid #ccc !important;
+    border-radius: 4px !important;
+    padding: 8px !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* KPI card colored top bar — allow color to print */
+  [class*="rounded-xl"]::before {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* KPI grid — 3 columns for print */
+  .grid.grid-cols-\[repeat\(auto-fill\2c minmax\(185px\2c 1fr\)\)\] {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  /* Chart cards — ensure they don't split across pages */
+  [class*="ChartCard"],
+  .recharts-wrapper,
+  .recharts-surface {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Two-column grid sections — stack or keep side by side */
+  .grid.grid-cols-1.lg\:grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Health snapshot comparison bars — allow color */
+  .h-1\.5.bg-border.rounded-full {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Color bars inside health snapshot */
+  .h-full.rounded-full {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Borough neighborhood links at bottom — compact for print */
+  .flex.flex-wrap.gap-1\.5 a span {
+    border: 1px solid #999 !important;
+    font-size: 8pt !important;
+    padding: 2px 6px !important;
+  }
+
+  /* Links — no underline colors */
+  a {
+    text-decoration: none !important;
+    color: #000 !important;
+  }
+
+  /* Hide "← All Neighborhoods" back link in print */
+  a[href="/neighborhood"] {
+    display: none !important;
+  }
+
+  /* Prevent orphan/widow issues */
+  p, li, h2, h3 {
+    orphans: 3;
+    widows: 3;
+  }
+
+  h2, h3 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* Tag chips on KPI cards — allow background color */
+  [class*="tag"],
+  span[class*="bg-hp-green"],
+  span[class*="bg-amber"],
+  span[class*="bg-gray"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    border: 1px solid #999 !important;
+  }
+
+  /* Print-specific header — shown via CSS generated content */
+  body::after {
+    content: "Printed from pulsenyc.app · Data may have updated since print date";
+    display: block;
+    text-align: center;
+    font-size: 8pt;
+    color: #999 !important;
+    padding-top: 0.5cm;
+    margin-top: 1cm;
+    border-top: 1px solid #ddd;
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "Pulse NYC",
+  "short_name": "Pulse NYC",
+  "description": "Real-time public health metrics for all 42 NYC neighborhoods — air quality, disease trends, food safety, and more.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8fafb",
+  "theme_color": "#f8fafb",
+  "categories": ["health", "news", "utilities"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/icon.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "/apple-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "/screenshot-mobile", "sizes": "390x844", "type": "image/png", "form_factor": "narrow", "label": "Pulse NYC mobile dashboard — live health KPIs" },
+    { "src": "/screenshot-neighborhood", "sizes": "390x844", "type": "image/png", "form_factor": "narrow", "label": "Neighborhood health profile — Hunts Point" },
+    { "src": "/screenshot-desktop", "sizes": "1280x800", "type": "image/png", "form_factor": "wide", "label": "Pulse NYC desktop — charts, news, and 16 data sources" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Air Quality",
+      "url": "/air-quality",
+      "description": "PM2.5, NO₂, and ozone across NYC"
+    },
+    {
+      "name": "Neighborhoods",
+      "url": "/neighborhood",
+      "description": "Browse 42 neighborhood health profiles"
+    },
+    {
+      "name": "Food Safety",
+      "url": "/food-safety",
+      "description": "Restaurant inspection scores and violations"
+    }
+  ],
+  "prefer_related_applications": false
+}

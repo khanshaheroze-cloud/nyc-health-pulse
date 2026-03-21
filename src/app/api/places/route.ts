@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 export const revalidate = 604800;
 
 const NYC_COUNTY_FIPS = ["36005", "36047", "36061", "36081", "36085"];
-const MEASURES = ["OBESITY", "DIABETES", "CASTHMA", "BPHIGH", "CSMOKING"];
+const MEASURES = ["OBESITY", "DIABETES", "CASTHMA", "BPHIGH", "CSMOKING", "MHLTH", "SLEEP"];
 const BASE = "https://chronicdata.cdc.gov/resource/cwsq-ngmh.json";
 
 export async function GET() {

@@ -16,12 +16,14 @@ interface Props {
   placeholder?: string;
   autoFocus?: boolean;
   onSelect?: () => void;
+  onSelectNeighborhood?: (n: typeof neighborhoods[0]) => void;
 }
 
 export function NeighborhoodSearch({
   placeholder = "Search neighborhoods…",
   autoFocus = false,
   onSelect,
+  onSelectNeighborhood,
 }: Props) {
   const [query, setQuery]     = useState("");
   const [open, setOpen]       = useState(false);
@@ -53,6 +55,10 @@ export function NeighborhoodSearch({
     setQuery("");
     setOpen(false);
     onSelect?.();
+    if (onSelectNeighborhood) {
+      const found = neighborhoods.find(n => n.slug === slug);
+      if (found) { onSelectNeighborhood(found); return; }
+    }
     router.push(`/neighborhood/${slug}`);
   }
 

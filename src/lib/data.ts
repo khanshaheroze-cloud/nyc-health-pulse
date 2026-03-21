@@ -320,9 +320,11 @@ export const foodByBorough = [
 ];
 
 export const gradeDistribution = [
-  { name: "Grade A", value: 311, fill: "#2dd4a0" },
+  { name: "Grade A",   value: 311, fill: "#2dd4a0" },
+  { name: "Grade B",   value:  42, fill: "#5b9cf5" },
+  { name: "Grade C",   value:  18, fill: "#f07070" },
   { name: "Pending N", value: 235, fill: "#f5c542" },
-  { name: "Pending Z", value: 88,  fill: "#f59e42" },
+  { name: "Pending Z", value:  88, fill: "#f59e42" },
 ];
 
 // ─── Rodent Inspections ────────────────────────────────────────────────────────

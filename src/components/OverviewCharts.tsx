@@ -32,6 +32,7 @@ export function CovidTrendChart() {
     <ChartCard
       title="COVID-19 Monthly Trend"
       subtitle="Cases & hospitalizations · Nov 2024 – Oct 2025"
+      tag="2025"
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={covidMonthly} barGap={2}>
@@ -58,6 +59,7 @@ export function AirTrendChart() {
     <ChartCard
       title="PM2.5 Annual Trend (Citywide)"
       subtitle="Fine particulates μg/m³ · WHO guideline = 5"
+      tag="2023"
     >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={pm25Trend}>
@@ -98,11 +100,11 @@ const iliChartData = iliWeeks.map((week, i) => ({
 }));
 
 const iliLines = [
-  { key: "Bronx", color: COLORS.red },
-  { key: "Brooklyn", color: COLORS.blue },
-  { key: "Manhattan", color: COLORS.purple },
-  { key: "Queens", color: COLORS.green },
-  { key: "Staten Is.", color: COLORS.orange },
+  { key: "Bronx", color: COLORS.red, dash: undefined },
+  { key: "Brooklyn", color: COLORS.blue, dash: "8 4" },
+  { key: "Manhattan", color: COLORS.purple, dash: "4 3" },
+  { key: "Queens", color: COLORS.green, dash: "12 3 3 3" },
+  { key: "Staten Is.", color: COLORS.orange, dash: "2 3" },
 ] as const;
 
 export function IliChart() {
@@ -110,6 +112,7 @@ export function IliChart() {
     <ChartCard
       title="ILI ER Visits by Borough"
       subtitle="% of all ER visits · Wk42 2025 – Wk3 2026"
+      tag="Jan 2026"
     >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={iliChartData}>
@@ -118,13 +121,14 @@ export function IliChart() {
           <YAxis {...chartTheme.axis} unit="%" />
           <Tooltip {...chartTheme.tooltip} formatter={(v: number | undefined) => v != null ? `${v}%` : ""} />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
-          {iliLines.map(({ key, color }) => (
+          {iliLines.map(({ key, color, dash }) => (
             <Line
               key={key}
               type="monotone"
               dataKey={key}
               stroke={color}
               strokeWidth={2}
+              strokeDasharray={dash}
               dot={false}
               activeDot={{ r: 4 }}
             />
@@ -139,12 +143,14 @@ export function IliChart() {
 
 const boroughs = ["Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Is."] as const;
 const boroughColors = boroughs.map((b) => BOROUGH_COLORS[b]);
+const boroughOpacities = ["ee", "cc", "aa", "dd", "bb"] as const;
 
 export function ChronicChart() {
   return (
     <ChartCard
       title="Chronic Disease by Borough"
       subtitle="CDC PLACES estimates · % of adults"
+      tag="2023"
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chronicOutcomes} barGap={1}>
@@ -160,7 +166,7 @@ export function ChronicChart() {
             <Bar
               key={b}
               dataKey={b}
-              fill={boroughColors[i] + "99"}
+              fill={boroughColors[i] + boroughOpacities[i]}
               radius={[3, 3, 0, 0]}
             />
           ))}

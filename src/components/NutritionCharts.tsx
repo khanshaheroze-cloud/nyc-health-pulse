@@ -22,6 +22,7 @@ export function VitaminDChart() {
       title="Vitamin D Deficiency by Race/Ethnicity"
       subtitle="% deficient · NHANES national data (NYC proxy)"
       tall
+      tag="2020"
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
@@ -58,6 +59,7 @@ export function DeficiencyRiskChart() {
       title="Nutritional Deficiency Risk by Group"
       subtitle="% at risk · NHANES 2017–2020 (Iron & Vitamin D)"
       tall
+      tag="2020"
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
