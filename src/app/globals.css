@@ -191,6 +191,20 @@ body::before {
 }
 
 /* ===================================================================
+   LEAFLET TOOLTIP OVERRIDES — Borough-anchored tooltips
+   =================================================================== */
+.leaflet-tooltip-borough {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  white-space: nowrap;
+}
+.leaflet-tooltip-borough::before {
+  display: none !important;
+}
+
+/* ===================================================================
    PRINT STYLES — Neighborhood Health Report
    =================================================================== */
 @media print {

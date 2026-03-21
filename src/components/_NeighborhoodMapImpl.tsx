@@ -75,13 +75,13 @@ export default function NeighborhoodMapImpl({ metric, height }: Props) {
     const value = lookup[code];
 
     (layer as unknown as { bindTooltip: (s: string, o: object) => void }).bindTooltip(
-      `<div style="font-size:11px;line-height:1.6;background:#fff;border:1px solid #e2e8e4;border-radius:8px;padding:8px 12px;color:#1e2d2a;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-        <strong>${name}</strong><br/>
-        ${cfg.label}: <strong>${value?.toFixed(1) ?? "—"} ${cfg.unit}</strong><br/>
-        <span style="color:#5a7a6e;font-size:10px">City avg: ${Number(cityAvg[metric]).toFixed(1)} ${cfg.unit}</span><br/>
-        <span style="color:#8ba89c;font-size:10px">Click to open profile →</span>
+      `<div style="font-size:11px;line-height:1.4;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border:1px solid #e2e8e4;border-radius:10px;padding:6px 10px;color:#1e2d2a;box-shadow:0 4px 12px rgba(0,0,0,.12);text-align:center;pointer-events:none">
+        <strong style="font-size:11px;display:block;margin-bottom:1px">${name?.split("/")[0]?.split("-")[0]?.trim()}</strong>
+        <span style="font-size:16px;font-weight:700;color:${value != null ? getColor(value, cfg.min, cfg.max, cfg.invert) : '#8ba89c'}">${value?.toFixed(1) ?? "—"}</span>
+        <span style="font-size:9px;color:#5a7a6e"> ${cfg.unit}</span>
+        <div style="font-size:9px;color:#8ba89c;margin-top:1px">avg ${Number(cityAvg[metric]).toFixed(1)} · tap for profile</div>
       </div>`,
-      { sticky: true }
+      { sticky: false, direction: "center" as "center", className: "leaflet-tooltip-borough" }
     );
 
     (layer as unknown as { on: (e: string, fn: () => void) => void }).on("click", () => {

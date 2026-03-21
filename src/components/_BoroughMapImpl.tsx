@@ -112,12 +112,12 @@ export default function BoroughMapImpl() {
     const value = metricValues[name];
     const label = METRIC_LABELS[metric];
     layer.bindTooltip(
-      `<div style="background:#fff;border:1px solid #e2e8e4;border-radius:8px;padding:8px 12px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-        <strong style="color:#1e2d2a">${name}</strong><br/>
-        <span style="color:#5a7a6e">${label}:</span>
-        <strong style="color:#1e2d2a"> ${value ?? "N/A"}</strong>
+      `<div style="font-size:12px;line-height:1.3;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border:1px solid #e2e8e4;border-radius:10px;padding:6px 10px;color:#1e2d2a;box-shadow:0 4px 12px rgba(0,0,0,.12);text-align:center;pointer-events:none">
+        <strong style="font-size:12px;display:block">${name}</strong>
+        <span style="font-size:18px;font-weight:700;color:${valueToColor(value ?? 0, min, max, invert)}">${value ?? "N/A"}</span>
+        <span style="font-size:9px;color:#5a7a6e"> ${label.split("(")[0].trim()}</span>
       </div>`,
-      { sticky: true, className: "borough-tooltip" }
+      { sticky: false, direction: "center" as "center", className: "leaflet-tooltip-borough" }
     );
   }
 
