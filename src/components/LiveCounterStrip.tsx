@@ -1,17 +1,23 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 /* ------------------------------------------------------------------ */
 /*  countUp hook — easeOutExpo over ~2 s                              */
 /* ------------------------------------------------------------------ */
 function useCountUp(target: number, duration = 2000) {
-  const [value, setValue] = useState(0);
+  // Initialize with target so SSR HTML shows real numbers, not zeros
+  const [value, setValue] = useState(target);
+  const hasAnimated = useRef(false);
   useEffect(() => {
     if (target <= 0) {
       setValue(0);
       return;
     }
+    // Only animate on first mount — skip if already animated for this target
+    if (hasAnimated.current) { setValue(target); return; }
+    hasAnimated.current = true;
+    setValue(0); // reset to 0 then animate up
     const start = performance.now();
     let raf: number;
     function step(now: number) {

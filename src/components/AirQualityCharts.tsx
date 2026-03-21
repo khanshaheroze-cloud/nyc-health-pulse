@@ -42,7 +42,7 @@ export function Pm25NeighborhoodChart({ data }: { data?: Pm25Row[] }) {
           margin={{ left: 12, right: 24, top: 4, bottom: 4 }}
         >
           <CartesianGrid {...chartTheme.grid} horizontal={false} />
-          <XAxis type="number" domain={["auto", "auto"]} {...chartTheme.axis} unit=" μg/m³" tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
+          <XAxis type="number" domain={["auto", "auto"]} {...chartTheme.axis} unit=" μg/m³" tick={{ ...chartTheme.axis.tick, fontSize: 10 }} tickFormatter={(v: number) => Number(v).toFixed(1)} />
           <YAxis type="category" dataKey="name" width={130} {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
           <Tooltip
             {...chartTheme.tooltip}
