@@ -61,11 +61,11 @@ export default function NeighborhoodMapImpl({ metric, height }: Props) {
     const code  = feature?.properties?.GEOCODE as number;
     const value = lookup[code];
     return {
-      fillColor:  value != null ? getColor(value, cfg.min, cfg.max, cfg.invert) : "#2d3555",
-      weight:      1,
-      opacity:     0.9,
-      color:       "#0a0e17",
-      fillOpacity: 0.80,
+      fillColor:  value != null ? getColor(value, cfg.min, cfg.max, cfg.invert) : "#d1d5db",
+      weight:      1.5,
+      opacity:     1,
+      color:       "#ffffff",
+      fillOpacity: 0.72,
     };
   };
 
@@ -75,11 +75,11 @@ export default function NeighborhoodMapImpl({ metric, height }: Props) {
     const value = lookup[code];
 
     (layer as unknown as { bindTooltip: (s: string, o: object) => void }).bindTooltip(
-      `<div style="font-size:11px;line-height:1.6;background:#171e2c;border:1px solid #1d2640;border-radius:6px;padding:6px 10px;color:#e2e7f0">
+      `<div style="font-size:11px;line-height:1.6;background:#fff;border:1px solid #e2e8e4;border-radius:8px;padding:8px 12px;color:#1e2d2a;box-shadow:0 2px 8px rgba(0,0,0,.1)">
         <strong>${name}</strong><br/>
         ${cfg.label}: <strong>${value?.toFixed(1) ?? "—"} ${cfg.unit}</strong><br/>
-        <span style="color:#6b7a94;font-size:10px">City avg: ${cityAvg[metric]} ${cfg.unit}</span><br/>
-        <span style="color:#3d4b63;font-size:10px">Click to open profile →</span>
+        <span style="color:#5a7a6e;font-size:10px">City avg: ${Number(cityAvg[metric]).toFixed(1)} ${cfg.unit}</span><br/>
+        <span style="color:#8ba89c;font-size:10px">Click to open profile →</span>
       </div>`,
       { sticky: true }
     );
@@ -89,10 +89,10 @@ export default function NeighborhoodMapImpl({ metric, height }: Props) {
       if (slug) router.push(`/neighborhood/${slug}`);
     });
     (layer as unknown as { on: (e: string, fn: (e: unknown) => void) => void }).on("mouseover", () => {
-      (layer as unknown as { setStyle: (s: PathOptions) => void }).setStyle({ weight: 2.5, fillOpacity: 0.95 });
+      (layer as unknown as { setStyle: (s: PathOptions) => void }).setStyle({ weight: 2.5, fillOpacity: 0.88, color: "#1e2d2a" });
     });
     (layer as unknown as { on: (e: string, fn: (e: unknown) => void) => void }).on("mouseout", () => {
-      (layer as unknown as { setStyle: (s: PathOptions) => void }).setStyle({ weight: 1, fillOpacity: 0.80 });
+      (layer as unknown as { setStyle: (s: PathOptions) => void }).setStyle({ weight: 1.5, fillOpacity: 0.72, color: "#ffffff" });
     });
   };
 
@@ -100,14 +100,14 @@ export default function NeighborhoodMapImpl({ metric, height }: Props) {
     <MapContainer
       center={[40.7, -73.97]}
       zoom={11}
-      style={{ height, width: "100%", background: "#0a0e17" }}
+      style={{ height, width: "100%", background: "#f8fafb" }}
       scrollWheelZoom={false}
       zoomControl={true}
     >
       <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png"
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         attribution="© OpenStreetMap © CartoDB"
-        maxZoom={15}
+        maxZoom={18}
       />
       <GeoJSON
         key={metric}

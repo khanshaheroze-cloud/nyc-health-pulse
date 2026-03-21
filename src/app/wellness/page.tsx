@@ -23,8 +23,8 @@ export default function WellnessPage() {
         <KPICard
           index={0}
           label="Wellness Spots"
-          value="50+"
-          sub="Curated across 8 categories"
+          value="60+"
+          sub="Curated across 9 categories"
           color="purple"
         />
         <KPICard

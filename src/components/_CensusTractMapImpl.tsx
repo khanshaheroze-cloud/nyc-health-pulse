@@ -61,11 +61,11 @@ export default function CensusTractMapImpl({ metric, height }: Props) {
     const id    = feature?.properties?.id as string;
     const value = places[id]?.[metric];
     return {
-      fillColor:  value != null ? getColor(value, cfg.min, cfg.max, cfg.invert) : "#1d2640",
-      weight:      0.4,
-      opacity:     0.6,
-      color:       "#0a0e17",
-      fillOpacity: value != null ? 0.75 : 0.2,
+      fillColor:  value != null ? getColor(value, cfg.min, cfg.max, cfg.invert) : "#d1d5db",
+      weight:      0.3,
+      opacity:     0.8,
+      color:       "#ffffff",
+      fillOpacity: value != null ? 0.68 : 0.15,
     };
   };
 
@@ -75,18 +75,18 @@ export default function CensusTractMapImpl({ metric, height }: Props) {
     const value = places[id]?.[metric];
 
     (layer as unknown as { bindTooltip: (s: string, o: object) => void }).bindTooltip(
-      `<div style="font-size:11px;line-height:1.5;background:#171e2c;border:1px solid #1d2640;border-radius:6px;padding:5px 9px;color:#e2e7f0">
-        <span style="color:#6b7a94;font-size:10px">Tract ${id?.slice(-6)} · ${boro}</span><br/>
+      `<div style="font-size:11px;line-height:1.5;background:#fff;border:1px solid #e2e8e4;border-radius:8px;padding:6px 10px;color:#1e2d2a;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+        <span style="color:#5a7a6e;font-size:10px">Tract ${id?.slice(-6)} · ${boro}</span><br/>
         ${cfg.label}: <strong>${value?.toFixed(1) ?? "No data"} ${value != null ? cfg.unit : ""}</strong>
       </div>`,
       { sticky: true }
     );
 
     (layer as unknown as { on: (e: string, fn: () => void) => void }).on("mouseover", () => {
-      (layer as unknown as { setStyle: (s: PathOptions) => void }).setStyle({ weight: 1.5, fillOpacity: 0.9 });
+      (layer as unknown as { setStyle: (s: PathOptions) => void }).setStyle({ weight: 1.5, fillOpacity: 0.85 });
     });
     (layer as unknown as { on: (e: string, fn: () => void) => void }).on("mouseout", () => {
-      (layer as unknown as { setStyle: (s: PathOptions) => void }).setStyle({ weight: 0.4, fillOpacity: 0.75 });
+      (layer as unknown as { setStyle: (s: PathOptions) => void }).setStyle({ weight: 0.3, fillOpacity: 0.68 });
     });
   };
 
@@ -94,13 +94,13 @@ export default function CensusTractMapImpl({ metric, height }: Props) {
     <MapContainer
       center={[40.7, -73.97]}
       zoom={11}
-      style={{ height, width: "100%", background: "#0a0e17" }}
+      style={{ height, width: "100%", background: "#f8fafb" }}
       scrollWheelZoom={false}
     >
       <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png"
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         attribution="© OpenStreetMap © CartoDB"
-        maxZoom={16}
+        maxZoom={18}
       />
       <GeoJSON
         key={metric}

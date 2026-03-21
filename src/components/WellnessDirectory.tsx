@@ -156,6 +156,26 @@ const CATEGORIES: WellnessCategory[] = [
       { name: "Central Park Track Club", neighborhood: "Central Park", borough: "Manhattan", priceRange: "Free", note: "Free group runs multiple days per week. All paces welcome." },
     ],
   },
+  {
+    id: "spa",
+    icon: "🧖",
+    label: "Spas",
+    description: "Day spas, Korean bathhouses, and luxury thermal circuits. Full-body relaxation and detox experiences.",
+    healthBenefit: "Spa treatments combine heat therapy, hydrotherapy, and relaxation to reduce cortisol, improve circulation, and promote deep relaxation. Regular spa visits are associated with lower stress, better sleep, and reduced muscle tension. Korean/Russian bathhouses offer multi-hour experiences with multiple heat and cold cycles.",
+    priceRange: "$40-200+",
+    spots: [
+      { name: "Spa Castle", neighborhood: "College Point", borough: "Queens", priceRange: "$50-65 all-day", note: "Massive Korean spa. Indoor/outdoor pools, saunas, jjimjilbang. Bring the whole day." },
+      { name: "Spa 88", neighborhood: "Flushing", borough: "Queens", priceRange: "$45 all-day", note: "Korean bathhouse with multiple sauna rooms, cold plunge, scrub services." },
+      { name: "World Spa", neighborhood: "Midwood", borough: "Brooklyn", priceRange: "$55 all-day", note: "Korean-style with 6 themed saunas, heated pool, and full restaurant." },
+      { name: "Russian & Turkish Baths", neighborhood: "East Village", borough: "Manhattan", priceRange: "$45", note: "NYC institution since 1892. Russian steam, Turkish room, cold plunge, platza oak-leaf beating." },
+      { name: "Archimedes Banya", neighborhood: "Sheepshead Bay", borough: "Brooklyn", priceRange: "$50 all-day", note: "Russian bathhouse. Steam rooms, cold plunge, rooftop lounge, restaurant." },
+      { name: "Aire Ancient Baths", neighborhood: "Tribeca", borough: "Manhattan", priceRange: "$90-200", note: "Luxury thermal circuit inspired by ancient Roman baths. Candlelit. Splurge-worthy." },
+      { name: "SoJo Spa Club", neighborhood: "Edgewater", borough: "NJ (20 min from NYC)", priceRange: "$65 all-day", note: "Infinity pool with NYC skyline views. 10+ thermal rooms. Bus from Port Authority." },
+      { name: "Juvenex Spa", neighborhood: "Koreatown", borough: "Manhattan", priceRange: "$75-120", note: "24-hour Korean spa open late night. Private rooms and group facilities." },
+      { name: "Great Jones Spa", neighborhood: "NoHo", borough: "Manhattan", priceRange: "$55-85", note: "Water lounge with 3-story waterfall, steam room, sauna. Massage add-ons." },
+      { name: "QC NY Spa", neighborhood: "Governors Island", borough: "Manhattan", priceRange: "$88 all-day", note: "Seasonal outdoor thermal spa with Manhattan skyline views. Infrared, steam, saunas." },
+    ],
+  },
 ];
 
 /* ------------------------------------------------------------------ */

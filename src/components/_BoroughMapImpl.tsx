@@ -101,9 +101,9 @@ export default function BoroughMapImpl() {
     const value = metricValues[name] ?? 0;
     return {
       fillColor: valueToColor(value, min, max, invert),
-      fillOpacity: 0.75,
-      color: "#1d2640",
-      weight: 1.5,
+      fillOpacity: 0.65,
+      color: "#ffffff",
+      weight: 2,
     };
   }
 
@@ -112,9 +112,11 @@ export default function BoroughMapImpl() {
     const value = metricValues[name];
     const label = METRIC_LABELS[metric];
     layer.bindTooltip(
-      `<strong style="color:#e2e7f0">${name}</strong><br/>
-       <span style="color:#6b7a94">${label}:</span>
-       <strong style="color:#e2e7f0">${value ?? "N/A"}</strong>`,
+      `<div style="background:#fff;border:1px solid #e2e8e4;border-radius:8px;padding:8px 12px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+        <strong style="color:#1e2d2a">${name}</strong><br/>
+        <span style="color:#5a7a6e">${label}:</span>
+        <strong style="color:#1e2d2a"> ${value ?? "N/A"}</strong>
+      </div>`,
       { sticky: true, className: "borough-tooltip" }
     );
   }
@@ -153,11 +155,11 @@ export default function BoroughMapImpl() {
           center={[40.7128, -74.006]}
           zoom={10}
           scrollWheelZoom={false}
-          style={{ height: "100%", width: "100%", background: "#10151e" }}
+          style={{ height: "100%", width: "100%", background: "#f8fafb" }}
           className="rounded-lg"
         >
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png"
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
           />
           {geoJson && (
