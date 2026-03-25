@@ -221,6 +221,7 @@ interface FoodDetailCardProps {
   meal: "breakfast" | "lunch" | "dinner" | "snacks";
   onAdd: (entry: FoodEntry) => void;
   onBack: () => void;
+  initialQuantity?: number;
 }
 
 export default function FoodDetailCard({
@@ -228,10 +229,11 @@ export default function FoodDetailCard({
   meal,
   onAdd,
   onBack,
+  initialQuantity,
 }: FoodDetailCardProps) {
   // Normalize the food data
   const food = rawFood as FoodData;
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(initialQuantity ?? 1);
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
   const [showMicros, setShowMicros] = useState(false);
   const [saved, setSaved] = useState(() => {

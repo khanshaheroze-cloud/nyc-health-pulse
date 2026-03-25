@@ -290,8 +290,8 @@ export async function GET(req: NextRequest) {
     // TIER 3: USDA (always search for more variety — common DB is limited)
     let usdaResults: SearchResult[] = [];
     {
-      const usdaKey = process.env.USDA_API_KEY;
-      if (usdaKey) {
+      const usdaKey = process.env.USDA_API_KEY || "DEMO_KEY";
+      {
         try {
           const usdaUrl = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&pageSize=10&api_key=${usdaKey}`;
           const usdaRes = await fetch(usdaUrl, { signal: AbortSignal.timeout(5000) });

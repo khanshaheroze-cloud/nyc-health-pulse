@@ -527,6 +527,36 @@ async function scoreSafety(routeCoords: [number, number][], distMi: number): Pro
   return pts;
 }
 
+// Major NYC parks — bounding boxes for parks where point-based detection fails
+const MAJOR_PARKS: { name: string; minLat: number; maxLat: number; minLng: number; maxLng: number }[] = [
+  { name: "Central Park", minLat: 40.764, maxLat: 40.800, minLng: -73.981, maxLng: -73.949 },
+  { name: "Prospect Park", minLat: 40.655, maxLat: 40.674, minLng: -73.974, maxLng: -73.958 },
+  { name: "Flushing Meadows", minLat: 40.736, maxLat: 40.754, minLng: -73.851, maxLng: -73.833 },
+  { name: "Van Cortlandt Park", minLat: 40.884, maxLat: 40.906, minLng: -73.898, maxLng: -73.876 },
+  { name: "Pelham Bay Park", minLat: 40.856, maxLat: 40.878, minLng: -73.815, maxLng: -73.785 },
+  { name: "Forest Park", minLat: 40.695, maxLat: 40.714, minLng: -73.860, maxLng: -73.830 },
+  { name: "Riverside Park", minLat: 40.787, maxLat: 40.828, minLng: -73.977, maxLng: -73.968 },
+  { name: "Inwood Hill Park", minLat: 40.868, maxLat: 40.878, minLng: -73.930, maxLng: -73.918 },
+  { name: "Astoria Park", minLat: 40.773, maxLat: 40.782, minLng: -73.928, maxLng: -73.918 },
+  { name: "DUMBO/Brooklyn Bridge Park", minLat: 40.696, maxLat: 40.704, minLng: -73.999, maxLng: -73.989 },
+  { name: "Hudson River Greenway", minLat: 40.709, maxLat: 40.820, minLng: -74.016, maxLng: -74.008 },
+  { name: "East River Park", minLat: 40.710, maxLat: 40.733, minLng: -73.978, maxLng: -73.972 },
+  { name: "Governors Island", minLat: 40.687, maxLat: 40.695, minLng: -74.022, maxLng: -74.012 },
+  { name: "Randall's Island", minLat: 40.787, maxLat: 40.804, minLng: -73.929, maxLng: -73.914 },
+  { name: "The High Line", minLat: 40.739, maxLat: 40.754, minLng: -74.008, maxLng: -74.004 },
+  { name: "Battery Park / Battery Park City", minLat: 40.700, maxLat: 40.718, minLng: -74.020, maxLng: -74.008 },
+  { name: "Washington Square Park", minLat: 40.729, maxLat: 40.733, minLng: -73.999, maxLng: -73.995 },
+  { name: "Union Square Park", minLat: 40.734, maxLat: 40.738, minLng: -73.992, maxLng: -73.988 },
+  { name: "McCarren Park", minLat: 40.719, maxLat: 40.724, minLng: -73.953, maxLng: -73.947 },
+  { name: "Marine Park", minLat: 40.594, maxLat: 40.613, minLng: -73.930, maxLng: -73.910 },
+];
+
+function isInMajorPark(lat: number, lng: number): boolean {
+  return MAJOR_PARKS.some(
+    (p) => lat >= p.minLat && lat <= p.maxLat && lng >= p.minLng && lng <= p.maxLng,
+  );
+}
+
 function scoreScenery(
   routeCoords: [number, number][], parks: ParkPoint[], waterfront: ParkPoint[],
 ): { score: number; parkPercent: number; waterPercent: number } {
@@ -536,7 +566,7 @@ function scoreScenery(
   for (let i = 0; i < routeCoords.length; i += step) {
     const [lng, lat] = routeCoords[i];
     total++;
-    if (parks.some((p) => haversineM(lat, lng, p.lat, p.lng) < 150)) parkHits++;
+    if (parks.some((p) => haversineM(lat, lng, p.lat, p.lng) < 300) || isInMajorPark(lat, lng)) parkHits++;
     if (waterfront.some((w) => haversineM(lat, lng, w.lat, w.lng) < 250)) waterHits++;
   }
 

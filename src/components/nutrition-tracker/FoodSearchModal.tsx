@@ -353,6 +353,7 @@ export default function FoodSearchModal({
   const [loading, setLoading] = useState(false);
   const [noResults, setNoResults] = useState(false);
   const [selectedFood, setSelectedFood] = useState<SearchResult | null>(null);
+  const [servingsOverride, setServingsOverride] = useState<number | null>(null);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showCustom, setShowCustom] = useState(false);
   const [recentFoods, setRecentFoods] = useState<FoodEntry[]>([]);
@@ -368,6 +369,7 @@ export default function FoodSearchModal({
     setRecentFoods(getRecentFoods());
     setSavedFoods(getSavedFoods());
     setSelectedFood(null);
+    setServingsOverride(null);
     setShowQuickAdd(false);
     setShowCustom(false);
     setQuery("");
@@ -422,6 +424,11 @@ export default function FoodSearchModal({
           const items = data.results || [];
           setResults(items);
           setNoResults(items.length === 0);
+          // Auto-apply parsed quantity from query (e.g. "8oz chicken" → oz=8)
+          if (data.parsedQuantity) {
+            const pq = data.parsedQuantity;
+            if (pq.quantity) setServingsOverride(pq.quantity);
+          }
         } else {
           setResults([]);
           setNoResults(true);
@@ -506,6 +513,7 @@ export default function FoodSearchModal({
             meal={meal}
             onAdd={handleAddFood}
             onBack={() => setSelectedFood(null)}
+            initialQuantity={servingsOverride ?? undefined}
           />
         </div>
       </div>

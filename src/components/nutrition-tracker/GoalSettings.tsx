@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { loadProfile, saveProfile } from "./BodyProfile";
 
 interface UserGoals {
   dailyCalories: number;
@@ -87,6 +88,31 @@ export default function GoalSettings({
   const [fiberGoal, setFiberGoal] = useState(sex === "female" ? 25 : 30);
   const [waterGoal, setWaterGoal] = useState(64);
 
+  // Sync from BodyProfile on mount
+  useEffect(() => {
+    const saved = loadProfile();
+    if (saved) {
+      setHeightFt(String(Math.floor(saved.height / 12)));
+      setHeightIn(String(saved.height % 12));
+      setWeightLbs(String(saved.weight));
+      setAge(String(saved.age));
+      setSex(saved.gender);
+      // Map BodyProfile activity levels to GoalSettings activity levels
+      const activityMap: Record<string, ActivityLevel> = {
+        sedentary: "sedentary",
+        light: "lightly",
+        moderate: "moderately",
+        active: "very",
+        "very-active": "extra",
+      };
+      setActivity(activityMap[saved.activityLevel] || "moderately");
+      // Map goal
+      if (saved.goal === "lose") setWeightGoal("lose1");
+      else if (saved.goal === "gain") setWeightGoal("gain05");
+      else setWeightGoal("maintain");
+    }
+  }, []);
+
   // Recalc fiber default when sex changes
   useEffect(() => {
     setFiberGoal(sex === "female" ? 25 : 30);
@@ -134,6 +160,23 @@ export default function GoalSettings({
     };
     localStorage.setItem(LS_KEY, JSON.stringify(newGoals));
     onSave(newGoals);
+
+    // Sync back to BodyProfile localStorage so both stay in sync
+    const reverseActivityMap: Record<ActivityLevel, string> = {
+      sedentary: "sedentary",
+      lightly: "light",
+      moderately: "moderate",
+      very: "active",
+      extra: "very-active",
+    };
+    saveProfile({
+      height: Number(heightFt) * 12 + Number(heightIn),
+      weight: Number(weightLbs),
+      age: Number(age),
+      gender: sex,
+      activityLevel: (reverseActivityMap[activity] || "moderate") as "sedentary" | "light" | "moderate" | "active" | "very-active",
+      goal: weightGoal.startsWith("lose") ? "lose" : weightGoal === "gain05" ? "gain" : "maintain",
+    });
   }
 
   const inputCls =
