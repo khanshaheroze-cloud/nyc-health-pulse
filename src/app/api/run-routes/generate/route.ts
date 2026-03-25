@@ -106,6 +106,46 @@ function isInNYC(lat: number, lng: number): boolean {
 }
 
 // ============================================================
+// UTILITY: Landmass detection (water avoidance)
+// ============================================================
+
+type Landmass = "manhattan" | "brooklyn-queens" | "bronx" | "staten-island";
+
+function getLandmass(lat: number, lng: number): Landmass | null {
+  // Manhattan: narrow island
+  if (lng >= -74.02 && lng <= -73.93 && lat >= 40.70 && lat <= 40.88) return "manhattan";
+  // Bronx: north of Harlem River
+  if (lat >= 40.80 && lng >= -73.94 && lng <= -73.74) return "bronx";
+  // Staten Island: southwest
+  if (lat >= 40.49 && lat <= 40.65 && lng >= -74.26 && lng <= -74.05) return "staten-island";
+  // Brooklyn + Queens: western Long Island
+  if (lat >= 40.55 && lat <= 40.80 && lng >= -74.05 && lng <= -73.68) return "brooklyn-queens";
+  return null;
+}
+
+function areSameLandmass(a: Landmass | null, b: Landmass | null): boolean {
+  if (a === null || b === null) return true;
+  return a === b;
+}
+
+function hasWaterCrossing(coordinates: [number, number][]): boolean {
+  for (let i = 1; i < coordinates.length; i++) {
+    const [lng1, lat1] = coordinates[i - 1];
+    const [lng2, lat2] = coordinates[i];
+    const lm1 = getLandmass(lat1, lng1);
+    const lm2 = getLandmass(lat2, lng2);
+    if (lm1 && lm2 && lm1 !== lm2) {
+      const dist = haversineM(lat1, lng1, lat2, lng2);
+      if (dist > 800) {
+        console.log(`[run-routes/water-check] Route crosses water: ${lm1} → ${lm2}, gap ${Math.round(dist)}m`);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// ============================================================
 // UTILITY: Fetch with timeout + retry
 // ============================================================
 
@@ -335,7 +375,7 @@ async function fetchRoute(
   startLat: number, startLng: number,
   waypoints: { lat: number; lng: number }[],
   routeType: string, label: string,
-): Promise<{ geojson: any; distanceMi: number; durationSec: number } | null> {
+): Promise<{ geojson: any; distanceMi: number; durationSec: number; legs: any[] } | null> {
   if (!MAPBOX_TOKEN) return null;
 
   const allPoints = [{ lat: startLat, lng: startLng }, ...waypoints];
@@ -353,14 +393,14 @@ async function fetchRoute(
 
   // Attempt 1: Optimization API (best for loops)
   if (isLoop && allPoints.length >= 2 && allPoints.length <= MAX_MAPBOX_WAYPOINTS) {
-    const optUrl = `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordString}?roundtrip=true&source=first&destination=first&geometries=geojson&overview=full&steps=false&access_token=${MAPBOX_TOKEN}`;
+    const optUrl = `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordString}?roundtrip=true&source=first&destination=first&geometries=geojson&overview=full&steps=true&access_token=${MAPBOX_TOKEN}`;
     console.log(`[run-routes/mapbox/${label}] Trying Optimization API (${allPoints.length} pts)`);
     const optData = await fetchWithRetry(optUrl, `opt-${label}`);
     if (optData?.trips?.[0]) {
       const trip = optData.trips[0];
       const distMi = (trip.distance || 0) / 1609.34;
       console.log(`[run-routes/mapbox/${label}] Optimization OK: ${distMi.toFixed(2)}mi`);
-      return { geojson: trip.geometry, distanceMi: distMi, durationSec: trip.duration || 0 };
+      return { geojson: trip.geometry, distanceMi: distMi, durationSec: trip.duration || 0, legs: trip.legs || [] };
     }
     console.warn(`[run-routes/mapbox/${label}] Optimization failed, trying Directions`);
   }
@@ -368,27 +408,27 @@ async function fetchRoute(
   // Attempt 2: Directions API
   let dirCoords = coordString;
   if (isLoop) dirCoords += `;${startLng},${startLat}`;
-  const dirUrl = `https://api.mapbox.com/directions/v5/mapbox/walking/${dirCoords}?geometries=geojson&overview=full&steps=false&access_token=${MAPBOX_TOKEN}`;
+  const dirUrl = `https://api.mapbox.com/directions/v5/mapbox/walking/${dirCoords}?geometries=geojson&overview=full&steps=true&access_token=${MAPBOX_TOKEN}`;
   console.log(`[run-routes/mapbox/${label}] Trying Directions API`);
   const dirData = await fetchWithRetry(dirUrl, `dir-${label}`);
   if (dirData?.routes?.[0]) {
     const route = dirData.routes[0];
     const distMi = (route.distance || 0) / 1609.34;
     console.log(`[run-routes/mapbox/${label}] Directions OK: ${distMi.toFixed(2)}mi`);
-    return { geojson: route.geometry, distanceMi: distMi, durationSec: route.duration || 0 };
+    return { geojson: route.geometry, distanceMi: distMi, durationSec: route.duration || 0, legs: route.legs || [] };
   }
 
   // Attempt 3: Simplified 2-point
   if (allPoints.length > 2) {
     console.warn(`[run-routes/mapbox/${label}] Trying simplified 2-point`);
     const simpleCoord = `${startLng},${startLat};${allPoints[1].lng},${allPoints[1].lat};${startLng},${startLat}`;
-    const simpleUrl = `https://api.mapbox.com/directions/v5/mapbox/walking/${simpleCoord}?geometries=geojson&overview=full&steps=false&access_token=${MAPBOX_TOKEN}`;
+    const simpleUrl = `https://api.mapbox.com/directions/v5/mapbox/walking/${simpleCoord}?geometries=geojson&overview=full&steps=true&access_token=${MAPBOX_TOKEN}`;
     const simpleData = await fetchWithRetry(simpleUrl, `simple-${label}`);
     if (simpleData?.routes?.[0]) {
       const route = simpleData.routes[0];
       const distMi = (route.distance || 0) / 1609.34;
       console.log(`[run-routes/mapbox/${label}] Simplified OK: ${distMi.toFixed(2)}mi`);
-      return { geojson: route.geometry, distanceMi: distMi, durationSec: route.duration || 0 };
+      return { geojson: route.geometry, distanceMi: distMi, durationSec: route.duration || 0, legs: route.legs || [] };
     }
   }
 
@@ -403,10 +443,10 @@ async function fetchRoute(
 async function fetchCalibratedRoute(
   startLat: number, startLng: number,
   candidate: RouteCandidate, targetMiles: number, routeType: string,
-): Promise<{ geojson: any; distanceMi: number; durationSec: number } | null> {
+): Promise<{ geojson: any; distanceMi: number; durationSec: number; legs: any[] } | null> {
   const TOLERANCE = 0.35;
   let currentWaypoints = [...candidate.waypoints];
-  let bestResult: { geojson: any; distanceMi: number; durationSec: number } | null = null;
+  let bestResult: { geojson: any; distanceMi: number; durationSec: number; legs: any[] } | null = null;
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const result = await fetchRoute(startLat, startLng, currentWaypoints, routeType, `${candidate.label}-cal${attempt}`);
@@ -551,6 +591,80 @@ async function scoreTerrain(routeCoords: [number, number][], difficulty: string)
 }
 
 // ============================================================
+// EXPORT URLS (Google Maps / Apple Maps)
+// ============================================================
+
+function buildExportUrls(
+  startLat: number, startLng: number,
+  waypoints: { lat: number; lng: number }[],
+  routeType: string,
+): { googleMaps: string; appleMaps: string } {
+  const googleParts = [
+    `${startLat},${startLng}`,
+    ...waypoints.map((wp) => `${wp.lat},${wp.lng}`),
+  ];
+  if (routeType === "loop") googleParts.push(`${startLat},${startLng}`);
+  const googleMaps = `https://www.google.com/maps/dir/${googleParts.join("/")}/@${startLat},${startLng},14z/data=!4m2!4m1!3e2`;
+
+  const dest = waypoints.length > 0
+    ? `${waypoints[0].lat},${waypoints[0].lng}`
+    : `${startLat},${startLng}`;
+  const appleMaps = `https://maps.apple.com/?saddr=${startLat},${startLng}&daddr=${dest}&dirflg=w`;
+
+  return { googleMaps, appleMaps };
+}
+
+// ============================================================
+// TURN-BY-TURN DIRECTIONS
+// ============================================================
+
+interface DirectionStep {
+  instruction: string;
+  distance: string;
+  streetName: string;
+}
+
+function parseDirections(legs: any[]): DirectionStep[] {
+  const steps: DirectionStep[] = [];
+  if (!legs) return steps;
+  for (const leg of legs) {
+    if (!leg.steps) continue;
+    for (const step of leg.steps) {
+      if (!step.maneuver?.instruction) continue;
+      const distM = step.distance || 0;
+      const distMi = distM / 1609.34;
+      const distStr = distMi >= 0.1 ? `${distMi.toFixed(1)} mi` : `${Math.round(distM * 3.281)} ft`;
+      steps.push({
+        instruction: step.maneuver.instruction,
+        distance: distStr,
+        streetName: step.name || "",
+      });
+    }
+  }
+  return steps;
+}
+
+function generateRouteSummary(
+  directions: DirectionStep[], distance: number, durationMin: number,
+  sceneryDetail: { parkPercent: number; waterPercent: number },
+): string {
+  if (directions.length === 0) return "";
+  const streets = Array.from(new Set(
+    directions.map((d) => d.streetName).filter((s) => s && s.toLowerCase() !== "unnamed road" && s.trim() !== ""),
+  ));
+  const parts: string[] = [];
+  parts.push(`This ${distance.toFixed(1)}-mile route takes about ${durationMin} minutes at your pace.`);
+  if (streets.length >= 3) {
+    parts.push(`You'll run along ${streets.slice(0, 3).join(", ")}, and more.`);
+  } else if (streets.length > 0) {
+    parts.push(`You'll run along ${streets.join(" and ")}.`);
+  }
+  if (sceneryDetail.parkPercent > 30) parts.push(`About ${sceneryDetail.parkPercent}% of the route passes through parks.`);
+  if (sceneryDetail.waterPercent > 20) parts.push(`${sceneryDetail.waterPercent}% runs along the waterfront.`);
+  return parts.join(" ");
+}
+
+// ============================================================
 // MAIN POST HANDLER
 // ============================================================
 
@@ -591,19 +705,43 @@ export async function POST(request: NextRequest) {
 
     // Generate candidates
     const candidates = generateCandidates(lat, lng, dist, routeType, parks, waterfront, preferParks);
-    if (candidates.length === 0) {
+
+    // Water avoidance: filter waypoints to same landmass as start
+    const startLandmass = getLandmass(lat, lng);
+    console.log(`[run-routes/water-check] Start landmass: ${startLandmass}`);
+    for (const candidate of candidates) {
+      candidate.waypoints = candidate.waypoints.filter((wp) => {
+        const wpLandmass = getLandmass(wp.lat, wp.lng);
+        const same = areSameLandmass(startLandmass, wpLandmass);
+        if (!same) {
+          console.log(`[run-routes/water-check] Rejected waypoint on ${wpLandmass} (start is ${startLandmass}): ${wp.lat.toFixed(4)}, ${wp.lng.toFixed(4)}`);
+        }
+        return same;
+      });
+    }
+    const validCandidates = candidates.filter((c) => c.waypoints.length > 0);
+
+    if (validCandidates.length === 0) {
       return NextResponse.json({ error: "Could not plan routes. Try a different starting point." }, { status: 500 });
     }
 
     // Fetch routes in parallel
     const routeResults = (
       await Promise.all(
-        candidates.map((c) =>
+        validCandidates.map((c) =>
           fetchCalibratedRoute(lat, lng, c, dist, routeType)
             .then((r) => (r ? { ...r, candidate: c } : null)),
         ),
       )
-    ).filter((r): r is NonNullable<typeof r> => r !== null);
+    ).filter((r): r is NonNullable<typeof r> => {
+      if (!r) return false;
+      const coords: [number, number][] = r.geojson?.coordinates || [];
+      if (hasWaterCrossing(coords)) {
+        console.log(`[run-routes/water-check] Discarding route with water crossing: ${r.candidate.label}`);
+        return false;
+      }
+      return true;
+    });
 
     console.log(`[run-routes/generate] ${routeResults.length}/${candidates.length} candidates produced routes`);
 
@@ -632,6 +770,10 @@ export async function POST(request: NextRequest) {
         };
         const runScore = breakdown.airQuality + breakdown.safety + breakdown.scenery + breakdown.terrain;
 
+        const directions = parseDirections(result.legs);
+        const exportUrls = buildExportUrls(lat, lng, result.candidate.waypoints, routeType);
+        const summary = generateRouteSummary(directions, Math.round(result.distanceMi * 100) / 100, Math.round(result.distanceMi * pace), sceneryResult);
+
         return {
           geojson: result.geojson,
           distance: Math.round(result.distanceMi * 100) / 100,
@@ -640,8 +782,12 @@ export async function POST(request: NextRequest) {
           runScore,
           scoreBreakdown: breakdown,
           sceneryDetail: { parkPercent: sceneryResult.parkPercent, waterPercent: sceneryResult.waterPercent },
+          directions,
+          summary,
+          exportUrls,
           lowQuality: runScore < 40,
           candidateLabel: result.candidate.label,
+          waypoints: result.candidate.waypoints,
         };
       }),
     );

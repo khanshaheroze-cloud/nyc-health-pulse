@@ -25,6 +25,9 @@ interface GeneratedRoute {
   isTopPick: boolean;
   lowQuality?: boolean;
   candidateLabel?: string;
+  exportUrls?: { googleMaps: string; appleMaps: string };
+  directions?: { instruction: string; distance: string; streetName: string }[];
+  summary?: string;
 }
 
 export default function SmartRunRoutes() {
@@ -300,6 +303,10 @@ export default function SmartRunRoutes() {
           </button>
         </div>
 
+        <p className="text-[10px] text-muted px-1">
+          Routes stay on your side of the water — no ferries or unnecessary bridge crossings.
+        </p>
+
         {/* Generate Button */}
         <button onClick={generateRoutes} disabled={loading || startLat === null}
           className="w-full py-3.5 rounded-2xl text-[14px] font-bold text-white bg-hp-green hover:bg-hp-green/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
@@ -418,6 +425,70 @@ export default function SmartRunRoutes() {
                 {selectedRoute.sceneryDetail.waterPercent > 0 && <span>{selectedRoute.sceneryDetail.waterPercent}% along water</span>}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Export to Maps */}
+        {selectedRoute?.exportUrls && (
+          <div className="flex gap-3">
+            <a
+              href={selectedRoute.exportUrls.googleMaps}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2.5 bg-surface border border-border rounded-xl text-[12px] font-semibold text-text hover:bg-bg transition-colors"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#4285F4"/>
+                <circle cx="12" cy="9" r="2.5" fill="white"/>
+              </svg>
+              Open in Google Maps
+            </a>
+            <a
+              href={selectedRoute.exportUrls.appleMaps}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2.5 bg-surface border border-border rounded-xl text-[12px] font-semibold text-text hover:bg-bg transition-colors"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#1D1D1F"/>
+                <circle cx="12" cy="9" r="2.5" fill="white"/>
+              </svg>
+              Open in Apple Maps
+            </a>
+          </div>
+        )}
+
+        {/* Turn-by-Turn Directions */}
+        {selectedRoute && selectedRoute.directions && selectedRoute.directions.length > 0 && (
+          <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+            {selectedRoute.summary && (
+              <div className="p-4 border-b border-border">
+                <p className="text-[12px] text-dim leading-relaxed">{selectedRoute.summary}</p>
+              </div>
+            )}
+            <details className="group">
+              <summary className="px-4 py-3.5 cursor-pointer text-[13px] font-semibold text-text flex items-center justify-between hover:bg-bg transition-colors">
+                <span>Turn-by-Turn Directions ({selectedRoute.directions.length} steps)</span>
+                <svg className="w-4 h-4 text-muted transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </summary>
+              <div className="px-4 pb-4">
+                <ol className="space-y-2.5">
+                  {selectedRoute.directions.map((step: { instruction: string; distance: string; streetName: string }, i: number) => (
+                    <li key={i} className="flex gap-3 text-[12px]">
+                      <span className="flex-shrink-0 w-6 h-6 bg-accent-bg text-hp-green rounded-full flex items-center justify-center text-[10px] font-bold">
+                        {i + 1}
+                      </span>
+                      <div className="flex-1">
+                        <p className="text-text">{step.instruction}</p>
+                        <p className="text-[10px] text-muted mt-0.5">{step.distance}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </details>
           </div>
         )}
       </div>
