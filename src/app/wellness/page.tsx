@@ -23,7 +23,7 @@ export default function WellnessPage() {
         <KPICard
           index={0}
           label="Wellness Spots"
-          value="60+"
+          value="42+"
           sub="Curated across 9 categories"
           color="purple"
         />
@@ -56,7 +56,7 @@ export default function WellnessPage() {
       <WellnessDirectory />
 
       {/* Connect to health data */}
-      <div className="bg-hp-purple/5 border border-hp-purple/20 rounded-xl p-4 mt-6">
+      <div className="bg-hp-purple/5 border border-hp-purple/20 rounded-3xl p-6 mt-6">
         <h3 className="text-[13px] font-bold text-text mb-2">Your Neighborhood&apos;s Mental Health</h3>
         <p className="text-[11px] text-dim mb-2">
           Depression and mental health distress rates vary widely across NYC neighborhoods. Wellness services can complement clinical care.
@@ -84,7 +84,7 @@ export default function WellnessPage() {
       </div>
 
       {/* Disclaimer */}
-      <div className="bg-hp-yellow/5 border border-hp-yellow/20 rounded-xl p-4 mt-4">
+      <div className="bg-hp-yellow/5 border border-hp-yellow/20 rounded-3xl p-6 mt-4">
         <p className="text-[10px] text-dim leading-relaxed">
           <strong className="text-text">Disclaimer:</strong> This is an informational directory, not medical advice.
           Wellness services complement but do not replace clinical care. Consult your healthcare provider before
@@ -94,7 +94,7 @@ export default function WellnessPage() {
       </div>
 
       <div className="flex items-center gap-1.5 mt-4">
-        <span className="w-1.5 h-1.5 rounded-full bg-hp-purple animate-heartbeat" />
+        <span className="w-1.5 h-1.5 rounded-full bg-hp-purple live-pulse" />
         <p className="text-[10px] text-hp-purple font-semibold">
           Curated quarterly · Pool data: NYC Parks · Free fitness: Shape Up NYC · No ads, no affiliate links
         </p>

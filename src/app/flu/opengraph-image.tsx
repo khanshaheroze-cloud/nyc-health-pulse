@@ -2,23 +2,19 @@ import { ImageResponse } from "next/og";
 import { SectionOG } from "@/lib/ogHelpers";
 
 export const runtime = "edge";
-export const alt = "Flu & ILI — Pulse NYC";
+export const alt = "NYC Flu Tracker — Pulse NYC";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function OGImage() {
+export default function Image() {
   return new ImageResponse(
-    SectionOG({
-      icon: "🤒",
-      title: "Flu & ILI",
-      subtitle: "Influenza-like illness surveillance from 53 NYC sentinel hospitals",
-      accentColor: "#f59e42",
-      chips: [
-        { label: "ER Visit Rates", color: "#d48520" },
-        { label: "By Borough", color: "#2850AD" },
-        { label: "Wastewater Signal", color: "#7c5cbf" },
-      ],
-    }),
+    <SectionOG
+      icon="🤒"
+      title="NYC Flu Tracker"
+      subtitle="Weekly flu-like illness surveillance from 53 hospitals"
+      accentColor="#C4704A"
+      chips={[{ label: "ILI Rates", color: "#C4704A" }, { label: "Weekly", color: "#4A7C59" }, { label: "53 Hospitals", color: "#3B7CB8" }]}
+    />,
     { ...size }
   );
 }

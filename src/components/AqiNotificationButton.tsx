@@ -103,7 +103,7 @@ export function AqiNotificationButton() {
         <span>{state === "granted" ? "🔔" : "🔕"}</span>
         {state === "granted" ? "AQI alerts on — click to disable" : "Get AQI alerts"}
         {state === "granted" && (
-          <span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
         )}
       </button>
       <p className="text-[10px] text-muted mt-1.5">

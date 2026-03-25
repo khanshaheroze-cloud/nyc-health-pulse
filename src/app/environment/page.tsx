@@ -14,6 +14,7 @@ import { DogBiteChart, EmsResponseChart, BeachWaterChart } from "@/components/En
 import { HeatColdSafety } from "@/components/HeatColdSafety";
 import { CitiBikeNearby } from "@/components/CitiBikeNearby";
 import { fetchRodentByBorough, fetchNoiseByBorough, fetchNoiseByType, fetchWaterQuality, fetchDogBitesByBorough, fetchEmsResponseByBorough, fetchBeachWater } from "@/lib/liveData";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import { rodentByBorough, noiseByBorough, noiseByType } from "@/lib/data";
 
 export default async function EnvironmentPage() {
@@ -111,6 +112,7 @@ export default async function EnvironmentPage() {
       description="Rodent activity, drinking water quality, 311 noise complaints, and food desert mapping"
       accentColor="rgba(34,211,238,.12)"
     >
+      <ScrollReveal>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
         <KPICard label="Rat Activity"       value={activeRate.toString()} sub="Active per 1K inspections · 30d" color="red" tag="LIVE" />
         <KPICard label="Water Safety"       value={wq ? `${((1 - wq.coliformDetected / wq.totalSamples) * 100).toFixed(1)}%` : "99.9%"} sub="Tests negative for coliform · DEP" color="cyan" tag={waterTag} />
@@ -129,14 +131,16 @@ export default async function EnvironmentPage() {
           />
         )}
       </div>
+      </ScrollReveal>
 
       {/* Water quality table */}
-      <div className="bg-surface border border-border rounded-xl p-4 mb-3">
+      <ScrollReveal delay={100}>
+      <div className="bg-surface border border-border-light rounded-3xl p-6 mb-3">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold">Drinking Water Quality</h3>
           {wq && (
             <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
               <span className="text-[10px] text-hp-green font-semibold">
                 Live · NYC DEP · {wq.totalSamples.toLocaleString()} samples last 30d
               </span>
@@ -168,6 +172,9 @@ export default async function EnvironmentPage() {
         </table>
       </div>
 
+      </ScrollReveal>
+
+      <ScrollReveal delay={150}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
         <RodentByBoroughChart data={rodentData ?? rodentByBorough} />
         <NoiseByBoroughChart  data={noiseBorough ?? noiseByBorough} />
@@ -180,10 +187,11 @@ export default async function EnvironmentPage() {
           <FoodDesertChart />
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Beach water quality */}
       {beachWater && beachWater.length > 0 && (
-        <>
+        <ScrollReveal delay={200}>
           <h3 className="text-sm font-bold mb-2 mt-5">Beach Water Quality</h3>
           <p className="text-[12px] text-dim mb-3">
             NYC DOHMH tests beach water for enterococci bacteria (an indicator of sewage contamination).
@@ -193,18 +201,18 @@ export default async function EnvironmentPage() {
           <div className="mb-3">
             <BeachWaterChart data={beachWater} />
           </div>
-        </>
+        </ScrollReveal>
       )}
 
       {/* Dog bites & EMS response */}
       {(dogBites || emsResponse) && (
-        <>
+        <ScrollReveal delay={250}>
           <h3 className="text-sm font-bold mb-2 mt-5">Public Safety & Animal Reports</h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
             {dogBites && dogBites.length > 0 && <DogBiteChart data={dogBites} />}
             {emsResponse && emsResponse.length > 0 && <EmsResponseChart data={emsResponse} />}
           </div>
-        </>
+        </ScrollReveal>
       )}
 
       {/* Heat/cold safety — seasonal */}
@@ -215,7 +223,7 @@ export default async function EnvironmentPage() {
       <CitiBikeNearby />
 
       <div className="flex items-center gap-1.5 mt-4">
-        <span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse" />
+        <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
         <p className="text-[10px] text-hp-green font-semibold">
           Rodent &amp; noise: hourly · Water quality: daily · Dog bites &amp; EMS: daily · live from NYC Open Data &amp; NYC DEP
         </p>

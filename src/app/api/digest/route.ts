@@ -33,7 +33,7 @@ export async function GET(req: Request) {
     fetchWaterQuality(),
   ]);
 
-  const pm25 = airData?.pm25.toFixed(2) ?? "6.66";
+  const pm25 = airData?.pm25.toFixed(1) ?? "6.7";
   const totalHosp = covidData?.reduce((s, d) => s + d.hosp, 0) ?? 1763;
   const critViol = violations ?? 990;
   const waterPct = waterData
@@ -61,31 +61,31 @@ export async function GET(req: Request) {
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body style="background:#f0f4f2;color:#1e2d2a;font-family:'DM Sans',system-ui,sans-serif;margin:0;padding:0">
+<body style="background:#FAFAF7;color:#1A1D1A;font-family:'Plus Jakarta Sans',system-ui,sans-serif;margin:0;padding:0">
   <div style="max-width:600px;margin:0 auto;padding:32px 24px">
 
     <!-- Header -->
-    <div style="background:#ffffff;border:1px solid #e2e8e4;border-radius:16px;padding:24px;margin-bottom:20px">
+    <div style="background:#ffffff;border:1px solid #E8E4DE;border-radius:16px;padding:24px;margin-bottom:20px">
       <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(45,212,160,0.10);border:1px solid rgba(45,212,160,0.20);border-radius:100px;padding:4px 12px;margin-bottom:12px">
-        <span style="width:6px;height:6px;border-radius:50%;background:#2dd4a0;display:inline-block"></span>
-        <span style="color:#1a9a6e;font-size:11px;font-weight:700;letter-spacing:2px">WEEKLY DIGEST</span>
+        <span style="width:6px;height:6px;border-radius:50%;background:#6B9E7A;display:inline-block"></span>
+        <span style="color:#4A7C59;font-size:11px;font-weight:700;letter-spacing:2px">WEEKLY DIGEST</span>
       </div>
-      <h1 style="margin:0 0 4px;font-size:28px;font-weight:900;color:#1e2d2a">Pulse NYC</h1>
-      <p style="margin:0;color:#5a7a6e;font-size:13px">${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</p>
+      <h1 style="margin:0 0 4px;font-size:28px;font-weight:900;color:#1A1D1A">Pulse NYC</h1>
+      <p style="margin:0;color:#5C635C;font-size:13px">${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</p>
     </div>
 
     <!-- KPIs -->
     <div style="margin-bottom:20px">
-      <h2 style="color:#1e2d2a;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:0 0 12px">This Week's Metrics</h2>
+      <h2 style="color:#1A1D1A;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:0 0 12px">This Week's Metrics</h2>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         ${[
-          { label: "Air Quality (PM2.5)", value: `${pm25} μg/m³`, color: "#1a9a6e" },
+          { label: "Air Quality (PM2.5)", value: `${pm25} μg/m³`, color: "#4A7C59" },
           { label: "COVID Hosp (90d)",    value: totalHosp.toLocaleString(), color: "#2850AD" },
           { label: "Critical Food Violations", value: critViol.toLocaleString(), color: "#7c3aed" },
           { label: "Water Safety",        value: `${waterPct}% clean`, color: "#0891b2" },
         ].map(({ label, value, color }) => `
-        <div style="background:#ffffff;border:1px solid #e2e8e4;border-radius:12px;padding:16px;border-top:3px solid ${color}">
-          <div style="color:#5a7a6e;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">${label}</div>
+        <div style="background:#ffffff;border:1px solid #E8E4DE;border-radius:12px;padding:16px;border-top:3px solid ${color}">
+          <div style="color:#5C635C;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">${label}</div>
           <div style="color:${color};font-size:24px;font-weight:700">${value}</div>
         </div>`).join("")}
       </div>
@@ -94,12 +94,12 @@ export async function GET(req: Request) {
     ${headlines.length > 0 ? `
     <!-- Headlines -->
     <div style="margin-bottom:20px">
-      <h2 style="color:#1e2d2a;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:0 0 12px">NYC Health Headlines</h2>
-      <div style="background:#ffffff;border:1px solid #e2e8e4;border-radius:12px;overflow:hidden">
+      <h2 style="color:#1A1D1A;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:0 0 12px">NYC Health Headlines</h2>
+      <div style="background:#ffffff;border:1px solid #E8E4DE;border-radius:12px;overflow:hidden">
         ${headlines.map((h, i) => `
         <a href="${h.url}" style="display:block;padding:14px 16px;text-decoration:none;${i > 0 ? "border-top:1px solid #e2e8e4;" : ""}">
-          <div style="color:#8ba89c;font-size:10px;margin-bottom:4px">${h.source}</div>
-          <div style="color:#1e2d2a;font-size:13px;line-height:1.4">${h.title}</div>
+          <div style="color:#8A918A;font-size:10px;margin-bottom:4px">${h.source}</div>
+          <div style="color:#1A1D1A;font-size:13px;line-height:1.4">${h.title}</div>
         </a>`).join("")}
       </div>
     </div>
@@ -107,16 +107,16 @@ export async function GET(req: Request) {
 
     <!-- Neighborhood spotlight -->
     <div style="margin-bottom:20px">
-      <h2 style="color:#1e2d2a;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:0 0 12px">Neighborhood Spotlight</h2>
-      <div style="background:#ffffff;border:1px solid #e2e8e4;border-radius:12px;padding:16px">
+      <h2 style="color:#1A1D1A;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:0 0 12px">Neighborhood Spotlight</h2>
+      <div style="background:#ffffff;border:1px solid #E8E4DE;border-radius:12px;padding:16px">
         <div style="margin-bottom:12px">
-          <div style="color:#1e2d2a;font-size:16px;font-weight:700">${spotlight.name}</div>
-          <div style="color:#5a7a6e;font-size:11px">${spotlight.borough} · Pop. ${spotlight.population.toLocaleString()}</div>
+          <div style="color:#1A1D1A;font-size:16px;font-weight:700">${spotlight.name}</div>
+          <div style="color:#5C635C;font-size:11px">${spotlight.borough} · Pop. ${spotlight.population.toLocaleString()}</div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-          <div><div style="color:#8ba89c;font-size:9px;text-transform:uppercase;letter-spacing:1px">Asthma ED</div><div style="color:#dc2626;font-size:14px;font-weight:600">${spotlight.metrics.asthmaED}/10K</div></div>
-          <div><div style="color:#8ba89c;font-size:9px;text-transform:uppercase;letter-spacing:1px">Life Exp.</div><div style="color:#1a9a6e;font-size:14px;font-weight:600">${spotlight.metrics.lifeExp}y</div></div>
-          <div><div style="color:#8ba89c;font-size:9px;text-transform:uppercase;letter-spacing:1px">Poverty</div><div style="color:#d97706;font-size:14px;font-weight:600">${spotlight.metrics.poverty}%</div></div>
+          <div><div style="color:#8A918A;font-size:9px;text-transform:uppercase;letter-spacing:1px">Asthma ED</div><div style="color:#dc2626;font-size:14px;font-weight:600">${spotlight.metrics.asthmaED}/10K</div></div>
+          <div><div style="color:#8A918A;font-size:9px;text-transform:uppercase;letter-spacing:1px">Life Exp.</div><div style="color:#4A7C59;font-size:14px;font-weight:600">${spotlight.metrics.lifeExp}y</div></div>
+          <div><div style="color:#8A918A;font-size:9px;text-transform:uppercase;letter-spacing:1px">Poverty</div><div style="color:#d97706;font-size:14px;font-weight:600">${spotlight.metrics.poverty}%</div></div>
         </div>
         <a href="https://pulsenyc.app/neighborhood/${spotlight.slug}" style="display:inline-block;margin-top:12px;color:#2850AD;font-size:11px;font-weight:600;text-decoration:none">View full profile →</a>
       </div>
@@ -124,14 +124,14 @@ export async function GET(req: Request) {
 
     <!-- CTA -->
     <div style="text-align:center;margin-bottom:20px">
-      <a href="https://pulsenyc.app" style="display:inline-block;background:#1a9a6e;color:#ffffff;font-size:13px;font-weight:600;padding:12px 32px;border-radius:12px;text-decoration:none">
+      <a href="https://pulsenyc.app" style="display:inline-block;background:#4A7C59;color:#ffffff;font-size:13px;font-weight:600;padding:12px 32px;border-radius:12px;text-decoration:none">
         View Live Dashboard →
       </a>
     </div>
 
     <!-- Footer -->
     <div style="border-top:1px solid #e2e8e4;padding-top:16px;text-align:center">
-      <p style="color:#8ba89c;font-size:10px;margin:0">Pulse NYC · pulsenyc.app · Weekly digest</p>
+      <p style="color:#8A918A;font-size:10px;margin:0">Pulse NYC · pulsenyc.app · Weekly digest</p>
     </div>
   </div>
 </body>

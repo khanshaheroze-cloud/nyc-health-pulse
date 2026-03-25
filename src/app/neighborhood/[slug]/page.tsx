@@ -6,6 +6,8 @@ import { KPICard } from "@/components/KPICard";
 import { SaveNeighborhoodButton } from "@/components/SaveNeighborhoodButton";
 import { ShareNeighborhood } from "@/components/ShareNeighborhood";
 import { fetchRodentByBorough, fetchNoiseByBorough, fetchNeighborhoodPm25, fetchHivByNeighborhood, fetchLeadByNeighborhood, fetchHeatVulnerabilityByNeighborhood } from "@/lib/liveData";
+import { CHAINS } from "@/lib/eatSmartData";
+import { SubwayBullet, BOROUGH_LINE } from "@/components/SubwayBullet";
 
 export const revalidate = 3600;
 
@@ -194,28 +196,33 @@ export default async function NeighborhoodPage({ params }: Props) {
   const moveRank = sortedByMove.findIndex(([s]) => s === slug) + 1;
 
   return (
-    <div>
-      {/* Back nav */}
-      <div className="flex items-center gap-2 mb-4">
-        <Link href="/neighborhood" className="text-[11px] text-dim hover:text-text transition-colors">
-          ← All Neighborhoods
-        </Link>
-        <span className="text-muted text-[11px]">/</span>
-        <span className="text-[11px] text-dim">{n.borough}</span>
-      </div>
+    <div className="max-w-[1200px] mx-auto">
+      {/* ── Hero with borough accent ── */}
+      <div className="relative overflow-hidden rounded-3xl mb-6 animate-fade-in-up" style={{ background: color + "10" }}>
+        {/* Borough color accent bar — 4px */}
+        <div className="absolute top-0 left-0 right-0 h-1" style={{ background: color }} />
 
-      {/* Header */}
-      <div className="flex items-start gap-3 mb-5">
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0 mt-0.5"
-          style={{ background: color + "22" }}
-        >
-          📍
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start gap-2 justify-between">
-            <h2 className="font-display font-bold text-[22px] leading-tight">{n.name}</h2>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="px-6 py-8 sm:px-8 sm:py-10">
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-1.5 mb-4 text-[12px]">
+            <Link href="/" className="text-hp-green hover:underline">Overview</Link>
+            <span className="text-muted">/</span>
+            <Link href="/neighborhood" className="text-hp-green hover:underline">Neighborhoods</Link>
+            <span className="text-muted">/</span>
+            <span className="text-dim">{n.borough}</span>
+          </nav>
+
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="font-display text-[24px] sm:text-[32px] text-text leading-snug">{n.name}</h1>
+              <p className="text-[14px] text-dim mt-2 flex items-center gap-1.5 flex-wrap">
+                <SubwayBullet line={BOROUGH_LINE[n.borough] ?? "S"} size={18} />
+                <span className="font-semibold" style={{ color }}>{n.borough}</span>
+                <span>· Population {n.population.toLocaleString()}</span>
+                <span>· UHF42 public health district</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
               <ShareNeighborhood
                 name={n.name}
                 slug={n.slug}
@@ -225,37 +232,32 @@ export default async function NeighborhoodPage({ params }: Props) {
               <SaveNeighborhoodButton slug={n.slug} size="md" />
             </div>
           </div>
-          <p className="text-[12px] text-dim mt-0.5">
-            <span className="font-semibold" style={{ color }}>{n.borough}</span>
-            {" · "}Population {n.population.toLocaleString()}
-            {" · "}UHF42 public health district
-          </p>
         </div>
       </div>
 
       {/* Score Badges */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 animate-fade-in-up stagger-1">
         {/* Health Score */}
-        <div className="bg-surface border border-border rounded-xl p-4 flex items-center gap-4">
+        <div className="bg-surface border border-border-light rounded-3xl p-6 flex items-center gap-5">
           <div className="flex flex-col items-center flex-shrink-0">
             <div
-              className="w-14 h-14 rounded-full flex items-center justify-center text-white font-display font-bold text-[26px] leading-none"
-              style={{ background: gradeColor }}
+              className="w-16 h-16 rounded-full flex items-center justify-center text-white font-display font-bold text-[30px] leading-none shadow-lg"
+              style={{ background: gradeColor, boxShadow: `0 0 18px ${gradeColor}44` }}
             >
               {healthScore.grade}
             </div>
-            <span className="text-[11px] font-semibold text-dim mt-1">{healthScore.score}/100</span>
+            <span className="text-[11px] font-semibold text-dim mt-1.5">{healthScore.score}/100</span>
           </div>
           <div className="min-w-0">
-            <p className="text-[13px] font-bold text-text">
+            <p className="text-[15px] font-bold text-text">
               Health Score: {healthScore.grade}
               <span className="text-dim font-normal ml-1.5">#{healthRank} of 42</span>
             </p>
-            <p className="text-[11px] text-dim mt-0.5 leading-relaxed">
+            <p className="text-[12px] text-dim mt-1 leading-relaxed">
               Clinical outcomes: life expectancy, asthma, obesity, poverty, overdose, diabetes.
             </p>
             <details className="mt-2">
-              <summary className="text-[10px] text-hp-blue cursor-pointer hover:underline">How is this calculated?</summary>
+              <summary className="text-[11px] text-hp-blue cursor-pointer hover:underline">How is this calculated?</summary>
               <div className="mt-2 text-[10px] text-dim leading-relaxed space-y-1.5">
                 <p>Each metric normalized 0-100 across all 42 neighborhoods (100 = best). Weighted average:</p>
                 <ul className="list-disc pl-4 space-y-0.5">
@@ -275,26 +277,26 @@ export default async function NeighborhoodPage({ params }: Props) {
         </div>
 
         {/* Move Score */}
-        <div className="bg-surface border border-border rounded-xl p-4 flex items-center gap-4">
+        <div className="bg-surface border border-border-light rounded-3xl p-6 flex items-center gap-5">
           <div className="flex flex-col items-center flex-shrink-0">
             <div
-              className="w-14 h-14 rounded-full flex items-center justify-center text-white font-display font-bold text-[26px] leading-none"
-              style={{ background: moveGradeColor }}
+              className="w-16 h-16 rounded-full flex items-center justify-center text-white font-display font-bold text-[30px] leading-none shadow-lg"
+              style={{ background: moveGradeColor, boxShadow: `0 0 18px ${moveGradeColor}44` }}
             >
               {moveScore.grade}
             </div>
-            <span className="text-[11px] font-semibold text-dim mt-1">{moveScore.score}/100</span>
+            <span className="text-[11px] font-semibold text-dim mt-1.5">{moveScore.score}/100</span>
           </div>
           <div className="min-w-0">
-            <p className="text-[13px] font-bold text-text">
+            <p className="text-[15px] font-bold text-text">
               Move Score: {moveScore.grade}
               <span className="text-dim font-normal ml-1.5">#{moveRank} of 42</span>
             </p>
-            <p className="text-[11px] text-dim mt-0.5 leading-relaxed">
+            <p className="text-[12px] text-dim mt-1 leading-relaxed">
               Daily livability: air quality, safety, neighborhood investment, food access, environment.
             </p>
             <details className="mt-2">
-              <summary className="text-[10px] text-hp-blue cursor-pointer hover:underline">How is this calculated?</summary>
+              <summary className="text-[11px] text-hp-blue cursor-pointer hover:underline">How is this calculated?</summary>
               <div className="mt-2 text-[10px] text-dim leading-relaxed space-y-1.5">
                 <p>Emphasizes factors that affect day-to-day quality of life. Weighted average:</p>
                 <ul className="list-disc pl-4 space-y-0.5">
@@ -314,7 +316,7 @@ export default async function NeighborhoodPage({ params }: Props) {
       </div>
 
       {/* City rank callout */}
-      <div className="bg-surface border border-border rounded-xl p-3 mb-5 flex flex-wrap gap-4 text-[11px]">
+      <div className="bg-surface border border-border-light rounded-3xl p-5 mb-6 flex flex-wrap gap-5 text-[12px] animate-fade-in-up stagger-2">
         <div>
           <span className="text-dim">Asthma ED rank: </span>
           <span className="font-bold">#{cityRankAsthma}</span>
@@ -330,7 +332,7 @@ export default async function NeighborhoodPage({ params }: Props) {
       </div>
 
       {/* KPI metrics grid */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6 animate-fade-in-up stagger-3">
         {metrics.map(({ label, value, sub, color: c, tag }) => (
           <KPICard key={label} label={label} value={value} sub={sub} color={c} tag={tag} />
         ))}
@@ -340,11 +342,11 @@ export default async function NeighborhoodPage({ params }: Props) {
       <HealthRiskContext n={n} cityAvg={cityAvg} />
 
       {/* Context */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-5">
-        {/* Health snapshot */}
-        <div className="bg-surface border border-border rounded-xl p-4">
-          <h3 className="text-[13px] font-bold mb-3">Health Snapshot vs. City Average</h3>
-          <div className="space-y-2.5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 animate-fade-in-up stagger-5">
+        {/* Health snapshot vs city avg */}
+        <div className="bg-surface border border-border-light rounded-3xl p-6">
+          <h3 className="text-[13px] font-bold tracking-[1.5px] uppercase text-muted mb-4 pb-2 border-b border-border-light">Health Snapshot vs. City Average</h3>
+          <div className="space-y-3">
             {[
               { label: "Asthma ED Rate", val: m.asthmaED, avg: cityAvg.asthmaED, unit: "/10K", invert: true },
               { label: "Obesity",        val: m.obesity,  avg: cityAvg.obesity,  unit: "%",   invert: true },
@@ -359,47 +361,47 @@ export default async function NeighborhoodPage({ params }: Props) {
               const worse = invert ? val > avg : val < avg;
               return (
                 <div key={label}>
-                  <div className="flex justify-between text-[10px] mb-0.5">
+                  <div className="flex justify-between text-[11px] mb-1">
                     <span className="text-dim">{label}</span>
                     <span className={`font-semibold ${worse ? "text-hp-red" : "text-hp-green"}`}>
                       {val}{unit} <span className="text-muted font-normal">vs {avg}{unit}</span>
                     </span>
                   </div>
-                  <div className="relative h-1.5 bg-border rounded-full overflow-hidden">
+                  <div className="relative h-1.5 bg-border-light rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full"
                       style={{
                         width: `${pct}%`,
-                        background: worse ? "#f07070" : "#2dd4a0",
+                        background: worse ? "#f07070" : color,
                       }}
                     />
                     {/* city avg marker */}
                     <div
-                      className="absolute top-0 bottom-0 w-0.5 bg-dim/60"
-                      style={{ left: `${avgPct}%` }}
+                      className="absolute top-0 bottom-0 w-0.5"
+                      style={{ left: `${avgPct}%`, background: "var(--color-muted)" }}
                     />
                   </div>
                 </div>
               );
             })}
           </div>
-          <p className="text-[9px] text-muted mt-3">Vertical line = NYC citywide average. Red = worse than avg, green = better.</p>
+          <p className="text-[10px] text-muted mt-4">Vertical line = NYC citywide average. Red = worse than avg, colored = better.</p>
         </div>
 
         {/* Air quality + notes */}
-        <div className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
-          <h3 className="text-[13px] font-bold">Air Quality</h3>
+        <div className="bg-surface border border-border-light rounded-3xl p-6 flex flex-col gap-4">
+          <h3 className="text-[13px] font-bold tracking-[1.5px] uppercase text-muted pb-2 border-b border-border-light">Air Quality</h3>
           <div>
             <div className="flex items-end gap-2 mb-1">
-              <span className="font-display text-[28px] font-bold" style={{ color: pm25Live > 7.5 ? "#f59e42" : pm25Live > 7.0 ? "#f5c542" : "#2dd4a0" }}>
+              <span className="font-display text-[28px] font-bold" style={{ color: pm25Live > 7.5 ? "#f59e42" : pm25Live > 7.0 ? "#f5c542" : color }}>
                 {Number(pm25Live).toFixed(1)}
               </span>
-              <span className="text-dim text-[12px] mb-1.5">μg/m³ annual PM2.5</span>
+              <span className="text-dim text-[13px] mb-1.5">μg/m³ annual PM2.5</span>
               {livePm25 && (
-                <span className="text-[9px] font-bold text-hp-green mb-1.5">{pm25Tag} NYCCAS</span>
+                <span className="text-[10px] font-bold text-hp-green mb-1.5">{pm25Tag} NYCCAS</span>
               )}
             </div>
-            <div className="flex gap-3 text-[10px] text-dim">
+            <div className="flex gap-3 text-[11px] text-dim">
               <span>WHO target: <strong className="text-text">5.0</strong></span>
               <span>NYC avg: <strong className="text-text">{Number(cityAvg.pm25).toFixed(1)}</strong></span>
               <span className={pm25Live <= 9 ? "text-hp-green" : "text-hp-red"}>
@@ -408,9 +410,9 @@ export default async function NeighborhoodPage({ params }: Props) {
             </div>
           </div>
 
-          <div className="border-t border-border pt-3">
-            <p className="text-[11px] font-semibold text-text mb-1">Data Sources</p>
-            <ul className="text-[10px] text-dim space-y-0.5">
+          <div className="border-t border-border-light pt-4">
+            <p className="text-[12px] font-semibold text-text mb-2">Data Sources</p>
+            <ul className="text-[11px] text-dim space-y-1">
               <li>• Asthma ED: NYC DOHMH EHDP · 2019</li>
               <li>• Obesity / Diabetes: CDC PLACES · 2023</li>
               <li>• Poverty: U.S. Census ACS 2022</li>
@@ -428,39 +430,56 @@ export default async function NeighborhoodPage({ params }: Props) {
 
       {/* Live Borough Activity */}
       {(boroughRodent || boroughNoise) && (
-        <div className="bg-surface border border-border rounded-xl p-4 mb-5">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse flex-shrink-0" />
-            <h3 className="text-[13px] font-bold">Live Borough Activity</h3>
-            <span className="text-[10px] text-dim">· {n.borough} · updates hourly</span>
+        <div className="bg-surface border border-border-light rounded-3xl p-6 mb-6 animate-fade-in-up stagger-6">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse flex-shrink-0" />
+            <h3 className="text-[13px] font-bold tracking-[1.5px] uppercase text-muted">Live Borough Activity</h3>
+            <span className="text-[11px] text-dim">· {n.borough} · updates hourly</span>
           </div>
           <div className="grid grid-cols-2 gap-4">
             {boroughRodent && (
               <div>
-                <p className="text-[10px] text-dim mb-0.5">Rodent Inspections (30d)</p>
-                <p className="text-[18px] font-display font-bold text-text">{boroughRodent.total.toLocaleString()}</p>
-                <p className="text-[10px] text-hp-red">{boroughRodent.active.toLocaleString()} active signs</p>
+                <p className="text-[11px] text-dim mb-1">Rodent Inspections (30d)</p>
+                <p className="text-[22px] font-display font-bold text-text">{boroughRodent.total.toLocaleString()}</p>
+                <p className="text-[11px] text-hp-red">{boroughRodent.active.toLocaleString()} active signs</p>
               </div>
             )}
             {boroughNoise && (
               <div>
-                <p className="text-[10px] text-dim mb-0.5">Noise Complaints (7d)</p>
-                <p className="text-[18px] font-display font-bold text-text">{boroughNoise.complaints.toLocaleString()}</p>
-                <p className="text-[10px] text-dim">311 service requests</p>
+                <p className="text-[11px] text-dim mb-1">Noise Complaints (7d)</p>
+                <p className="text-[22px] font-display font-bold text-text">{boroughNoise.complaints.toLocaleString()}</p>
+                <p className="text-[11px] text-dim">311 service requests</p>
               </div>
             )}
           </div>
         </div>
       )}
 
+      {/* Eat Smart cross-link */}
+      <Link
+        href="/eat-smart"
+        className="flex items-center gap-3 rounded-3xl px-6 py-4 bg-hp-green/5 border border-hp-green/20 hover:bg-hp-green/10 transition-all group card-hover animate-fade-in-up stagger-6 mb-6"
+      >
+        <span className="text-xl">🥗</span>
+        <div className="min-w-0">
+          <p className="text-[13px] font-bold text-hp-green group-hover:underline">
+            Eat Smart in {n.name}
+          </p>
+          <p className="text-[11px] text-dim">
+            {n.metrics.obesity}% obesity rate in this area. Find healthy food options at {CHAINS.length} chains near you.
+          </p>
+        </div>
+        <span className="text-dim text-[11px] ml-auto flex-shrink-0">View →</span>
+      </Link>
+
       {/* Other neighborhoods in same borough */}
       {boroughNeighborhoods.length > 0 && (
-        <div>
-          <h3 className="text-[13px] font-bold mb-2">Other {n.borough} Neighborhoods</h3>
-          <div className="flex flex-wrap gap-1.5">
+        <div className="mb-6">
+          <h3 className="text-[13px] font-bold tracking-[1.5px] uppercase text-muted mb-3 pb-2 border-b border-border-light">Other {n.borough} Neighborhoods</h3>
+          <div className="flex flex-wrap gap-2">
             {boroughNeighborhoods.map(nb => (
               <Link key={nb.slug} href={`/neighborhood/${nb.slug}`}>
-                <span className="text-[11px] px-2.5 py-1 bg-surface border border-border hover:border-hp-blue/40 hover:text-hp-blue rounded-lg transition-all">
+                <span className="text-[12px] px-3 py-1.5 bg-surface border border-border-light hover:border-hp-blue/40 hover:text-hp-blue rounded-full transition-all card-hover">
                   {nb.name}
                 </span>
               </Link>
@@ -520,7 +539,7 @@ function HealthRiskContext({
   }
 
   return (
-    <div className="bg-surface border border-border rounded-xl p-4 mb-6 text-[13px] text-dim leading-relaxed">
+    <div className="bg-surface-sage rounded-3xl p-6 mb-6 text-[14px] text-dim leading-relaxed animate-fade-in-up stagger-4">
       {sentence}
     </div>
   );

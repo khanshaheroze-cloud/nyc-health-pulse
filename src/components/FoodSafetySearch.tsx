@@ -74,8 +74,9 @@ export function FoodSafetySearch() {
   return (
     <div>
       {/* Search Form */}
-      <form onSubmit={handleSearch} className="bg-surface border border-border rounded-xl p-4">
-        <h3 className="text-[13px] font-bold mb-3">Search Restaurant Inspections</h3>
+      <form onSubmit={handleSearch} className="bg-surface border border-border-light rounded-3xl p-6">
+        <h3 className="text-[15px] font-bold text-text mb-1">Search Restaurant Inspections</h3>
+        <p className="text-[11px] text-dim mb-4">Look up any NYC restaurant by name, borough, or zip code</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
           {/* Restaurant name */}
@@ -88,7 +89,7 @@ export function FoodSafetySearch() {
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="e.g. Joe's Pizza"
-              className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-text placeholder:text-muted outline-none focus:border-hp-blue/50 transition-colors"
+              className="w-full bg-bg border-2 border-border-light rounded-full px-5 py-3 text-[16px] text-text placeholder:text-muted outline-none focus:border-hp-purple transition-colors"
             />
           </div>
 
@@ -100,7 +101,7 @@ export function FoodSafetySearch() {
             <select
               value={borough}
               onChange={e => setBorough(e.target.value)}
-              className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-text outline-none focus:border-hp-blue/50 transition-colors"
+              className="w-full bg-bg border-2 border-border-light rounded-full px-4 py-3 text-[13px] text-text outline-none focus:border-hp-purple transition-colors"
             >
               <option value="">All Boroughs</option>
               {BOROUGHS.filter(Boolean).map(b => (
@@ -119,7 +120,7 @@ export function FoodSafetySearch() {
               value={zip}
               onChange={e => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))}
               placeholder="e.g. 10001"
-              className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-text placeholder:text-muted outline-none focus:border-hp-blue/50 transition-colors"
+              className="w-full bg-bg border-2 border-border-light rounded-full px-4 py-3 text-[13px] text-text placeholder:text-muted outline-none focus:border-hp-purple transition-colors"
               maxLength={5}
               inputMode="numeric"
             />
@@ -129,7 +130,7 @@ export function FoodSafetySearch() {
           <button
             type="submit"
             disabled={loading || (!query.trim() && !borough && !zip.trim())}
-            className="bg-hp-blue text-white text-[13px] font-semibold px-5 py-2 rounded-lg hover:bg-hp-blue/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="bg-hp-green text-white text-[13px] font-semibold px-6 py-3 rounded-full hover:bg-hp-green/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? (
               <span className="flex items-center gap-1.5">
@@ -147,7 +148,7 @@ export function FoodSafetySearch() {
 
       {/* Error */}
       {error && (
-        <div className="mt-3 bg-hp-red/10 border border-hp-red/20 rounded-xl px-4 py-3">
+        <div className="mt-3 bg-hp-red/10 border border-hp-red/20 rounded-2xl px-4 py-3">
           <p className="text-[12px] text-hp-red">{error}</p>
         </div>
       )}
@@ -156,7 +157,7 @@ export function FoodSafetySearch() {
       {searched && !loading && !error && (
         <div className="mt-4">
           {results.length === 0 ? (
-            <div className="bg-surface border border-border rounded-xl px-4 py-6 text-center">
+            <div className="bg-surface border border-border-light rounded-2xl px-4 py-6 text-center">
               <p className="text-dim text-[13px]">No restaurants found matching your search.</p>
               <p className="text-muted text-[11px] mt-1">Try a different name, borough, or zip code.</p>
             </div>
@@ -165,16 +166,16 @@ export function FoodSafetySearch() {
               <p className="text-[11px] text-muted mb-2">
                 Showing {results.length} of {total} result{total !== 1 ? "s" : ""}
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {results.map(r => {
                   const gradeStyle = GRADE_COLORS[r.grade] ?? { bg: "bg-border/40", text: "text-dim" };
                   return (
                     <div
                       key={r.camis}
-                      className="bg-surface border border-border rounded-xl p-3.5 flex gap-3 items-start"
+                      className="bg-surface border border-border-light rounded-2xl p-4 flex gap-3 items-start hover:shadow-sm transition-all"
                     >
                       {/* Grade Badge */}
-                      <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center ${gradeStyle.bg}`}>
+                      <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${gradeStyle.bg}`}>
                         <span className={`font-display font-bold text-[22px] ${gradeStyle.text}`}>
                           {r.grade || "?"}
                         </span>
@@ -195,12 +196,12 @@ export function FoodSafetySearch() {
                             Inspected {formatDate(r.gradeDate)}
                           </span>
                           {r.criticalCount > 0 && (
-                            <span className="text-[10px] font-semibold text-hp-red bg-hp-red/10 px-1.5 py-0.5 rounded">
+                            <span className="text-[10px] font-semibold text-hp-red bg-hp-red/10 px-2 py-0.5 rounded-full">
                               {r.criticalCount} critical violation{r.criticalCount !== 1 ? "s" : ""}
                             </span>
                           )}
                           {r.criticalCount === 0 && (
-                            <span className="text-[10px] font-semibold text-hp-green bg-hp-green/10 px-1.5 py-0.5 rounded">
+                            <span className="text-[10px] font-semibold text-hp-green bg-hp-green/10 px-2 py-0.5 rounded-full">
                               No critical violations
                             </span>
                           )}

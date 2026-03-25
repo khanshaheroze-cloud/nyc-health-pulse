@@ -112,9 +112,11 @@ export async function GET() {
         const previous = sorted.length > 1 ? sorted[1] : null;
 
         const price = parseFloat(latest.value);
+        if (isNaN(price)) return null; // skip series with missing data
+
         const prevPrice = previous ? parseFloat(previous.value) : price;
         const change =
-          prevPrice > 0
+          !isNaN(prevPrice) && prevPrice > 0
             ? Math.round(((price - prevPrice) / prevPrice) * 1000) / 10
             : 0;
 

@@ -281,10 +281,24 @@ const CARDS: InsightCard[] = [
 export function ShareableInsights() {
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const [progressKey, setProgressKey] = useState(0);
   const [progressActive, setProgressActive] = useState(false);
   const [slideDir, setSlideDir] = useState<"none" | "left" | "right">("none");
   const resumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Pause carousel when scrolled out of viewport
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const advance = useCallback((direction: "left" | "right") => {
     setSlideDir(direction);
@@ -302,12 +316,12 @@ export function ShareableInsights() {
   const next = useCallback(() => advance("left"), [advance]);
   const prev = useCallback(() => advance("right"), [advance]);
 
-  // Auto-advance timer
+  // Auto-advance timer — pauses when off-screen or user-paused
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || !isVisible) return;
     const timer = setInterval(next, 8000);
     return () => clearInterval(timer);
-  }, [isPaused, next]);
+  }, [isPaused, isVisible, next]);
 
   // Kick progress bar fill after mount / each reset
   useEffect(() => {
@@ -353,6 +367,7 @@ export function ShareableInsights() {
 
   return (
     <div
+      ref={containerRef}
       className="bg-surface border border-border rounded-xl p-5 pb-0 mb-4 relative overflow-hidden"
       onMouseEnter={pauseInteraction}
       onMouseLeave={scheduleResume}

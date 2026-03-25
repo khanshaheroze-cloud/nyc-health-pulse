@@ -16,7 +16,7 @@ export function SectionOG({
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, #f8fafb 0%, #eef4f0 100%)",
+        background: "linear-gradient(135deg, #FAFAF7 0%, #EEF2ED 100%)",
         width: "100%",
         height: "100%",
         display: "flex",
@@ -24,7 +24,7 @@ export function SectionOG({
         alignItems: "flex-start",
         justifyContent: "center",
         padding: "72px 80px",
-        fontFamily: "system-ui, sans-serif",
+        fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
       }}
     >
       {/* Top accent bar */}
@@ -52,10 +52,10 @@ export function SectionOG({
         <div
           style={{
             background: "#ffffff",
-            border: "1px solid #e2e8e4",
+            border: "1px solid #E8E4DE",
             borderRadius: 100,
             padding: "6px 16px",
-            color: "#5a7a6e",
+            color: "#5C635C",
             fontSize: 13,
             fontWeight: 700,
             letterSpacing: 2,
@@ -69,8 +69,8 @@ export function SectionOG({
       <div
         style={{
           fontSize: 56,
-          fontWeight: 900,
-          color: "#1e2d2a",
+          fontWeight: 800,
+          color: "#1A1D1A",
           lineHeight: 1.1,
           marginBottom: 16,
         }}
@@ -79,7 +79,7 @@ export function SectionOG({
       </div>
 
       {/* Subtitle */}
-      <div style={{ color: "#5a7a6e", fontSize: 22, marginBottom: 48 }}>
+      <div style={{ color: "#5C635C", fontSize: 22, marginBottom: 48 }}>
         {subtitle}
       </div>
 
@@ -90,7 +90,7 @@ export function SectionOG({
             key={label}
             style={{
               background: "#ffffff",
-              border: "1px solid #e2e8e4",
+              border: "1px solid #E8E4DE",
               borderRadius: 12,
               padding: "10px 20px",
               color,
@@ -105,7 +105,7 @@ export function SectionOG({
       </div>
 
       {/* URL */}
-      <div style={{ color: "#8ba89c", fontSize: 15, position: "absolute", bottom: 48, right: 80 }}>
+      <div style={{ color: "#8A918A", fontSize: 15, position: "absolute", bottom: 48, right: 80 }}>
         pulsenyc.app
       </div>
     </div>

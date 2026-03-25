@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 interface PriceItem {
   name: string;
@@ -64,38 +65,49 @@ export function FoodPriceTracker() {
   }, []);
 
   return (
-    <div className="bg-surface border border-border rounded-xl p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-base">💰</span>
-          <div>
-            <h3 className="text-[13px] font-bold text-text">NYC Grocery Price Tracker</h3>
-            <p className="text-[10px] text-muted">{data.source} · {data.items[0]?.period}</p>
-          </div>
+    <div className="bg-surface border border-border-light rounded-3xl p-7">
+      {/* Header row */}
+      <div className="flex items-start justify-between mb-5">
+        <div>
+          <h3 className="font-display text-[20px] text-text leading-snug">NYC Grocery Prices</h3>
+          <p className="text-[13px] text-muted mt-0.5">
+            {data.source.split("·")[0].trim()} · {data.items[0]?.period}
+          </p>
         </div>
-        <div className="text-right">
-          <p className="text-[18px] font-display font-bold text-hp-orange">${data.basketTotal.toFixed(2)}</p>
-          <p className="text-[9px] text-muted">10-item basket</p>
+        <div className="text-right flex-shrink-0">
+          <div className="flex items-center gap-2 justify-end">
+            <p className="text-[28px] font-extrabold text-hp-green leading-none">${(data.basketTotal ?? 0).toFixed(2)}</p>
+            {isLive && (
+              <span className="flex items-center gap-1 text-[9px] text-hp-green font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
+                LIVE
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-muted mt-0.5">10-item basket</p>
         </div>
       </div>
 
-      <div className="space-y-1">
+      {/* Link to full tracker */}
+      <div className="flex justify-end mb-3">
+        <Link href="/grocery" className="text-[13px] font-semibold text-hp-green hover:underline">
+          Full tracker →
+        </Link>
+      </div>
+
+      {/* Item rows */}
+      <div>
         {data.items.map((item) => (
-          <div key={item.name} className="flex items-center gap-2 py-1.5 border-b border-border last:border-0">
-            <span className="text-sm w-5 text-center">{CATEGORY_ICONS[item.category] ?? "🛒"}</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold text-text truncate">{item.name}</p>
-              <p className="text-[9px] text-muted">{item.unit}</p>
-            </div>
-            <div className="text-right flex-shrink-0">
-              <p className="text-[13px] font-display font-bold text-text">${item.price.toFixed(2)}</p>
-              {item.change !== 0 && (
-                <p className={`text-[9px] font-semibold ${
-                  Math.abs(item.change) > 10 ? "text-hp-red font-bold" :
+          <div key={item.name} className="flex items-center gap-3 py-3 border-b border-border-light last:border-0">
+            <span className="text-base w-6 text-center flex-shrink-0">{CATEGORY_ICONS[item.category] ?? "🛒"}</span>
+            <p className="text-[14px] font-medium text-text flex-1 min-w-0 truncate">{item.name}</p>
+            <div className="text-right flex-shrink-0 flex items-center gap-3">
+              <p className="text-[16px] font-bold text-text">${(item.price ?? 0).toFixed(2)}</p>
+              {item.change != null && item.change !== 0 && (
+                <p className={`text-[12px] font-semibold min-w-[60px] text-right ${
                   item.change > 0 ? "text-hp-red" : "text-hp-green"
                 }`}>
-                  {item.change > 0 ? "↑" : "↓"} {Math.abs(item.change).toFixed(1)}% YoY
-                  {Math.abs(item.change) > 10 && " ⚠️"}
+                  {item.change > 0 ? "↑" : "↓"} {Math.abs(item.change).toFixed(1)}%
                 </p>
               )}
             </div>
@@ -103,15 +115,8 @@ export function FoodPriceTracker() {
         ))}
       </div>
 
-      <div className="flex items-center justify-between mt-3">
-        <p className="text-[9px] text-muted italic">{data.note}</p>
-        {isLive && (
-          <span className="flex items-center gap-1 text-[9px] text-hp-green font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse" />
-            LIVE
-          </span>
-        )}
-      </div>
+      {/* Footer */}
+      <p className="text-[11px] text-muted italic mt-4">{data.note}</p>
     </div>
   );
 }

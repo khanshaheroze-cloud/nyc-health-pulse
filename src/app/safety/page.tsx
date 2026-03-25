@@ -7,6 +7,8 @@ export const metadata: Metadata = {
 };
 
 import { SectionShell } from "@/components/SectionShell";
+import { ScrollReveal } from "@/components/ScrollReveal";
+import Link from "next/link";
 import { KPICard } from "@/components/KPICard";
 import {
   CrashesByBoroughChart,
@@ -109,6 +111,7 @@ export default async function SafetyPage() {
       accentColor="rgba(245,158,66,.12)"
     >
       {/* KPI Cards */}
+      <ScrollReveal>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
         <KPICard
           label="Total Crashes"
@@ -143,35 +146,41 @@ export default async function SafetyPage() {
           tooltip="Pedestrians injured in motor vehicle collisions. Pedestrians account for a disproportionate share of traffic fatalities."
         />
       </div>
+      </ScrollReveal>
 
       {hasData ? (
         <>
           {/* Charts */}
+          <ScrollReveal delay={100}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
             <CrashesByBoroughChart data={byBorough} />
             <CrashTrendChart data={monthlyTrend} />
           </div>
+          </ScrollReveal>
 
+          <ScrollReveal delay={150}>
           <div className="mb-4">
             <ContributingFactorsChart data={topFactors} />
           </div>
+          </ScrollReveal>
         </>
       ) : (
-        <div className="bg-surface border border-border rounded-xl p-10 text-center mb-4">
+        <div className="bg-surface border border-border-light rounded-3xl p-10 text-center mb-4">
           <p className="text-dim text-sm">Crash data is temporarily unavailable.</p>
           <p className="text-muted text-xs mt-1">The NYPD Open Data API may be experiencing issues. Data will reload automatically.</p>
         </div>
       )}
 
       {/* Know Your Rights / Resources */}
-      <div className="bg-surface border border-border rounded-xl p-5">
+      <ScrollReveal delay={200}>
+      <div className="bg-surface border border-border-light rounded-3xl p-7 card-hover">
         <h3 className="text-[13px] font-bold mb-3">Take Action</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <a
             href="https://portal.311.nyc.gov/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-start gap-2 p-3 rounded-lg border border-border hover:bg-hp-green/5 transition-colors group"
+            className="flex items-start gap-2 p-3 rounded-lg border border-border hover:bg-hp-green/5 transition-colors group card-hover"
           >
             <span className="text-lg">📞</span>
             <div>
@@ -183,7 +192,7 @@ export default async function SafetyPage() {
             href="https://www.nyc.gov/html/dot/html/pedestrians/reqaspeedbump.shtml"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-start gap-2 p-3 rounded-lg border border-border hover:bg-hp-green/5 transition-colors group"
+            className="flex items-start gap-2 p-3 rounded-lg border border-border hover:bg-hp-green/5 transition-colors group card-hover"
           >
             <span className="text-lg">🔧</span>
             <div>
@@ -195,7 +204,7 @@ export default async function SafetyPage() {
             href="https://vzv.nyc/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-start gap-2 p-3 rounded-lg border border-border hover:bg-hp-green/5 transition-colors group"
+            className="flex items-start gap-2 p-3 rounded-lg border border-border hover:bg-hp-green/5 transition-colors group card-hover"
           >
             <span className="text-lg">🗺️</span>
             <div>
@@ -205,13 +214,32 @@ export default async function SafetyPage() {
           </a>
         </div>
       </div>
+      </ScrollReveal>
 
       {hasData && (
         <div className="flex items-center gap-1.5 mt-3">
-          <span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
           <p className="text-[10px] text-hp-green font-semibold">Crash data live from NYPD Motor Vehicle Collisions · updates daily</p>
         </div>
       )}
+
+      {/* Cross-links */}
+      <div className="flex flex-wrap gap-3 mt-6">
+        <Link href="/neighborhood" className="flex items-center gap-3 flex-1 min-w-[240px] px-4 py-3 rounded-xl bg-surface border border-border hover:border-hp-green/30 hover:shadow-sm transition-all group card-hover">
+          <span className="text-lg">📍</span>
+          <div>
+            <p className="text-[12px] font-semibold text-text group-hover:text-hp-green transition-colors">Safety in your neighborhood</p>
+            <p className="text-[10px] text-muted">Crime, traffic, and health metrics by area</p>
+          </div>
+        </Link>
+        <Link href="/building-health" className="flex items-center gap-3 flex-1 min-w-[240px] px-4 py-3 rounded-xl bg-surface border border-border hover:border-hp-green/30 hover:shadow-sm transition-all group card-hover">
+          <span className="text-lg">🏢</span>
+          <div>
+            <p className="text-[12px] font-semibold text-text group-hover:text-hp-green transition-colors">Check your building</p>
+            <p className="text-[10px] text-muted">Full building dossier from 5 NYC datasets</p>
+          </div>
+        </Link>
+      </div>
     </SectionShell>
   );
 }

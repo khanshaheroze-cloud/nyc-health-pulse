@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 type SeasonalTip = {
@@ -153,9 +154,14 @@ function getSeason(month: number): string {
 }
 
 export function SeasonalHealthGuide() {
-  const now = new Date();
-  const month = now.getMonth();
-  const year = now.getFullYear();
+  // Use stable defaults for SSR, update on client to avoid hydration mismatch
+  const [month, setMonth] = useState(2); // March default
+  const [year, setYear] = useState(2026);
+  useEffect(() => {
+    const now = new Date();
+    setMonth(now.getMonth());
+    setYear(now.getFullYear());
+  }, []);
   const seasonKey = getSeason(month);
   const season = SEASONS[seasonKey];
 

@@ -1,52 +1,164 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  /* Backgrounds — clean white wellness */
-  --color-bg: #f8fafb;
-  --color-surface: #ffffff;
-  --color-surface-2: #f0f5f2;
-  --color-border: #e2e8e4;
+  /* ── Core palette (light mode defaults) ─────────────────── */
+  --color-bg: #FAFAF7;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F5F0EB;
+  --color-surface-warm: #F5F0EB;
+  --color-surface-sage: #EEF2ED;
+  --color-surface-sky: #EDF3F8;
+  --color-surface-peach: #FDF2ED;
+  --color-border: #E8E4DE;
+  --color-border-light: #F0ECE6;
 
-  /* Text */
-  --color-text: #1e2d2a;
-  --color-dim: #5a7a6e;
-  --color-muted: #9ab5ae;
+  /* Text hierarchy */
+  --color-text: #1A1D1A;
+  --color-dim: #5C635C;
+  --color-muted: #8A918A;
 
-  /* Brand palette — natural, health-forward */
-  --color-hp-green: #10b981;
-  --color-hp-blue: #0ea5e9;
+  /* Accent — sage green */
+  --color-accent: #4A7C59;
+  --color-accent-light: #6B9E7A;
+  --color-accent-bg: #E8F0EA;
+  --color-hp-green: #4A7C59;
+  --color-hp-green-light: #6B9E7A;
+
+  /* Semantic brand */
+  --color-sky: #3B7CB8;
+  --color-terracotta: #C4704A;
+  --color-coral: #E07B6A;
+  --color-hp-blue: #3B7CB8;
   --color-hp-purple: #8b5cf6;
-  --color-hp-orange: #f97316;
-  --color-hp-red: #ef4444;
+  --color-hp-orange: #C4704A;
+  --color-hp-red: #C45A4A;
   --color-hp-pink: #ec4899;
-  --color-hp-yellow: #d97706;
+  --color-hp-yellow: #C4964A;
   --color-hp-cyan: #06b6d4;
+  --color-hp-coral: #E07B6A;
+
+  /* Semantic status */
+  --color-good: #4A7C59;
+  --color-caution: #C4964A;
+  --color-alert: #C45A4A;
 
   /* MTA Subway Line Colors — official Pantone-to-hex */
-  --color-mta-red: #EE352E;       /* 1, 2, 3 — IRT Broadway-7th Ave */
-  --color-mta-green: #00933C;     /* 4, 5, 6 — IRT Lexington Ave */
-  --color-mta-purple: #B933AD;    /* 7 — Flushing */
-  --color-mta-blue: #2850AD;      /* A, C, E — IND 8th Ave */
-  --color-mta-orange: #FF6319;    /* B, D, F, M — IND 6th Ave */
-  --color-mta-limegreen: #6CBE45; /* G — Crosstown */
-  --color-mta-brown: #996633;     /* J, Z — Nassau */
-  --color-mta-gray: #A7A9AC;      /* L — Canarsie */
-  --color-mta-yellow: #FCCC0A;    /* N, Q, R, W — Broadway */
+  --color-mta-red: #EE352E;
+  --color-mta-green: #00933C;
+  --color-mta-purple: #B933AD;
+  --color-mta-blue: #2850AD;
+  --color-mta-orange: #FF6319;
+  --color-mta-limegreen: #6CBE45;
+  --color-mta-brown: #996633;
+  --color-mta-gray: #A7A9AC;
+  --color-mta-yellow: #FCCC0A;
 
   /* NYC cultural palette */
   --color-nyc-taxiyellow: #FCCC0A;
   --color-nyc-ferryorange: #FF6319;
 
-  /* Borough identity — subway-line based */
-  --color-borough-bronx: #EE352E;      /* 4/5/6 serve the Bronx */
-  --color-borough-brooklyn: #FF6319;   /* B/D/F/M, G heavily serve Brooklyn */
-  --color-borough-manhattan: #2850AD;  /* A/C/E trunk of Manhattan */
-  --color-borough-queens: #B933AD;     /* 7 train = Queens line */
-  --color-borough-si: #6CBE45;         /* SIR / G */
+  /* Borough identity */
+  --color-borough-bronx: #EE352E;
+  --color-borough-brooklyn: #FF6319;
+  --color-borough-manhattan: #2850AD;
+  --color-borough-queens: #B933AD;
+  --color-borough-si: #6CBE45;
 
-  /* Fonts */
-  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  /* Fonts — Plus Jakarta Sans + DM Serif Display */
+  --font-sans: var(--font-plus-jakarta-sans), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-display: var(--font-dm-serif-display), Georgia, serif;
+}
+
+/* ===================================================================
+   DESIGN TOKENS — Typography & Spacing Scale
+   =================================================================== */
+:root {
+  --text-xs: 10px;
+  --text-sm: 12px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --text-4xl: 36px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,.06);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,.08);
+  --shadow-lift: 0 8px 24px rgba(0,0,0,.10);
+}
+
+.dark,
+[data-theme="dark"] {
+  /* Core palette — dark mode */
+  --color-bg: #0F1410;
+  --color-surface: #151C17;
+  --color-surface-2: #1B241D;
+  --color-surface-warm: #1B241D;
+  --color-surface-sage: #1A2A1E;
+  --color-surface-sky: #151E28;
+  --color-surface-peach: #241A15;
+  --color-border: #2A3A2D;
+  --color-border-light: #1F2D22;
+
+  /* Text hierarchy */
+  --color-text: #E8EDE9;
+  --color-dim: #9CA89D;
+  --color-muted: #6B7A6D;
+
+  /* Accent — brighter green for dark bg */
+  --color-accent: #6ECF8A;
+  --color-accent-light: #8BDDA0;
+  --color-accent-bg: #1A2E1F;
+  --color-hp-green: #6ECF8A;
+  --color-hp-green-light: #8BDDA0;
+
+  /* Semantic brand — brighter for contrast */
+  --color-sky: #6AB0E8;
+  --color-terracotta: #E09070;
+  --color-coral: #F09585;
+  --color-hp-blue: #6AB0E8;
+  --color-hp-purple: #a78bfa;
+  --color-hp-orange: #E09070;
+  --color-hp-red: #E07A6A;
+  --color-hp-pink: #f472b6;
+  --color-hp-yellow: #E0B86A;
+  --color-hp-cyan: #22d3ee;
+  --color-hp-coral: #F09585;
+
+  /* Semantic status */
+  --color-good: #6ECF8A;
+  --color-caution: #E0B86A;
+  --color-alert: #E07A6A;
+
+  /* Shadows — more prominent for dark mode */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.12);
+  --shadow-md: 0 2px 8px rgba(0,0,0,.18);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,.24);
+  --shadow-lift: 0 8px 24px rgba(0,0,0,.30);
+}
+
+.dark header.sticky,
+[data-theme="dark"] header.sticky {
+  background: rgba(15, 20, 16, 0.85) !important;
 }
 
 /* ===================================================================
@@ -55,6 +167,21 @@
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(12px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes heartbeat {
@@ -70,110 +197,442 @@
   50% { transform: translateY(-2px); }
 }
 
-@keyframes pulseSlide {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+/* pulseSlide removed for performance — use static gradient instead */
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+
+@keyframes slideInFromRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
 }
 
 .animate-fade-in-up {
   animation: fadeInUp 0.5s ease-out both;
 }
+.animate-fade-up {
+  animation: fadeUp 0.5s ease-out both;
+}
+.animate-scale-in {
+  animation: scaleIn 0.4s ease-out both;
+}
+.animate-slide-in-right {
+  animation: slideInRight 0.4s ease-out both;
+}
 .animate-heartbeat {
   animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+/* Gentle live-data pulse — scale only, GPU-friendly */
+@keyframes livePulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.7; }
+}
+.live-pulse {
+  animation: livePulse 2s ease-in-out infinite;
 }
 .animate-trend-bounce {
   animation: trendBounce 0.6s ease-in-out 1;
 }
 
-/* ===================================================================
-   DARK THEME — overrides CSS custom properties
-   =================================================================== */
-[data-theme="dark"] {
-  --color-bg: #0f1613;
-  --color-surface: #1a2420;
-  --color-surface-2: #1f2e28;
-  --color-border: #2a3d35;
+/* Stagger delay utilities — for individual elements */
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+.stagger-6 { animation-delay: 300ms; }
 
-  --color-text: #e8f0ec;
-  --color-dim: #9bb5a8;
-  --color-muted: #6b8f7e;
+/* Stagger children — add to parent, children get sequential delays */
+.stagger-children > * { animation: fadeUp 0.4s ease both; }
+.stagger-children > *:nth-child(1) { animation-delay: 0s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.12s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.18s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.24s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.30s; }
+.stagger-children > *:nth-child(7) { animation-delay: 0.36s; }
+.stagger-children > *:nth-child(8) { animation-delay: 0.42s; }
+.stagger-children > *:nth-child(n+9) { animation-delay: 0.48s; }
 
-  /* Accent colors — slightly brighter / more saturated for dark bg */
-  --color-hp-green: #34d399;
-  --color-hp-blue: #38bdf8;
-  --color-hp-purple: #a78bfa;
-  --color-hp-orange: #fb923c;
-  --color-hp-red: #f87171;
-  --color-hp-pink: #f472b6;
-  --color-hp-yellow: #fbbf24;
-  --color-hp-cyan: #22d3ee;
+/* Skeleton shimmer loader */
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--color-surface-warm) 25%,
+    var(--color-border) 37%,
+    var(--color-surface-warm) 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-md);
 }
 
+/* ===================================================================
+   MICRO-INTERACTIONS — Cards, Buttons, Hover
+   =================================================================== */
+
+/* Card hover lift — apply to any interactive card */
+.card-hover {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border-color: var(--color-border);
+}
+.card-hover:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Button press effect */
+.btn-press {
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* Pill / tag hover lift */
+.pill-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.pill-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* Smooth focus ring for inputs */
+.focus-ring {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.focus-ring:focus {
+  border-color: var(--color-hp-green);
+  box-shadow: 0 0 0 3px rgba(74, 124, 89, 0.12);
+  outline: none;
+}
+
+/* AQI glow effect */
+.aqi-glow {
+  transition: box-shadow 0.3s ease;
+}
+.aqi-glow[data-level="good"] {
+  box-shadow: 0 0 20px rgba(74, 124, 89, 0.15), 0 0 40px rgba(74, 124, 89, 0.05);
+}
+.aqi-glow[data-level="moderate"] {
+  box-shadow: 0 0 20px rgba(196, 150, 74, 0.15), 0 0 40px rgba(196, 150, 74, 0.05);
+}
+.aqi-glow[data-level="unhealthy"] {
+  box-shadow: 0 0 20px rgba(196, 90, 74, 0.2), 0 0 40px rgba(196, 90, 74, 0.08);
+}
+
+/* AQI ring subtle glow pulse */
+@keyframes aqiRingGlow {
+  0%, 100% { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ring-color, #4A7C59) 20%, transparent)); }
+  50%      { filter: drop-shadow(0 0 14px color-mix(in srgb, var(--ring-color, #4A7C59) 35%, transparent)); }
+}
+.aqi-ring-glow {
+  animation: aqiRingGlow 3s ease-in-out infinite;
+}
+
+/* ── Outdoor Hero — immersive wellness section ─────────────────── */
+.outdoor-hero {
+  animation: heroFadeIn 0.5s ease-out both;
+}
+@keyframes heroFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.outdoor-tile {
+  background: rgba(255,255,255,0.88);
+  border: 1px solid rgba(255,255,255,0.8);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.outdoor-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+/* AQI tile gets slightly more opaque bg + accent border tint */
+.outdoor-tile-aqi {
+  background: rgba(255,255,255,0.82);
+  border-color: rgba(74,124,89,0.15);
+}
+
+.outdoor-advice {
+  background: rgba(74,124,89,0.08);
+}
+
+.dark .outdoor-hero,
+[data-theme="dark"] .outdoor-hero {
+  background: linear-gradient(135deg, #1A2A1E 0%, #151E28 50%, #241A15 100%) !important;
+}
+.dark .outdoor-tile,
+[data-theme="dark"] .outdoor-tile {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.05);
+}
+.dark .outdoor-tile:hover,
+[data-theme="dark"] .outdoor-tile:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.dark .outdoor-tile-aqi,
+[data-theme="dark"] .outdoor-tile-aqi {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(110,207,138,0.12);
+}
+.dark .outdoor-advice,
+[data-theme="dark"] .outdoor-advice {
+  background: rgba(110,207,138,0.08);
+}
+
+/* ── Neighborhood banner — green gradient CTA ─────────────────── */
+.neighborhood-banner {
+  background: linear-gradient(135deg, var(--color-hp-green) 0%, #3D6E4C 100%);
+}
+.dark .neighborhood-banner,
+[data-theme="dark"] .neighborhood-banner {
+  background: linear-gradient(135deg, #1A4028 0%, #0F2818 100%);
+  border: 1px solid var(--color-accent-bg, rgba(110,207,138,0.15));
+}
+
+/* Override search input colors inside banner */
+.neighborhood-search-wrapper input {
+  background: rgba(255,255,255,0.2) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-color: rgba(255,255,255,0.25) !important;
+  color: white !important;
+  border-radius: 100px !important;
+}
+.neighborhood-search-wrapper input::placeholder {
+  color: rgba(255,255,255,0.6) !important;
+}
+.neighborhood-search-wrapper input:focus {
+  border-color: rgba(255,255,255,0.5) !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.12) !important;
+}
+
+/* ── Action pills — quick-access rounded buttons ──────────────── */
+.action-pill {
+  transition: all 0.2s ease;
+}
+.action-pill:hover {
+  border-color: var(--color-hp-green);
+  color: var(--color-hp-green);
+  background: var(--color-accent-bg, rgba(74,124,89,0.06));
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.action-pill:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* ── Live ticker — "Today in NYC" ─────────────────────────────── */
+.ticker-label {
+  opacity: 0.85;
+}
+
+.ticker-scroll {
+  mask-image: linear-gradient(to right, transparent, black 8px, black calc(100% - 24px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8px, black calc(100% - 24px), transparent);
+}
+
+/* Slow auto-scroll for wide content — pauses on hover */
+@keyframes tickerSlide {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-track {
+  animation: tickerSlide 40s linear infinite;
+}
+.ticker-track:hover,
+.ticker-paused {
+  animation-play-state: paused;
+}
+
+/* On small screens just let user swipe, no auto-scroll */
+@media (max-width: 768px) {
+  .ticker-track {
+    animation: none;
+  }
+}
+
+/* Scroll-triggered reveal — starts hidden, JS adds .revealed */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.reveal-on-scroll.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger siblings within a reveal group */
+.reveal-stagger > .reveal-on-scroll:nth-child(1) { transition-delay: 0ms; }
+.reveal-stagger > .reveal-on-scroll:nth-child(2) { transition-delay: 60ms; }
+.reveal-stagger > .reveal-on-scroll:nth-child(3) { transition-delay: 120ms; }
+.reveal-stagger > .reveal-on-scroll:nth-child(4) { transition-delay: 180ms; }
+.reveal-stagger > .reveal-on-scroll:nth-child(5) { transition-delay: 240ms; }
+.reveal-stagger > .reveal-on-scroll:nth-child(6) { transition-delay: 300ms; }
+.reveal-stagger > .reveal-on-scroll:nth-child(n+7) { transition-delay: 360ms; }
+
+/* ===================================================================
+   PAGE TEMPLATE — consistent subpage styles
+   =================================================================== */
+
+/* Section card — standard content container */
+.section-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: 24px;
+  padding: 28px;
+  margin-bottom: 16px;
+}
+@media (max-width: 640px) {
+  .section-card { padding: 20px; }
+}
+
+/* Section header — uppercase label within pages */
+.section-header {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--color-muted);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+/* Data tables — consistent styling across pages */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.data-table thead {
+  background: var(--color-surface-warm);
+}
+.data-table thead th {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-dim);
+  padding: 10px 14px;
+  text-align: left;
+}
+.data-table tbody tr {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background 0.15s ease;
+}
+.data-table tbody tr:hover {
+  background: var(--color-surface-warm);
+}
+.data-table tbody td {
+  font-size: 14px;
+  padding: 10px 14px;
+  color: var(--color-text);
+}
+.data-table-wrap {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+}
+
+/* Search inputs — consistent across pages */
+.page-search {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--color-text);
+  width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.page-search::placeholder {
+  color: var(--color-muted);
+}
+.page-search:focus {
+  border-color: var(--color-hp-green);
+  box-shadow: 0 0 0 3px rgba(74,124,89,0.12);
+  outline: none;
+}
+.page-search-pill {
+  border-radius: 100px;
+}
+
+/* duplicate dark block removed — dark overrides are in the [data-theme="dark"] block above */
+
 body {
-  background-color: var(--color-bg, #f8fafb);
-  /* Very subtle sage-green warmth emanating from top-left (life, health) */
+  background-color: var(--color-bg, #FAFAF7);
   background-image:
-    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(16, 185, 129, 0.04) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(14, 165, 233, 0.03) 0%, transparent 60%);
-  color: var(--color-text, #1e2d2a);
+    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(74, 124, 89, 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(59, 124, 184, 0.02) 0%, transparent 60%);
+  color: var(--color-text, #1A1D1A);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
+.dark body,
 [data-theme="dark"] body {
   background-image:
-    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(16, 185, 129, 0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(14, 165, 233, 0.04) 0%, transparent 60%);
+    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(110, 207, 138, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(106, 176, 232, 0.03) 0%, transparent 60%);
 }
 
-/* Manhattan street grid texture —
-   Narrow E-W streets (28px) + wide N-S avenues (56px) + Broadway diagonal.
-   Block proportions mirror actual Manhattan grid (~900ft N-S : ~230ft E-W). */
+/* Manhattan street grid texture — single subtle grid (simplified for performance) */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   background-image:
-    /* Broadway — cuts diagonally ~NNW at 168° through the grid */
-    repeating-linear-gradient(
-      168deg,
-      transparent,
-      transparent 300px,
-      rgba(16,185,129,0.06) 300px,
-      rgba(16,185,129,0.06) 301px
-    ),
-    /* E-W cross streets — closer together */
     repeating-linear-gradient(
       0deg,
       transparent,
-      transparent 27px,
-      rgba(30,45,42,0.028) 27px,
-      rgba(30,45,42,0.028) 28px
-    ),
-    /* N-S avenues — wider spacing */
-    repeating-linear-gradient(
-      90deg,
-      transparent,
       transparent 55px,
-      rgba(30,45,42,0.02) 55px,
-      rgba(30,45,42,0.02) 56px
+      rgba(26,29,26,0.018) 55px,
+      rgba(26,29,26,0.018) 56px
     );
   pointer-events: none;
   z-index: 0;
 }
 
+.dark body::before,
 [data-theme="dark"] body::before {
-  opacity: 0.3;
+  opacity: 0.2;
 }
 
+/* Dark mode sticky header glass — already covered above */
+
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--color-bg, #f8fafb); }
-::-webkit-scrollbar-thumb { background: var(--color-border, #c8ddd8); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-muted, #9ab5ae); }
+::-webkit-scrollbar-track { background: var(--color-bg, #FAFAF7); }
+::-webkit-scrollbar-thumb { background: var(--color-border, #E8E4DE); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-muted, #8A918A); }
 
 .scrollbar-hide { scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* Transform origins for animations */
+.origin-top-left { transform-origin: top left; }
+.origin-top-right { transform-origin: top right; }
 
 @keyframes ticker-scroll {
   0%   { transform: translateX(0); }
@@ -476,5 +935,182 @@ body::before {
     padding-top: 0.5cm;
     margin-top: 1cm;
     border-top: 1px solid #ddd;
+  }
+}
+
+/* ===================================================================
+   RESPONSIVE — Mobile & Tablet Overrides
+   =================================================================== */
+
+/* ── Mobile: < 640px ── */
+@media (max-width: 639px) {
+  /* Typography scaling */
+  .font-display.text-\[32px\],
+  .font-display.text-\[24px\] {
+    font-size: 24px !important;
+  }
+  .font-display.text-\[22px\] {
+    font-size: 20px !important;
+  }
+  .font-display.text-\[28px\] {
+    font-size: 22px !important;
+  }
+
+  /* KPI value scaling */
+  .font-display.font-bold.text-\[32px\] {
+    font-size: 24px !important;
+  }
+
+  /* Section shell title */
+  h1.font-display {
+    font-size: 24px !important;
+  }
+
+  /* Section description */
+  .text-\[16px\].text-dim {
+    font-size: 14px !important;
+  }
+
+  /* Charts — reduce height on mobile */
+  .h-\[250px\] {
+    height: 200px !important;
+  }
+  .h-\[320px\] {
+    height: 240px !important;
+  }
+
+  /* Cards — reduce padding on mobile */
+  .rounded-3xl.p-6 {
+    padding: 20px !important;
+  }
+  .rounded-3xl.p-7 {
+    padding: 20px !important;
+  }
+
+  /* KPI cards grid — 2 columns on mobile */
+  .grid-cols-\[repeat\(auto-fill\2c minmax\(185px\2c 1fr\)\)\] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Touch targets — minimum heights */
+  button, a.rounded-full, a.rounded-2xl, select {
+    min-height: 44px;
+  }
+
+  /* Tables — horizontal scroll with shadow hint */
+  .data-table-wrap {
+    position: relative;
+  }
+  .data-table-wrap::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 24px;
+    background: linear-gradient(to right, transparent, var(--color-surface));
+    pointer-events: none;
+    border-radius: 0 16px 16px 0;
+  }
+
+  /* Hero greeting — smaller */
+  .outdoor-hero .font-display.text-\[48px\] {
+    font-size: 36px !important;
+  }
+
+  /* Neighborhood strip — stack metrics */
+  .neighborhood-banner .flex.items-center.gap-3 .text-\[12px\] {
+    font-size: 11px;
+  }
+
+  /* Quick action pills — ensure scrollability hint */
+  .flex.flex-nowrap.gap-2\.5 {
+    padding-left: 2px;
+  }
+
+  /* Footer — 2 columns instead of 4 */
+  .grid.sm\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ── Very small screens: 320px ── */
+@media (max-width: 374px) {
+  /* KPI grid — single column on tiny screens */
+  .grid-cols-\[repeat\(auto-fill\2c minmax\(185px\2c 1fr\)\)\] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Hero temp — smaller */
+  .outdoor-hero .font-display.text-\[48px\] {
+    font-size: 30px !important;
+  }
+
+  /* Reduce outer padding */
+  .px-5 {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Outdoor tiles — tighter padding */
+  .outdoor-tile {
+    padding: 12px 10px !important;
+  }
+
+  /* AQI ring — smaller on tiny screens */
+  .outdoor-tile .w-20.h-20 {
+    width: 64px !important;
+    height: 64px !important;
+  }
+
+  .outdoor-tile .text-4xl {
+    font-size: 28px !important;
+  }
+}
+
+/* ── Tablet: 640px - 1024px ── */
+@media (min-width: 640px) and (max-width: 1024px) {
+  /* 2-column charts instead of side-by-side */
+  .grid.lg\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Slightly reduce chart height */
+  .h-\[320px\] {
+    height: 280px !important;
+  }
+}
+
+/* ===================================================================
+   PAGE TRANSITIONS — fade between routes
+   =================================================================== */
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+main {
+  animation: pageFadeIn 0.3s ease-out both;
+}
+
+/* ===================================================================
+   ACCESSIBILITY — prefers-reduced-motion
+   =================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal-on-scroll {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .card-hover:hover {
+    transform: none !important;
+  }
+  main {
+    animation: none !important;
   }
 }

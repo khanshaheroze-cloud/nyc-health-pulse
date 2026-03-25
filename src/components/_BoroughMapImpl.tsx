@@ -112,10 +112,10 @@ export default function BoroughMapImpl() {
     const value = metricValues[name];
     const label = METRIC_LABELS[metric];
     layer.bindTooltip(
-      `<div style="font-size:12px;line-height:1.3;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border:1px solid #e2e8e4;border-radius:10px;padding:6px 10px;color:#1e2d2a;box-shadow:0 4px 12px rgba(0,0,0,.12);text-align:center;pointer-events:none">
+      `<div style="font-size:12px;line-height:1.3;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border:1px solid #E8E4DE;border-radius:10px;padding:6px 10px;color:#1A1D1A;box-shadow:0 4px 12px rgba(0,0,0,.12);text-align:center;pointer-events:none">
         <strong style="font-size:12px;display:block">${name}</strong>
-        <span style="font-size:18px;font-weight:700;color:${valueToColor(value ?? 0, min, max, invert)}">${value ?? "N/A"}</span>
-        <span style="font-size:9px;color:#5a7a6e"> ${label.split("(")[0].trim()}</span>
+        <span style="font-size:18px;font-weight:700;color:${valueToColor(value ?? 0, min, max, invert)}">${typeof value === "number" ? value.toFixed(1) : "N/A"}</span>
+        <span style="font-size:9px;color:#5C635C"> ${label.split("(")[0].trim()}</span>
       </div>`,
       { sticky: false, direction: "center" as "center", className: "leaflet-tooltip-borough" }
     );
@@ -155,7 +155,7 @@ export default function BoroughMapImpl() {
           center={[40.7128, -74.006]}
           zoom={10}
           scrollWheelZoom={false}
-          style={{ height: "100%", width: "100%", background: "#f8fafb" }}
+          style={{ height: "100%", width: "100%", background: "#FAFAF7" }}
           className="rounded-lg"
         >
           <TileLayer

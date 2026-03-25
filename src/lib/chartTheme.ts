@@ -14,25 +14,25 @@ function getCSSVar(name: string, fallback: string): string {
  *  `chartTheme.axis` / `chartTheme.tooltip` usages unchanged. */
 export const chartTheme = {
   get grid() {
-    return { stroke: getCSSVar("--color-border", "#e2e8e4"), strokeDasharray: "3 3" };
+    return { stroke: getCSSVar("--color-border-light", "#E8E4DE"), strokeDasharray: "3 3" };
   },
   get axis() {
     return {
-      stroke: getCSSVar("--color-border", "#c8ddd8"),
-      tick: { fill: getCSSVar("--color-dim", "#5a7a6e"), fontSize: 11 },
+      stroke: getCSSVar("--color-border-light", "#E8E4DE"),
+      tick: { fill: getCSSVar("--color-muted", "#8A918A"), fontSize: 11 },
     };
   },
   get tooltip() {
     return {
       contentStyle: {
         background: getCSSVar("--color-surface", "#ffffff"),
-        border: `1px solid ${getCSSVar("--color-border", "#e2e8e4")}`,
-        borderRadius: 8,
+        border: `1px solid ${getCSSVar("--color-border", "#E8E4DE")}`,
+        borderRadius: 12,
         fontSize: 12,
-        color: getCSSVar("--color-text", "#1e2d2a"),
-        boxShadow: "0 4px 16px rgba(16,185,129,0.08)",
+        color: getCSSVar("--color-text", "#1A1D1A"),
+        boxShadow: "0 4px 16px rgba(74,124,89,0.08)",
       },
-      cursor: { fill: "rgba(16,185,129,0.04)" },
+      cursor: { fill: "rgba(74,124,89,0.04)" },
     };
   },
 };

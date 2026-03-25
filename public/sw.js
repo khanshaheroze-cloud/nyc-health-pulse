@@ -1,4 +1,4 @@
-const CACHE_NAME = "pulse-v2";
+const CACHE_NAME = "pulse-v8";
 const OFFLINE_URL = "/offline.html";
 const SHELL_ROUTES = [
   "/",
@@ -23,6 +23,13 @@ self.addEventListener("install", (event) => {
       })
     ).then(() => self.skipWaiting())
   );
+});
+
+// Allow the page to force-activate a waiting SW
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 // Activate: delete stale caches and claim clients
@@ -58,10 +65,23 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for static assets (JS, CSS, images, fonts)
+  // Network-first for Next.js chunks (hashes change on each deploy)
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Cache-first for other static assets (images, fonts)
   if (
-    url.pathname.startsWith("/_next/static/") ||
-    url.pathname.match(/\.(png|jpg|jpeg|svg|gif|ico|woff2?|ttf|css|js)$/)
+    url.pathname.match(/\.(png|jpg|jpeg|svg|gif|ico|woff2?|ttf)$/)
   ) {
     event.respondWith(
       caches.match(request).then((cached) => {

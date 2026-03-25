@@ -21,10 +21,7 @@ export function HealthNewsTicker() {
     <div className="bg-surface border border-border rounded-xl mb-4 overflow-hidden flex items-center h-10">
       {/* Fixed left label */}
       <div className="flex items-center gap-2 px-3 shrink-0 border-r border-border h-full">
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-hp-red opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-hp-red" />
-        </span>
+        <span className="w-2 h-2 rounded-full bg-hp-red live-pulse" />
         <span className="text-[11px] font-semibold tracking-widest text-hp-red">LIVE</span>
         <span className="text-border text-xs ml-1">|</span>
       </div>

@@ -685,7 +685,7 @@ export default async function SourcesPage() {
       <div className="bg-surface border border-border rounded-xl p-4 mb-6">
         <div className="flex flex-wrap gap-4 mb-3">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-hp-green animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-hp-green live-pulse" />
             <span className="text-xs"><strong className="text-hp-green">{liveCount} Live APIs</strong> <span className="text-dim">— data refreshes automatically</span></span>
           </div>
           <div className="flex items-center gap-2">

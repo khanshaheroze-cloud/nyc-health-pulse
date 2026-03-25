@@ -3,9 +3,9 @@ import { SectionShell } from "@/components/SectionShell";
 import { BuildingHealthSearch } from "@/components/BuildingHealthSearch";
 
 export const metadata: Metadata = {
-  title: "Is My Building Safe? — HPD Violations & Complaints",
+  title: "Is My Building Safe? — Full Building Dossier",
   description:
-    "Look up any NYC residential building to see HPD housing violations, complaints, and safety ratings. Check for hazardous conditions, open violations, and tenant complaint history.",
+    "Look up any NYC building across 5 datasets: HPD violations & complaints, DOB violations, ECB fines, and 311 history. Building health score, open violations, and outstanding penalties.",
 };
 
 export default function BuildingHealthPage() {
@@ -13,12 +13,12 @@ export default function BuildingHealthPage() {
     <SectionShell
       icon="🏢"
       title="Is My Building Safe?"
-      description="Look up any NYC residential building to see HPD housing violations and complaints. Data from the NYC Department of Housing Preservation and Development (HPD)."
+      description="Look up any NYC building to get a complete safety dossier — HPD violations & complaints, DOB construction violations, ECB fines, and 311 history. Data from 5 NYC Open Data sources."
       accentColor="rgba(14,165,233,.12)"
     >
-      {/* Info cards */}
+      {/* Info cards — colored left border */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
-        <div className="bg-surface border border-border rounded-xl p-3">
+        <div className="bg-surface border border-border-light rounded-3xl p-5 card-hover animate-fade-in-up" style={{ borderLeft: "3px solid var(--color-hp-green)", animationDelay: "100ms" }}>
           <p className="text-[10px] font-bold tracking-[1.5px] uppercase text-muted mb-1">
             Violation Classes
           </p>
@@ -28,7 +28,7 @@ export default function BuildingHealthPage() {
             <strong className="text-hp-red">C</strong> = Immediately hazardous (no heat, lead paint, rats, gas leak).
           </p>
         </div>
-        <div className="bg-surface border border-border rounded-xl p-3">
+        <div className="bg-surface border border-border-light rounded-3xl p-5 card-hover animate-fade-in-up" style={{ borderLeft: "3px solid var(--color-hp-blue)", animationDelay: "150ms" }}>
           <p className="text-[10px] font-bold tracking-[1.5px] uppercase text-muted mb-1">
             File a Complaint
           </p>
@@ -45,7 +45,7 @@ export default function BuildingHealthPage() {
             to report building issues. HPD will schedule an inspection.
           </p>
         </div>
-        <div className="bg-surface border border-border rounded-xl p-3">
+        <div className="bg-surface border border-border-light rounded-3xl p-5 card-hover animate-fade-in-up" style={{ borderLeft: "3px solid var(--color-hp-orange)", animationDelay: "200ms" }}>
           <p className="text-[10px] font-bold tracking-[1.5px] uppercase text-muted mb-1">
             Tenant Rights
           </p>
@@ -62,13 +62,13 @@ export default function BuildingHealthPage() {
       <BuildingHealthSearch />
 
       {/* Disclaimer */}
-      <div className="mt-6 bg-surface border border-border rounded-xl p-4">
+      <div className="mt-6 bg-surface border border-border-light rounded-3xl p-6">
         <p className="text-[10px] text-muted leading-relaxed">
-          <strong className="text-dim">Disclaimer:</strong> Violation and complaint data comes from the NYC HPD
-          Open Data portal and may not reflect the most recent inspections. Some violations may have been
-          corrected but not yet updated in the system. Class C violations require immediate correction but the
-          listed status depends on HPD re-inspection. This tool is for informational purposes only and should
-          not replace a professional building inspection. For emergencies, call 911.
+          <strong className="text-dim">Disclaimer:</strong> Data comes from 5 NYC Open Data sources (HPD, DOB, ECB/OATH, 311)
+          and may not reflect the most recent inspections or corrections. Building Health Scores are computed estimates
+          based on violation severity, open complaints, and outstanding fines — they are not official ratings.
+          Class C violations require correction within 24 hours but the listed status depends on HPD re-inspection.
+          This tool is for informational purposes only. For emergencies, call 911.
         </p>
       </div>
     </SectionShell>

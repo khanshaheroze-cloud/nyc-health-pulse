@@ -104,11 +104,11 @@ export function GroceryFinder() {
   }, [coords, fetchNearby]);
 
   return (
-    <div className="bg-surface border border-border rounded-xl p-4">
+    <div className="bg-surface border border-border-light rounded-3xl p-6">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-base">📍</span>
-          <h3 className="text-[13px] font-bold text-text">Grocery Stores Near You</h3>
+          <h3 className="text-[15px] font-bold text-text">Grocery Stores Near You</h3>
         </div>
         {located && (
           <button
@@ -125,7 +125,7 @@ export function GroceryFinder() {
           <button
             onClick={handleLocate}
             disabled={locating}
-            className="px-4 py-2 text-[12px] font-semibold rounded-lg bg-hp-blue text-white hover:bg-hp-blue/90 disabled:opacity-50 transition-all"
+            className="px-6 py-3 text-[13px] font-semibold rounded-full bg-hp-green text-white hover:bg-hp-green/90 disabled:opacity-50 transition-all"
           >
             {locating ? (
               <span className="flex items-center gap-2">
@@ -159,9 +159,9 @@ export function GroceryFinder() {
           <div className="flex gap-1 mb-3">
             <button
               onClick={() => setTab("stores")}
-              className={`text-[11px] font-semibold px-3 py-1 rounded-lg transition-all ${
+              className={`text-[11px] font-semibold px-3.5 py-1.5 rounded-full transition-all ${
                 tab === "stores"
-                  ? "bg-hp-blue/10 text-hp-blue border border-hp-blue/20"
+                  ? "bg-hp-green/10 text-hp-green border border-hp-green/20"
                   : "text-dim border border-transparent hover:text-text"
               }`}
             >
@@ -169,7 +169,7 @@ export function GroceryFinder() {
             </button>
             <button
               onClick={() => setTab("markets")}
-              className={`text-[11px] font-semibold px-3 py-1 rounded-lg transition-all ${
+              className={`text-[11px] font-semibold px-3.5 py-1.5 rounded-full transition-all ${
                 tab === "markets"
                   ? "bg-hp-green/10 text-hp-green border border-hp-green/20"
                   : "text-dim border border-transparent hover:text-text"
@@ -186,13 +186,13 @@ export function GroceryFinder() {
                 <p className="text-[12px] text-dim text-center py-4">No stores found within 0.75 miles.</p>
               )}
               {stores.map((s, i) => (
-                <div key={i} className="flex items-start gap-3 border border-border rounded-lg px-3 py-2 hover:bg-bg/50 transition-colors">
+                <div key={i} className="flex items-start gap-3 border border-border-light rounded-xl px-3.5 py-2.5 hover:bg-bg/50 transition-colors">
                   <span className="text-lg mt-0.5">{TYPE_ICONS[s.type] ?? "🛒"}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-semibold text-text truncate">{s.name}</p>
                     <p className="text-[10px] text-muted">{s.address}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-border/50 text-dim font-medium">{s.type}</span>
+                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-border/50 text-dim font-medium">{s.type}</span>
                       {s.sqft && (
                         <span className="text-[9px] text-dim">{sizeLabel(s.sqft)} ({s.sqft.toLocaleString()} sq ft)</span>
                       )}
@@ -213,7 +213,7 @@ export function GroceryFinder() {
                 <p className="text-[12px] text-dim text-center py-4">No farmers markets found nearby. Markets are seasonal (typically Jun–Nov).</p>
               )}
               {markets.map((m, i) => (
-                <div key={i} className="flex items-start gap-3 border border-border rounded-lg px-3 py-2 hover:bg-bg/50 transition-colors">
+                <div key={i} className="flex items-start gap-3 border border-border-light rounded-xl px-3.5 py-2.5 hover:bg-bg/50 transition-colors">
                   <span className="text-lg mt-0.5">🥕</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-semibold text-text truncate">{m.name}</p>

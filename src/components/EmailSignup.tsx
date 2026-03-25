@@ -35,7 +35,7 @@ export function EmailSignup() {
   }
 
   return (
-    <div className="bg-surface border border-border rounded-xl p-5">
+    <div className="bg-surface border border-border rounded-xl p-5 animate-fade-in-up">
       <div className="flex items-center gap-2 mb-1">
         <span className="text-[14px] font-bold">Health Digest</span>
         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border text-dim bg-surface border-border flex-shrink-0">
@@ -79,12 +79,12 @@ export function EmailSignup() {
               placeholder="your@email.com"
               required
               disabled={status === "loading"}
-              className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-text placeholder:text-muted outline-none focus:border-hp-blue/50 transition-colors disabled:opacity-50"
+              className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-text placeholder:text-muted focus-ring disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={status === "loading" || !email.trim()}
-              className="px-4 py-2 bg-hp-green/15 border border-hp-green/30 text-hp-green text-[12px] font-semibold rounded-lg hover:bg-hp-green/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+              className="px-4 py-2 bg-hp-green/15 border border-hp-green/30 text-hp-green text-[12px] font-semibold rounded-lg hover:bg-hp-green/25 btn-press transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
             >
               {status === "loading" ? "Subscribing…" : `Get ${frequency} digest`}
             </button>

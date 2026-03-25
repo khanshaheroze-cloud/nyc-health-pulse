@@ -75,8 +75,8 @@ export default function CensusTractMapImpl({ metric, height }: Props) {
     const value = places[id]?.[metric];
 
     (layer as unknown as { bindTooltip: (s: string, o: object) => void }).bindTooltip(
-      `<div style="font-size:11px;line-height:1.5;background:#fff;border:1px solid #e2e8e4;border-radius:8px;padding:6px 10px;color:#1e2d2a;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-        <span style="color:#5a7a6e;font-size:10px">Tract ${id?.slice(-6)} · ${boro}</span><br/>
+      `<div style="font-size:11px;line-height:1.5;background:#fff;border:1px solid #E8E4DE;border-radius:8px;padding:6px 10px;color:#1A1D1A;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+        <span style="color:#5C635C;font-size:10px">Tract ${id?.slice(-6)} · ${boro}</span><br/>
         ${cfg.label}: <strong>${value?.toFixed(1) ?? "No data"} ${value != null ? cfg.unit : ""}</strong>
       </div>`,
       { sticky: true }
@@ -94,7 +94,7 @@ export default function CensusTractMapImpl({ metric, height }: Props) {
     <MapContainer
       center={[40.7, -73.97]}
       zoom={11}
-      style={{ height, width: "100%", background: "#f8fafb" }}
+      style={{ height, width: "100%", background: "#FAFAF7" }}
       scrollWheelZoom={false}
     >
       <TileLayer

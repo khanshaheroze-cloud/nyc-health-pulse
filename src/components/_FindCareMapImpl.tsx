@@ -40,7 +40,7 @@ const TYPE_MARKER_COLORS: Record<FacilityType, string> = {
   "substance-use": "#a78bfa",
   "urgent-care": "#f59e42",
   nursing: "#22d3ee",
-  other: "#8ba89c",
+  other: "#8A918A",
 };
 
 function FitBounds({ facilities, userLat, userLng }: { facilities: Facility[]; userLat: number | null; userLng: number | null }) {
@@ -120,7 +120,7 @@ export function FindCareMapImpl({
               <div style={{ fontSize: 12, maxWidth: 200 }}>
                 <strong>{f.name}</strong>
                 <br />
-                <span style={{ color: "#5a7a6e" }}>{f.typeLabel}</span>
+                <span style={{ color: "#5C635C" }}>{f.typeLabel}</span>
                 {f.distance != null && (
                   <>
                     <br />

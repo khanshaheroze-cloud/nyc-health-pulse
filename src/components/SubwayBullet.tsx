@@ -61,7 +61,7 @@ export function SubwayBullet({ line, size = 18 }: { line: string; size?: number 
         letterSpacing: "-0.02em",
         lineHeight: 1,
         userSelect: "none",
-        marginRight: 2,
+        marginRight: 6,
         boxShadow: "0 0 0 1.5px rgba(0,0,0,.12)",
       }}
     >

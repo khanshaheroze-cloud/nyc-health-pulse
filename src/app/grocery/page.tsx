@@ -7,7 +7,7 @@ import { HealthyGroceryGuide } from "@/components/HealthyGroceryGuide";
 import { sampleBasket } from "@/lib/groceryData";
 
 export const metadata: Metadata = {
-  title: "Grocery & Food Access — Prices, Stores & Healthy Picks",
+  title: "NYC Grocery Prices — Pulse NYC",
   description:
     "Track NYC grocery prices monthly, find stores and farmers markets near you, and discover budget-friendly healthy eating tips. BLS price data, SNAP retailers, and dietitian-backed shopping guides.",
 };
@@ -25,7 +25,7 @@ export default function GroceryPage() {
         <KPICard
           index={0}
           label="Grocery Stores"
-          value="8,100+"
+          value="8100+"
           sub="Licensed food retailers in NYC"
           color="orange"
           tag="LIVE"
@@ -43,7 +43,7 @@ export default function GroceryPage() {
         <KPICard
           index={2}
           label="SNAP Retailers"
-          value="5,900+"
+          value="5900+"
           sub="Stores accepting EBT in NYC"
           color="blue"
           tag="LIVE"
@@ -75,7 +75,7 @@ export default function GroceryPage() {
       </div>
 
       {/* Sample healthy basket */}
-      <div className="bg-surface border border-border rounded-xl p-4 mb-4">
+      <div className="bg-surface-sage border border-border-light rounded-3xl p-6 mb-6">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-base">🧺</span>
           <div>
@@ -85,7 +85,7 @@ export default function GroceryPage() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {sampleBasket.map((item) => (
-            <div key={item} className="text-center px-2 py-2 border border-border rounded-lg bg-bg/50">
+            <div key={item} className="text-center px-2 py-2.5 border border-border-light rounded-xl bg-surface">
               <p className="text-[10px] font-semibold text-text">{item}</p>
             </div>
           ))}
@@ -97,34 +97,34 @@ export default function GroceryPage() {
       </div>
 
       {/* Where to save money */}
-      <div className="bg-surface border border-border rounded-xl p-4 mb-4">
+      <div className="bg-surface border border-border-light rounded-3xl p-6 mb-6">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-base">📍</span>
           <h3 className="text-[13px] font-bold text-text">Where NYC&apos;s Cheapest Groceries Are</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <div className="border border-border rounded-lg p-3">
+          <div className="bg-surface border border-border-light rounded-xl p-3.5">
             <p className="text-[11px] font-bold text-text mb-1">Produce</p>
             <p className="text-[10px] text-dim leading-relaxed">
               Chinatown (Canal St), Sunset Park 8th Ave, Jackson Heights 74th St.
               Green Carts in underserved neighborhoods often have the lowest prices.
             </p>
           </div>
-          <div className="border border-border rounded-lg p-3">
+          <div className="bg-surface border border-border-light rounded-xl p-3.5">
             <p className="text-[11px] font-bold text-text mb-1">Bulk Staples</p>
             <p className="text-[10px] text-dim leading-relaxed">
               Costco (Sunset Park, Rego Park), BJ&apos;s Wholesale. Split with neighbors if storage is tight.
               Restaurant Depot (with membership) for large quantities.
             </p>
           </div>
-          <div className="border border-border rounded-lg p-3">
+          <div className="bg-surface border border-border-light rounded-xl p-3.5">
             <p className="text-[11px] font-bold text-text mb-1">Protein</p>
             <p className="text-[10px] text-dim leading-relaxed">
               Halal butchers in Bay Ridge and Jackson Heights are 30-40% below chain supermarkets.
               Chinatown fish markets for fresh seafood at wholesale-like prices.
             </p>
           </div>
-          <div className="border border-border rounded-lg p-3">
+          <div className="bg-surface border border-border-light rounded-xl p-3.5">
             <p className="text-[11px] font-bold text-text mb-1">Overall Savings</p>
             <p className="text-[10px] text-dim leading-relaxed">
               Aldi (Brooklyn, Queens) consistently 20-30% below average.
@@ -135,8 +135,9 @@ export default function GroceryPage() {
       </div>
 
       {/* Tips section */}
-      <div className="bg-hp-green/5 border border-hp-green/20 rounded-xl p-4">
-        <h3 className="text-[13px] font-bold text-text mb-2">NYC Food Access Tips</h3>
+      <div className="bg-surface-sage border border-border-light rounded-3xl p-7">
+        <h3 className="text-[13px] font-bold tracking-[1.5px] uppercase text-muted mb-1 pb-2 border-b border-border-light">Smart Shopping Tips</h3>
+        <p className="text-[11px] text-dim mb-3 mt-2">Local knowledge to stretch your grocery budget in NYC</p>
         <ul className="space-y-1.5 text-[11px] text-dim">
           <li>• <strong>Green Carts</strong> are mobile vendors selling fresh produce in underserved neighborhoods at below-supermarket prices</li>
           <li>• <strong>SNAP/EBT</strong> benefits can be used at most supermarkets, many bodegas, and an increasing number of farmers markets</li>
@@ -149,7 +150,7 @@ export default function GroceryPage() {
       </div>
 
       <div className="flex items-center gap-1.5 mt-4">
-        <span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-heartbeat" />
+        <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
         <p className="text-[10px] text-hp-green font-semibold">
           Store data: NYS Ag & Markets · Prices: BLS CPI Northeast Urban · Markets: NYC DOHMH · updated monthly
         </p>

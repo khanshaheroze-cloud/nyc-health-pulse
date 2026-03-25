@@ -6,6 +6,7 @@ export const metadata: Metadata = {
 import { datasetJsonLdString, NYC_OPEN_DATA_LICENSE } from "@/lib/jsonLd";
 import { SectionShell } from "@/components/SectionShell";
 import { KPICard } from "@/components/KPICard";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import {
   OverdoseTrendChart,
   OverdoseBoroughChart,
@@ -48,15 +49,17 @@ export default function OverdosePage() {
       description="Drug poisoning mortality trends · Child blood lead levels by borough · NYC DOHMH"
       accentColor="rgba(245,197,66,.12)"
     >
+      <ScrollReveal>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
-        <KPICard label="2024 OD Deaths"  value="2,235" sub="↓28% from 2023 peak"     color="green"  tag="2024" />
-        <KPICard label="Peak Year"        value="3,104" sub="2023 · All-time high"     color="red"    tag="2023" />
+        <KPICard label="2024 OD Deaths"  value="2235" sub="↓28% from 2023 peak"     color="green"  tag="2024" />
+        <KPICard label="Peak Year"        value="3104" sub="2023 · All-time high"     color="red"    tag="2023" />
         <KPICard label="Child Lead 2023"  value="1.8%"  sub="Elevated BLL · historic low" color="green" tag="2023" />
         <KPICard label="Lead Highest"     value="Bronx" sub="2.8% elevated"            color="orange" tag="2023" />
       </div>
+      </ScrollReveal>
 
       {/* Data gap notice */}
-      <div className="bg-surface border border-hp-yellow/30 border-l-4 border-l-hp-yellow rounded-xl p-4 mb-4">
+      <div className="bg-surface border border-hp-yellow/30 border-l-4 border-l-hp-yellow rounded-3xl p-6 mb-4">
         <h3 className="text-sm font-bold mb-1 text-hp-yellow">Seed Data — No Live API Available</h3>
         <p className="text-xs text-dim leading-relaxed">
           NYC-specific overdose mortality data is not available via a public REST API. Dataset{" "}
@@ -66,6 +69,7 @@ export default function OverdosePage() {
         </p>
       </div>
 
+      <ScrollReveal delay={100}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
         <OverdoseTrendChart />
         <OverdoseBoroughChart />
@@ -75,8 +79,10 @@ export default function OverdosePage() {
         <LeadTrendChart />
         <LeadBoroughChart />
       </div>
+      </ScrollReveal>
 
-      <div className="bg-surface border border-border rounded-xl p-4 mt-3">
+      <ScrollReveal delay={200}>
+      <div className="bg-surface border border-border-light rounded-3xl p-6 mt-3">
         <h3 className="text-[13px] font-bold mb-2">Data Sources</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-dim">
           <div>
@@ -90,8 +96,8 @@ export default function OverdosePage() {
           </div>
         </div>
       </div>
-      {/* Harm reduction resources */}
-      <div className="bg-surface border border-hp-yellow/30 border-l-4 border-l-hp-yellow rounded-xl p-4 mt-4">
+
+      <div className="bg-surface border border-hp-yellow/30 border-l-4 border-l-hp-yellow rounded-3xl p-6 mt-4">
         <h3 className="text-sm font-bold mb-2">Harm Reduction Resources</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div className="bg-bg rounded-lg p-3">
@@ -104,6 +110,7 @@ export default function OverdosePage() {
           </div>
         </div>
       </div>
+      </ScrollReveal>
     </SectionShell>
     </>
   );

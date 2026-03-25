@@ -18,30 +18,39 @@ export function useTheme() {
   return useContext(ThemeContext);
 }
 
+/** Apply theme to DOM — sets both data-theme attribute AND .dark class */
+function applyTheme(t: Theme) {
+  const html = document.documentElement;
+  html.setAttribute("data-theme", t);
+  if (t === "dark") {
+    html.classList.add("dark");
+  } else {
+    html.classList.remove("dark");
+  }
+  // Update theme-color meta tag for mobile browsers
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    meta.setAttribute("content", t === "dark" ? "#0F1410" : "#FAFAF7");
+  }
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
 
-  // On mount, read the current state from the <html> element
-  // (the inline script in <head> already set data-theme before React hydrates)
+  // On mount, read the current state (the inline script in <head> already set it)
   useEffect(() => {
     const current = document.documentElement.getAttribute("data-theme");
-    if (current === "dark") {
-      setTheme("dark");
-    } else {
-      setTheme("light");
-    }
+    const resolved: Theme = current === "dark" ? "dark" : "light";
+    setTheme(resolved);
+    // Ensure both mechanisms are in sync
+    applyTheme(resolved);
   }, []);
 
   const toggle = useCallback(() => {
     setTheme((prev) => {
-      const next = prev === "light" ? "dark" : "light";
-      document.documentElement.setAttribute("data-theme", next);
+      const next: Theme = prev === "light" ? "dark" : "light";
+      applyTheme(next);
       localStorage.setItem("pulse-theme", next);
-      // Update theme-color meta tag
-      const meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) {
-        meta.setAttribute("content", next === "dark" ? "#0f1613" : "#f8fafb");
-      }
       return next;
     });
   }, []);

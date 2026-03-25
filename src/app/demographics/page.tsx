@@ -19,6 +19,7 @@ import {
   UninsuredByBoroughChart,
 } from "@/components/DemographicsCharts";
 import { fetchRaceByBorough, fetchPovertyByBorough, fetchMedianIncomeByBorough, fetchUninsuredByBorough } from "@/lib/liveData";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import {
   raceByBorough,
   asianSubgroupsCitywide,
@@ -102,6 +103,7 @@ export default async function DemographicsPage() {
       accentColor="rgba(167,139,250,.12)"
     >
       {/* KPI row */}
+      <ScrollReveal>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
         <KPICard
           label="NYC Population"
@@ -159,17 +161,21 @@ export default async function DemographicsPage() {
           />
         )}
       </div>
+      </ScrollReveal>
 
       {/* Race charts */}
+      <ScrollReveal delay={100}>
       <div className="mb-3">
         <RacePctByBoroughChart data={raceData} />
       </div>
+      </ScrollReveal>
 
+      <ScrollReveal delay={150}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
         <RaceCountsTable data={raceData} />
 
         {/* Data gap — MENA + Caribbean */}
-        <div className="bg-surface border border-hp-yellow/25 rounded-xl p-4 flex flex-col gap-3">
+        <div className="bg-surface border border-hp-yellow/25 rounded-3xl p-6 flex flex-col gap-3">
           <h3 className="text-[13px] font-bold flex items-center gap-1.5">
             <span className="text-hp-yellow">⚠</span> Census Data Gaps
           </h3>
@@ -201,12 +207,14 @@ export default async function DemographicsPage() {
           </div>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Asian subgroups */}
+      <ScrollReveal delay={200}>
       <div className="mb-3">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <AsianSubgroupsChart data={asianSubgroupsCitywide} />
-          <div className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
+          <div className="bg-surface border border-border-light rounded-3xl p-6 flex flex-col gap-3">
             <h3 className="text-[13px] font-bold">Asian Subgroup Key</h3>
             <p className="text-[11px] text-dim leading-relaxed">
               NYC is home to the largest South Asian community outside South Asia, and one of the largest
@@ -233,11 +241,13 @@ export default async function DemographicsPage() {
           </div>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Age distribution */}
+      <ScrollReveal delay={250}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
         <AgeByBoroughChart data={ageByBorough} />
-        <div className="bg-surface border border-border rounded-xl p-4 flex flex-col justify-center gap-2">
+        <div className="bg-surface border border-border-light rounded-3xl p-6 flex flex-col justify-center gap-2">
           <h3 className="text-[13px] font-bold">Age Highlights</h3>
           {[
             { borough: "Bronx",     label: "Youngest median age (~34)",       detail: "24% under 18 · highest child share of any borough" },
@@ -256,6 +266,7 @@ export default async function DemographicsPage() {
           <p className="text-[10px] text-muted mt-1">Source: ACS 2023 5-year estimates · B01001</p>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Poverty, Income & Uninsured */}
       {(poverty || income || uninsured) && (
@@ -267,13 +278,14 @@ export default async function DemographicsPage() {
       )}
 
       {/* Health disparities */}
+      <ScrollReveal delay={300}>
       <div className="mb-3">
         <HealthDisparitiesChart data={healthDisparitiesByRace} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
         <LifeExpByRaceChart data={lifeExpectancyByRace} />
-        <div className="bg-surface border border-border rounded-xl p-4 flex flex-col justify-center gap-2">
+        <div className="bg-surface border border-border-light rounded-3xl p-6 flex flex-col justify-center gap-2">
           <h3 className="text-[13px] font-bold">Life Expectancy Gap</h3>
           <p className="text-[11px] text-dim leading-relaxed">
             The <strong className="text-text">12.6-year gap</strong> between NH Asian (87.1y) and NH Black
@@ -298,9 +310,11 @@ export default async function DemographicsPage() {
           <p className="text-[10px] text-muted mt-1">Source: NYC DOHMH Vital Statistics 2019 (pre-COVID baseline)</p>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Methodology note */}
-      <div className="bg-surface border border-border rounded-xl p-4">
+      <ScrollReveal delay={350}>
+      <div className="bg-surface border border-border-light rounded-3xl p-6">
         <h3 className="text-[13px] font-bold mb-2">Data Sources &amp; Methodology</h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-[11px] text-dim leading-relaxed">
           <div>
@@ -323,13 +337,14 @@ export default async function DemographicsPage() {
         </div>
         {(liveRace || poverty || income) && (
           <div className="mt-3 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
             <p className="text-[10px] text-hp-green font-semibold">
               Race, poverty, and income data live from U.S. Census ACS API · revalidates monthly
             </p>
           </div>
         )}
       </div>
+      </ScrollReveal>
     </SectionShell>
     </>
   );

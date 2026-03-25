@@ -1381,3 +1381,46 @@ export async function fetchFarmersMarkets(): Promise<FarmersMarket[] | null> {
       .sort((a, b) => a.borough.localeCompare(b.borough) || a.name.localeCompare(b.name));
   } catch { return null; }
 }
+
+// ─── Weather + UV (Open-Meteo, free, no key) ────────────────────────────────
+
+export type WeatherUV = {
+  tempF: number;
+  feelsLikeF: number;
+  uvIndex: number;
+  weatherCode: number;
+  weatherLabel: string;
+  humidity: number;
+  windMph: number;
+};
+
+const WMO_LABELS: Record<number, string> = {
+  0: "Clear", 1: "Mostly Clear", 2: "Partly Cloudy", 3: "Overcast",
+  45: "Foggy", 48: "Icy Fog", 51: "Light Drizzle", 53: "Drizzle", 55: "Heavy Drizzle",
+  61: "Light Rain", 63: "Rain", 65: "Heavy Rain", 66: "Freezing Rain", 67: "Heavy Freezing Rain",
+  71: "Light Snow", 73: "Snow", 75: "Heavy Snow", 77: "Snow Grains",
+  80: "Light Showers", 81: "Showers", 82: "Heavy Showers",
+  85: "Light Snow Showers", 86: "Snow Showers",
+  95: "Thunderstorm", 96: "Thunderstorm + Hail", 99: "Severe Thunderstorm",
+};
+
+export async function fetchWeatherUV(): Promise<WeatherUV | null> {
+  try {
+    const url = "https://api.open-meteo.com/v1/forecast?latitude=40.7128&longitude=-74.006&current=temperature_2m,apparent_temperature,weather_code,uv_index,relative_humidity_2m,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America/New_York";
+    const res = await fetch(url, { next: { revalidate: 3600 } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const c = data?.current;
+    if (!c) return null;
+    const code = c.weather_code ?? 0;
+    return {
+      tempF: Math.round(c.temperature_2m ?? 0),
+      feelsLikeF: Math.round(c.apparent_temperature ?? 0),
+      uvIndex: Math.round((c.uv_index ?? 0) * 10) / 10,
+      weatherCode: code,
+      weatherLabel: WMO_LABELS[code] ?? "Unknown",
+      humidity: Math.round(c.relative_humidity_2m ?? 0),
+      windMph: Math.round(c.wind_speed_10m ?? 0),
+    };
+  } catch { return null; }
+}

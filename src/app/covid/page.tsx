@@ -9,6 +9,7 @@ import { KPICard } from "@/components/KPICard";
 import { CovidMonthlyChart, CovidBoroughChart } from "@/components/CovidCharts";
 import { WastewaterTrendChart } from "@/components/WastewaterChart";
 import { fetchCovidMonthly, fetchCovidByBorough, fetchWastewaterCitywide } from "@/lib/liveData";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import { covidMonthly, covidByBorough } from "@/lib/data";
 
 export default async function CovidPage() {
@@ -60,16 +61,20 @@ export default async function CovidPage() {
       description="Borough-level cases, hospitalizations, and deaths · NYC DOHMH · Live"
       accentColor="rgba(91,156,245,.12)"
     >
+      <ScrollReveal>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
         <KPICard label="Cases (90d)"      value={totalCases.toLocaleString()} sub="All boroughs" color="blue" tag={covidTag} />
         <KPICard label="Hospitalizations" value={totalHosp.toLocaleString()}  sub={`${totalCases > 0 ? ((totalHosp/totalCases)*100).toFixed(1) : "9.8"}% of cases`} color="orange" tag={covidTag} />
         <KPICard label="Deaths (3mo)"     value={totalDeaths.toLocaleString()} sub="Recent 3 months" color="red" tag={covidTag} />
         <KPICard label="Highest Borough"  value={topBorough?.borough ?? "Queens"} sub={`${topBorough?.cases.toLocaleString() ?? "—"} cases`} color="purple" tag={covidTag} />
       </div>
+      </ScrollReveal>
 
+      <ScrollReveal delay={100}>
       <div className="mb-3">
         <CovidMonthlyChart data={monthly ?? undefined} />
       </div>
+      </ScrollReveal>
 
       {wastewater && wastewater.length > 0 && (
         <div className="mb-3">
@@ -77,9 +82,10 @@ export default async function CovidPage() {
         </div>
       )}
 
+      <ScrollReveal delay={200}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <CovidBoroughChart data={byBorough ?? undefined} />
-        <div className="bg-surface border border-border rounded-xl p-4 flex flex-col justify-center">
+        <div className="bg-surface border border-border-light rounded-3xl p-6 flex flex-col justify-center">
           <h3 className="text-[13px] font-bold mb-2">Data Sources</h3>
           <p className="text-xs text-dim leading-relaxed">
             NYC DOHMH daily COVID surveillance — confirmed + probable cases, COVID-confirmed
@@ -94,12 +100,13 @@ export default async function CovidPage() {
             </p>
           )}
           <div className="mt-3 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
             <p className="text-[10px] text-hp-green font-semibold">Live — updates daily from NYC DOHMH + DEP</p>
           </div>
           <p className="text-[10px] text-muted mt-1">rc75-m7u3.json · f7dc-2q9f.json</p>
         </div>
       </div>
+      </ScrollReveal>
     </SectionShell>
     </>
   );

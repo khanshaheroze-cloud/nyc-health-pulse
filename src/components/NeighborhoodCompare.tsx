@@ -138,7 +138,7 @@ export function NeighborhoodCompare() {
                   {/* A bar (right-aligned) */}
                   <div className="flex items-center gap-2 flex-row-reverse">
                     <span className={`text-[11px] font-semibold tabular-nums flex-shrink-0 ${aBetter ? "text-hp-green" : "text-hp-red"}`}>
-                      {aVal}{unit}
+                      {Number(aVal).toFixed(unit === "μg/m³" ? 1 : aVal % 1 !== 0 ? 1 : 0)}{unit}
                     </span>
                     <div className="flex-1 h-2 bg-border rounded-full overflow-hidden flex justify-end">
                       <div
@@ -153,7 +153,7 @@ export function NeighborhoodCompare() {
 
                   {/* City avg */}
                   <div className="text-[10px] text-muted text-center tabular-nums">
-                    {avg}{unit}
+                    {Number(avg).toFixed(unit === "μg/m³" ? 1 : avg % 1 !== 0 ? 1 : 0)}{unit}
                   </div>
 
                   {/* B bar */}
@@ -168,7 +168,7 @@ export function NeighborhoodCompare() {
                       />
                     </div>
                     <span className={`text-[11px] font-semibold tabular-nums flex-shrink-0 ${bBetter ? "text-hp-green" : "text-hp-red"}`}>
-                      {bVal}{unit}
+                      {Number(bVal).toFixed(unit === "μg/m³" ? 1 : bVal % 1 !== 0 ? 1 : 0)}{unit}
                     </span>
                   </div>
                 </div>

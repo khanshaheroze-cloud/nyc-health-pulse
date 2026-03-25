@@ -51,17 +51,17 @@ export function AirNowWidget() {
 
   if (loading) {
     return (
-      <div className="bg-surface border border-border rounded-xl p-5 mb-4 animate-pulse">
-        <div className="h-4 bg-border rounded w-32 mb-3" />
-        <div className="h-8 bg-border rounded w-24 mb-2" />
-        <div className="h-3 bg-border rounded w-48" />
+      <div className="bg-surface border border-border-light rounded-3xl p-6 mb-4 animate-pulse">
+        <div className="h-4 bg-border-light rounded w-32 mb-3" />
+        <div className="h-8 bg-border-light rounded w-24 mb-2" />
+        <div className="h-3 bg-border-light rounded w-48" />
       </div>
     );
   }
 
   if (error || !data || data.observations.length === 0) {
     return (
-      <div className="bg-surface border border-hp-yellow/30 border-l-4 border-l-hp-yellow rounded-xl p-4 mb-4">
+      <div className="bg-surface border border-hp-yellow/30 border-l-4 border-l-hp-yellow rounded-3xl p-6 mb-4">
         <h3 className="text-sm font-bold mb-1">EPA AirNow — Live AQI</h3>
         <p className="text-xs text-dim">
           {error === "AIRNOW_API_KEY not configured"
@@ -87,7 +87,7 @@ export function AirNowWidget() {
 
   return (
     <div
-      className="rounded-xl p-5 mb-4 border"
+      className="rounded-3xl p-6 mb-4 border"
       style={{
         background: aqiBg(Category.Number),
         borderColor: aqiColor(Category.Number) + "44",

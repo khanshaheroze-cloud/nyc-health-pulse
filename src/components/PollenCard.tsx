@@ -32,9 +32,9 @@ export function PollenCard({ data }: PollenCardProps) {
   const overall = levelStyle(data.level);
 
   return (
-    <div className="bg-surface border border-border rounded-xl p-4 overflow-hidden relative">
+    <div className="bg-surface border border-border-light rounded-3xl p-6 overflow-hidden relative">
       {/* Top accent bar */}
-      <div className={`absolute top-0 left-0 right-0 h-0.5 rounded-t-xl ${overall.dot}`} />
+      <div className={`absolute top-0 left-0 right-0 h-0.5 rounded-t-3xl ${overall.dot}`} />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-3">

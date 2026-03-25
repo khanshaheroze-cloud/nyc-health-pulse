@@ -9,63 +9,16 @@ export async function GET() {
         style={{
           width: 512,
           height: 512,
-          background: "#f8fafb",
+          background: "linear-gradient(135deg, #4A7C59, #6B9E7A)",
+          borderRadius: 96,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        {/* Outer ring */}
-        <div
-          style={{
-            width: 400,
-            height: 400,
-            borderRadius: "50%",
-            background: "linear-gradient(145deg, #10b981 0%, #059669 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 8px 40px rgba(16,185,129,0.35)",
-          }}
-        >
-          {/* Inner content */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 0,
-            }}
-          >
-            {/* Pulse "P" */}
-            <span
-              style={{
-                color: "#ffffff",
-                fontSize: 200,
-                fontWeight: 900,
-                fontFamily: "system-ui, sans-serif",
-                lineHeight: 1,
-                letterSpacing: -8,
-              }}
-            >
-              P
-            </span>
-            {/* Tagline */}
-            <span
-              style={{
-                color: "rgba(255,255,255,0.85)",
-                fontSize: 44,
-                fontWeight: 700,
-                fontFamily: "system-ui, sans-serif",
-                letterSpacing: 6,
-                marginTop: -20,
-              }}
-            >
-              NYC
-            </span>
-          </div>
-        </div>
+        <svg width="280" height="280" viewBox="0 0 18 18" fill="none">
+          <path d="M9 15.3C8.4 14.7 2 10.2 2 6.5 2 4.2 3.8 2.5 5.8 2.5c1.2 0 2.3.6 3.2 1.7.9-1.1 2-1.7 3.2-1.7 2 0 3.8 1.7 3.8 4 0 3.7-6.4 8.2-7 8.8z" fill="white" opacity="0.95"/>
+        </svg>
       </div>
     ),
     { width: 512, height: 512 }

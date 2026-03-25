@@ -44,10 +44,7 @@ export function HealthNewsFeed({ className }: { className?: string }) {
       <div className="flex items-center justify-between">
         <span className="text-[13px] font-semibold text-text">📰 NYC Health News</span>
         <div className="flex items-center gap-1.5">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-hp-green opacity-75" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-hp-green" />
-          </span>
+          <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
           <span className="text-[10px] font-semibold tracking-widest text-hp-green">LIVE</span>
         </div>
       </div>
@@ -57,9 +54,9 @@ export function HealthNewsFeed({ className }: { className?: string }) {
         <div className="flex flex-col gap-3">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex flex-col gap-1.5">
-              <div className="bg-border/40 animate-pulse rounded h-2.5 w-1/3" />
-              <div className="bg-border/40 animate-pulse rounded h-3 w-full" />
-              <div className="bg-border/40 animate-pulse rounded h-3 w-4/5" />
+              <div className="skeleton h-2.5 w-1/3" />
+              <div className="skeleton h-3 w-full" />
+              <div className="skeleton h-3 w-4/5" />
             </div>
           ))}
         </div>

@@ -12,6 +12,7 @@ import {
   CSectionChart,
   InfantMortalityChart,
 } from "@/components/MaternalHealthCharts";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import { fetchMaternalMortality, fetchCSectionRates, fetchInfantMortality } from "@/lib/liveData";
 
 export default async function MaternalHealthPage() {
@@ -83,6 +84,7 @@ export default async function MaternalHealthPage() {
       description="Pregnancy-related mortality, C-section rates, and birth outcome disparities across NYC"
       accentColor="rgba(244,114,182,.12)"
     >
+      <ScrollReveal>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
         <KPICard
           label="Pregnancy Deaths"
@@ -115,14 +117,18 @@ export default async function MaternalHealthPage() {
           />
         )}
       </div>
+      </ScrollReveal>
 
       {mortality && mortality.length > 0 && (
+        <ScrollReveal delay={100}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
           <MaternalMortalityCauseChart data={mortality} />
           <MaternalMortalityRaceChart data={mortality} />
         </div>
+        </ScrollReveal>
       )}
 
+      <ScrollReveal delay={150}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
         {csection && csection.length > 0 && (
           <CSectionChart data={csection} />
@@ -131,10 +137,12 @@ export default async function MaternalHealthPage() {
           <InfantMortalityChart data={infantMort} />
         )}
       </div>
+      </ScrollReveal>
 
       {/* Context cards */}
+      <ScrollReveal delay={200}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="bg-surface border border-border rounded-xl p-4">
+        <div className="bg-surface border border-border-light rounded-3xl p-6">
           <h3 className="text-[13px] font-bold mb-2">Racial Disparities in Maternal Mortality</h3>
           <p className="text-xs text-dim leading-relaxed">
             Non-Hispanic Black women in NYC die from pregnancy-related causes at rates
@@ -144,7 +152,7 @@ export default async function MaternalHealthPage() {
             Support Program to address these disparities.
           </p>
         </div>
-        <div className="bg-surface border border-border rounded-xl p-4">
+        <div className="bg-surface border border-border-light rounded-3xl p-6">
           <h3 className="text-[13px] font-bold mb-2">Data Sources</h3>
           <p className="text-xs text-dim leading-relaxed">
             Pregnancy-associated mortality from NYC DOHMH (dataset 27x4-cbi6, 2016–2017).
@@ -152,11 +160,12 @@ export default async function MaternalHealthPage() {
             to NYC counties. Preterm birth data available on neighborhood profile pages.
           </p>
           <div className="mt-3 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
             <p className="text-[10px] text-hp-green font-semibold">Live — queried from NYC Open Data + NY State</p>
           </div>
         </div>
       </div>
+      </ScrollReveal>
     </SectionShell>
     </>
   );

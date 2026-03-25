@@ -21,10 +21,7 @@ export function HealthInsightsTicker({ insights }: { insights: HealthInsight[] }
       {/* Fixed left label — clearly marked as dashboard data */}
       <div className="flex flex-col justify-center px-3 shrink-0 border-r border-border h-full">
         <div className="flex items-center gap-1.5">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-hp-blue opacity-75" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-hp-blue" />
-          </span>
+          <span className="w-1.5 h-1.5 rounded-full bg-hp-blue live-pulse" />
           <span className="text-[11px] font-semibold tracking-widest text-hp-blue">PULSE DATA</span>
         </div>
         <span className="text-[9px] text-muted tracking-wide mt-0.5">From our dashboard</span>

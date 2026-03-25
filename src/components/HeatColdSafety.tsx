@@ -64,7 +64,7 @@ export function HeatColdSafety() {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold">No-Heat Complaints This Week</h3>
           <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
             <span className="text-[10px] text-hp-green font-semibold">LIVE · 311</span>
           </span>
         </div>

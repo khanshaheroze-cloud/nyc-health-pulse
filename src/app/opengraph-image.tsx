@@ -1,24 +1,23 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Pulse NYC";
+export const alt = "Pulse NYC — Public health intelligence for NYC";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function OGImage() {
+export default function Image() {
   return new ImageResponse(
     (
       <div
         style={{
-          background: "linear-gradient(135deg, #f8fafb 0%, #eef4f0 100%)",
+          background: "linear-gradient(135deg, #EEF2ED, #EDF3F8, #FDF2ED)",
           width: "100%",
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          alignItems: "flex-start",
+          alignItems: "center",
           justifyContent: "center",
-          padding: "72px 80px",
-          fontFamily: "system-ui, sans-serif",
+          fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
         }}
       >
         {/* Top accent bar */}
@@ -29,66 +28,54 @@ export default function OGImage() {
             left: 0,
             right: 0,
             height: 6,
-            background: "linear-gradient(90deg, #2dd4a0, #5b9cf5, #a78bfa)",
+            background: "linear-gradient(90deg, #4A7C59, #3B7CB8, #C4704A)",
           }}
         />
 
-        {/* Live badge */}
+        {/* Logo mark */}
         <div
           style={{
+            width: 80,
+            height: 80,
+            borderRadius: 20,
+            background: "linear-gradient(135deg, #4A7C59, #6B9E7A)",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            background: "rgba(45,212,160,0.10)",
-            border: "1px solid rgba(45,212,160,0.30)",
-            borderRadius: 100,
-            padding: "6px 14px",
-            marginBottom: 28,
+            justifyContent: "center",
+            marginBottom: 32,
+            boxShadow: "0 4px 16px rgba(74,124,89,0.2)",
           }}
         >
-          <div style={{ width: 8, height: 8, borderRadius: 100, background: "#1a9a6e" }} />
-          <span style={{ color: "#1a9a6e", fontSize: 13, fontWeight: 700, letterSpacing: 2 }}>
-            LIVE DATA
-          </span>
+          <svg width="40" height="40" viewBox="0 0 18 18" fill="none">
+            <path d="M9 15.3C8.4 14.7 2 10.2 2 6.5 2 4.2 3.8 2.5 5.8 2.5c1.2 0 2.3.6 3.2 1.7.9-1.1 2-1.7 3.2-1.7 2 0 3.8 1.7 3.8 4 0 3.7-6.4 8.2-7 8.8z" fill="white" opacity="0.95"/>
+          </svg>
         </div>
 
-        {/* Title */}
-        <div
-          style={{
-            fontSize: 72,
-            fontWeight: 900,
-            color: "#1e2d2a",
-            lineHeight: 1.1,
-            marginBottom: 20,
-          }}
-        >
-          Pulse NYC
+        {/* Logo text */}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 20 }}>
+          <span style={{ fontSize: 64, fontWeight: 800, color: "#1A1D1A" }}>Pulse</span>
+          <span style={{ fontSize: 64, fontWeight: 800, color: "#4A7C59" }}>NYC</span>
         </div>
 
-        {/* Subtitle */}
-        <div style={{ color: "#5a7a6e", fontSize: 24, marginBottom: 56 }}>
-          Real-time public health intelligence across all five boroughs
+        {/* Tagline */}
+        <div style={{ fontSize: 24, color: "#5C635C", marginBottom: 48 }}>
+          Public health intelligence across all five boroughs
         </div>
 
-        {/* Metric chips */}
+        {/* Feature chips */}
         <div style={{ display: "flex", gap: 16 }}>
-          {[
-            { label: "Air Quality", color: "#1a9a6e" },
-            { label: "COVID-19", color: "#2850AD" },
-            { label: "Food Safety", color: "#7c5cbf" },
-            { label: "42 Neighborhoods", color: "#d48520" },
-          ].map(({ label, color }) => (
+          {["Air Quality", "Food Safety", "COVID-19", "Neighborhoods", "25+ Live APIs"].map((label) => (
             <div
               key={label}
               style={{
                 background: "#ffffff",
-                border: "1px solid #e2e8e4",
-                borderRadius: 12,
-                padding: "10px 22px",
-                color,
-                fontSize: 16,
+                border: "1px solid #E8E4DE",
+                borderRadius: 100,
+                padding: "8px 20px",
+                color: "#5C635C",
+                fontSize: 15,
                 fontWeight: 600,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
               }}
             >
               {label}
@@ -96,8 +83,8 @@ export default function OGImage() {
           ))}
         </div>
 
-        {/* URL watermark */}
-        <div style={{ color: "#8ba89c", fontSize: 16, position: "absolute", bottom: 48, right: 80 }}>
+        {/* URL */}
+        <div style={{ color: "#8A918A", fontSize: 15, position: "absolute", bottom: 32, right: 48 }}>
           pulsenyc.app
         </div>
       </div>

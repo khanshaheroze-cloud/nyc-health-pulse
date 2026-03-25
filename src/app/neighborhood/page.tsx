@@ -32,6 +32,14 @@ const RISK_STYLE = {
   low:      "text-hp-green bg-hp-green/10 border-hp-green/20",
 };
 
+const BOROUGH_COLORS: Record<string, string> = {
+  Bronx:          "#f07070",
+  Brooklyn:       "#5b9cf5",
+  Manhattan:      "#a78bfa",
+  Queens:         "#2dd4a0",
+  "Staten Island":"#f59e42",
+};
+
 const GRADE_COLORS: Record<string, string> = { A: "#2dd4a0", B: "#22d3ee", C: "#f5c542", D: "#f59e42", F: "#f07070" };
 
 const neighborhoodJsonLd = datasetJsonLdString([
@@ -64,6 +72,11 @@ export default function NeighborhoodIndexPage() {
       description="Health metrics for all 42 UHF neighborhoods · asthma/life exp 2019 · CDC PLACES 2023 · ACS 2022 · NYCCAS 2023"
       accentColor="rgba(91,156,245,.12)"
     >
+      {/* ── Prominent search bar ── */}
+      <div className="mb-8">
+        <NeighborhoodSearch placeholder="Search 42 NYC neighborhoods..." />
+      </div>
+
       {/* KPI row */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
         <KPICard label="Neighborhoods" value="42" sub="UHF42 public health geography" color="blue" />
@@ -93,24 +106,19 @@ export default function NeighborhoodIndexPage() {
       {/* Saved neighborhoods panel (client, localStorage) */}
       <SavedNeighborhoodsPanel />
 
-      {/* Search */}
-      <div className="mb-4">
-        <NeighborhoodSearch placeholder="Search 42 neighborhoods — try 'Harlem', 'Astoria', 'Bronx'…" />
-      </div>
-
       {/* Health Rankings */}
-      <div className="bg-surface border border-border rounded-xl p-4 mb-6">
-        <h3 className="text-[14px] font-bold mb-1">Health Rankings</h3>
-        <p className="text-[11px] text-dim mb-3">All 42 neighborhoods ranked by composite health score (A-F). Higher score = better overall health outcomes.</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[11px]">
+      <div className="bg-surface border border-border-light rounded-3xl p-7 mb-6">
+        <h3 className="text-[13px] font-bold tracking-[1.5px] uppercase text-muted mb-1 pb-2 border-b border-border-light">Health Rankings</h3>
+        <p className="text-[11px] text-dim mb-4 mt-3">All 42 neighborhoods ranked by composite health score (A-F). Higher score = better overall health outcomes.</p>
+        <div className="data-table-wrap overflow-x-auto">
+          <table className="data-table">
             <thead>
-              <tr className="border-b border-border text-left text-[10px] text-muted uppercase tracking-wide">
-                <th className="pb-2 pr-2 w-8">#</th>
-                <th className="pb-2 pr-2 w-6">Grade</th>
-                <th className="pb-2 pr-2">Neighborhood</th>
-                <th className="pb-2 pr-2">Borough</th>
-                <th className="pb-2 pr-2 text-right">Score</th>
+              <tr>
+                <th className="w-8">#</th>
+                <th className="w-6">Grade</th>
+                <th>Neighborhood</th>
+                <th>Borough</th>
+                <th className="text-right">Score</th>
               </tr>
             </thead>
             <tbody>
@@ -118,29 +126,29 @@ export default function NeighborhoodIndexPage() {
                 .map(([slug, hs]) => ({ slug, ...hs, n: neighborhoods.find(x => x.slug === slug)! }))
                 .sort((a, b) => b.score - a.score)
                 .map((row, i) => (
-                  <tr key={row.slug} className="border-b border-border/50 hover:bg-hp-blue/5 transition-colors">
-                    <td className="py-1.5 pr-2 font-semibold text-dim">{i + 1}</td>
-                    <td className="py-1.5 pr-2">
+                  <tr key={row.slug}>
+                    <td className="font-semibold text-dim">{i + 1}</td>
+                    <td>
                       <span
-                        className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[10px] font-bold"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full text-white text-[11px] font-bold"
                         style={{ background: GRADE_COLORS[row.grade] ?? "#8ba89c" }}
                       >
                         {row.grade}
                       </span>
                     </td>
-                    <td className="py-1.5 pr-2">
+                    <td>
                       <Link href={`/neighborhood/${row.slug}`} className="hover:text-hp-blue transition-colors font-medium">
                         {row.n.name}
                       </Link>
                     </td>
-                    <td className="py-1.5 pr-2 text-dim">{row.n.borough}</td>
-                    <td className="py-1.5 pr-2 text-right font-display font-semibold">{row.score}</td>
+                    <td className="text-dim">{row.n.borough}</td>
+                    <td className="text-right font-display font-semibold">{row.score}</td>
                   </tr>
                 ))}
             </tbody>
           </table>
         </div>
-        <p className="text-[9px] text-muted mt-3 italic">
+        <p className="text-[9px] text-muted mt-4 italic">
           This is a Pulse NYC composite score for informational purposes only, not an official NYC DOHMH classification.
         </p>
       </div>
@@ -156,16 +164,17 @@ export default function NeighborhoodIndexPage() {
         const boroughNeighborhoods = neighborhoods
           .filter(n => n.borough === borough)
           .sort((a, b) => b.metrics.asthmaED - a.metrics.asthmaED);
+        const boroughColor = BOROUGH_COLORS[borough] ?? "#8ba89c";
 
         return (
-          <div key={borough} className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
+          <div key={borough} className="mb-8">
+            <div className="flex items-center gap-2.5 mb-4">
               <SubwayBullet line={BOROUGH_LINE[borough] ?? "S"} size={22} />
-              <h3 className="text-[14px] font-bold">{borough}</h3>
-              <span className="text-[11px] text-dim">{boroughNeighborhoods.length} neighborhoods</span>
+              <h3 className="text-[16px] font-bold">{borough}</h3>
+              <span className="text-[12px] text-dim">{boroughNeighborhoods.length} neighborhoods</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {boroughNeighborhoods.map(n => {
                 const risk = getRiskLevel(n);
                 const lifeGap = (n.metrics.lifeExp - cityAvg.lifeExp).toFixed(1);
@@ -175,33 +184,36 @@ export default function NeighborhoodIndexPage() {
 
                 return (
                   <Link key={n.slug} href={`/neighborhood/${n.slug}`}>
-                    <div className="bg-surface border border-border hover:border-hp-blue/40 rounded-xl p-3.5 transition-all duration-150 group cursor-pointer">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2 min-w-0">
+                    <div className="neighborhood-card bg-surface border border-border-light rounded-3xl p-5 transition-all duration-200 group cursor-pointer relative overflow-hidden">
+                      {/* Borough accent top bar */}
+                      <div className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl" style={{ background: boroughColor }} />
+
+                      <div className="flex items-start justify-between mb-3 mt-1">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           <span
-                            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0"
+                            className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[12px] font-bold flex-shrink-0"
                             style={{ background: gradeColor }}
                           >
                             {hs?.grade ?? "–"}
                           </span>
-                          <p className="text-[12px] font-semibold leading-tight group-hover:text-hp-blue transition-colors">
+                          <p className="text-[16px] font-bold leading-tight group-hover:text-hp-blue transition-colors">
                             {n.name}
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${RISK_STYLE[risk]}`}>
-                            {risk}
+                          <span
+                            className="text-[12px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{ background: boroughColor + "18", color: boroughColor }}
+                          >
+                            {n.borough}
                           </span>
                           <SaveNeighborhoodButton slug={n.slug} size="sm" />
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-x-2 gap-y-1">
+                      <div className="grid grid-cols-3 gap-x-3 gap-y-2">
                         <Stat label="Asthma ED" value={`${n.metrics.asthmaED}`} unit="/10K" warn={n.metrics.asthmaED > cityAvg.asthmaED} />
                         <Stat label="Obesity" value={`${n.metrics.obesity}%`} warn={n.metrics.obesity > cityAvg.obesity} />
-                        <Stat label="Poverty" value={`${n.metrics.poverty}%`} warn={n.metrics.poverty > cityAvg.poverty} />
-                        <Stat label="PM2.5" value={`${Number(n.metrics.pm25).toFixed(1)}`} unit="μg/m³" warn={n.metrics.pm25 > 7.5} />
-                        <Stat label="Diabetes" value={`${n.metrics.diabetes}%`} warn={n.metrics.diabetes > cityAvg.diabetes} />
                         <Stat label="Life Exp." value={lifeGapStr} warn={Number(lifeGap) < -1} good={Number(lifeGap) > 1} />
                       </div>
                     </div>
@@ -217,7 +229,7 @@ export default function NeighborhoodIndexPage() {
       <NeighborhoodCompare />
 
       {/* Source note */}
-      <div className="bg-surface border border-border rounded-xl p-4 text-[11px] text-dim mt-6">
+      <div className="bg-surface border border-border-light rounded-3xl p-7 text-[12px] text-dim mt-6">
         <p className="font-semibold text-text mb-1">About UHF42 Neighborhoods</p>
         <p className="leading-relaxed">
           NYC uses 42 United Hospital Fund (UHF42) neighborhoods as the standard geographic unit for public
@@ -239,9 +251,9 @@ function Stat({
 }) {
   return (
     <div>
-      <p className="text-[9px] text-muted uppercase tracking-wide">{label}</p>
-      <p className={`text-[11px] font-semibold tabular-nums ${warn ? "text-hp-red" : good ? "text-hp-green" : "text-text"}`}>
-        {value}{unit && <span className="text-muted font-normal text-[9px]"> {unit}</span>}
+      <p className="text-[10px] text-muted uppercase tracking-wide">{label}</p>
+      <p className={`text-[12px] font-semibold tabular-nums ${warn ? "text-hp-red" : good ? "text-hp-green" : "text-text"}`}>
+        {value}{unit && <span className="text-muted font-normal text-[10px]"> {unit}</span>}
       </p>
     </div>
   );

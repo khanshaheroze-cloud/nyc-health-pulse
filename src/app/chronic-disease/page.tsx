@@ -21,6 +21,7 @@ import {
   CdcPlacesBehaviorsChart,
 } from "@/components/ChronicDiseaseCharts";
 import { BoroughMap } from "@/components/BoroughMap";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import { fetchLeadingCauses, fetchHivByBorough, fetchCdcPlacesByBorough } from "@/lib/liveData";
 
 export default async function ChronicDiseasePage() {
@@ -92,6 +93,7 @@ export default async function ChronicDiseasePage() {
       description="CDC PLACES county estimates · BRFSS model-based · SPARCS · NYC DOHMH Vital Statistics"
       accentColor="rgba(240,112,112,.12)"
     >
+      <ScrollReveal>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
         <KPICard label="Obesity (Bronx)"   value={obesityVal}  sub="Highest borough" color="red"    tag={cdcTag} />
         <KPICard label="Diabetes (Bronx)"  value={diabetesVal} sub="Highest borough" color="orange" tag={cdcTag} />
@@ -122,8 +124,9 @@ export default async function ChronicDiseasePage() {
           tag="2020"
         />
       </div>
+      </ScrollReveal>
 
-      <div className="bg-surface border border-hp-yellow/30 border-l-4 border-l-hp-yellow rounded-xl p-4 mb-4">
+      <div className="bg-surface border border-hp-yellow/30 border-l-4 border-l-hp-yellow rounded-3xl p-6 mb-4">
         <h3 className="text-sm font-bold mb-1">CDC PLACES Note</h3>
         <p className="text-xs text-dim leading-relaxed">
           These are <strong className="text-text">statistical model estimates</strong>, not direct measurements.
@@ -135,6 +138,7 @@ export default async function ChronicDiseasePage() {
       </div>
 
       {/* Live CDC PLACES charts (replace static when available) */}
+      <ScrollReveal delay={100}>
       {cdcPlaces ? (
         <>
           <div className="mb-3">
@@ -182,6 +186,7 @@ export default async function ChronicDiseasePage() {
         {!cdcPlaces && <MentalHealthEdTrendChart />}
         <ErCausesChart />
       </div>
+      </ScrollReveal>
 
       {/* Live leading causes */}
       {leadingCauses && (
@@ -194,7 +199,7 @@ export default async function ChronicDiseasePage() {
       {hivData && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
           <HivByBoroughChart data={hivData} />
-          <div className="bg-surface border border-border rounded-xl p-4 flex flex-col justify-center gap-2">
+          <div className="bg-surface border border-border-light rounded-3xl p-6 flex flex-col justify-center gap-2">
             <h3 className="text-[13px] font-bold">HIV in NYC</h3>
             <p className="text-[11px] text-dim leading-relaxed">
               NYC has the largest HIV epidemic of any US city, with significant disparities by
@@ -206,7 +211,7 @@ export default async function ChronicDiseasePage() {
               declining new diagnoses over the past decade.
             </p>
             <div className="mt-2 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
               <p className="text-[10px] text-hp-green font-semibold">Live · NYC DOHMH HIV Surveillance</p>
             </div>
             <p className="text-[10px] text-muted">data.cityofnewyork.us/resource/ykvb-493p.json</p>
@@ -215,7 +220,8 @@ export default async function ChronicDiseasePage() {
       )}
 
       {/* Mental health resources */}
-      <div className="bg-surface border border-hp-cyan/30 border-l-4 border-l-hp-cyan rounded-xl p-4 mb-4">
+      <ScrollReveal delay={200}>
+      <div className="bg-surface border border-hp-cyan/30 border-l-4 border-l-hp-cyan rounded-3xl p-6 mb-4">
         <h3 className="text-sm font-bold mb-2">Mental Health Resources</h3>
         <p className="text-xs text-dim leading-relaxed mb-3">
           Mental health is consistently the #1 or #2 health concern in NYC polling. If you or someone you know is struggling:
@@ -236,14 +242,18 @@ export default async function ChronicDiseasePage() {
         </div>
       </div>
 
+      </ScrollReveal>
+
       {/* Borough map */}
-      <div className="bg-surface border border-border rounded-xl p-4">
+      <ScrollReveal delay={250}>
+      <div className="bg-surface border border-border-light rounded-3xl p-6">
         <h3 className="text-[13px] font-bold mb-0.5">Health Metrics by Borough — Map View</h3>
         <p className="text-[11px] text-dim mb-3">
           Select a metric to update the map · red = higher risk / lower life expectancy
         </p>
         <BoroughMap height={400} />
       </div>
+      </ScrollReveal>
     </SectionShell>
     </>
   );

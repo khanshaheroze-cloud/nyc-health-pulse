@@ -270,13 +270,14 @@ export function FindCareResults() {
   return (
     <div className="space-y-4">
       {/* Location input */}
-      <div className="bg-surface border border-border rounded-xl p-4">
-        <p className="text-[11px] font-bold tracking-[1.5px] uppercase text-muted mb-2.5">Find providers near you</p>
+      <div className="bg-surface border border-border-light rounded-3xl p-6">
+          <h3 className="text-[15px] font-bold text-text mb-1">Where are you?</h3>
+          <p className="text-[11px] text-dim mb-3">Use your location or enter a ZIP code to find providers nearby</p>
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={requestLocation}
             disabled={locationStatus === "loading"}
-            className="flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2.5 rounded-lg bg-hp-green/10 text-hp-green border border-hp-green/20 hover:bg-hp-green/20 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-[13px] font-semibold px-5 py-3 rounded-full bg-hp-green/10 text-hp-green border-2 border-hp-green/20 hover:bg-hp-green/20 transition-colors disabled:opacity-50"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3" />
@@ -292,12 +293,12 @@ export function FindCareResults() {
               value={zipInput}
               onChange={(e) => setZipInput(e.target.value.replace(/\D/g, "").slice(0, 5))}
               onKeyDown={(e) => e.key === "Enter" && submitZip()}
-              className="flex-1 sm:max-w-[160px] text-[13px] px-3.5 py-2.5 rounded-lg border border-border bg-bg text-text placeholder:text-muted focus:outline-none focus:border-hp-green/40 transition-colors"
+              className="flex-1 sm:max-w-[180px] text-[16px] px-5 py-3 rounded-full border-2 border-border-light bg-bg text-text placeholder:text-muted focus:outline-none focus:border-hp-green transition-colors"
             />
             <button
               onClick={submitZip}
               disabled={zipInput.length !== 5}
-              className="text-[12px] font-semibold px-4 py-2.5 rounded-lg bg-hp-green text-white hover:bg-hp-green/90 transition-colors disabled:opacity-40 disabled:bg-border disabled:text-dim"
+              className="text-[13px] font-semibold px-6 py-3 rounded-full bg-hp-green text-white hover:bg-hp-green/90 transition-colors disabled:opacity-40 disabled:bg-border disabled:text-dim"
             >
               Search
             </button>
@@ -315,7 +316,7 @@ export function FindCareResults() {
 
       {/* Empty state */}
       {!searched && !loading && (
-        <div className="bg-surface border border-border rounded-xl p-10 text-center">
+        <div className="bg-surface-sage border border-border-light rounded-3xl p-10 text-center">
           <div className="text-4xl mb-3">📍</div>
           <h3 className="text-[15px] font-bold text-text mb-1">Enter your location to get started</h3>
           <p className="text-[12px] text-dim max-w-md mx-auto leading-relaxed">
@@ -335,10 +336,10 @@ export function FindCareResults() {
                 <button
                   key={c.value}
                   onClick={() => setCategory(c.value)}
-                  className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border transition-all ${
+                  className={`text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-all ${
                     category === c.value
-                      ? "bg-hp-green/10 text-hp-green border-hp-green/20"
-                      : "text-dim border-border hover:text-text hover:bg-surface"
+                      ? "bg-hp-green/12 text-hp-green border-hp-green/25"
+                      : "text-dim border-border-light hover:text-text hover:bg-surface"
                   }`}
                 >
                   {c.icon} {c.label}
@@ -353,7 +354,7 @@ export function FindCareResults() {
               <select
                 value={radius}
                 onChange={(e) => setRadius(parseInt(e.target.value))}
-                className="text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-border bg-surface text-dim hover:text-text transition-colors cursor-pointer focus:outline-none focus:border-hp-green/40"
+                className="text-[12px] font-semibold px-4 py-1.5 rounded-full border border-border-light bg-surface text-dim hover:text-text transition-colors cursor-pointer focus:outline-none focus:border-hp-green"
               >
                 {RADIUS_OPTIONS.map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
@@ -377,7 +378,7 @@ export function FindCareResults() {
               )}
 
               {/* View toggle */}
-              <div className="flex rounded-lg border border-border overflow-hidden">
+              <div className="flex rounded-full border border-border-light overflow-hidden">
                 <button
                   onClick={() => setView("list")}
                   className={`text-[11px] font-semibold px-3 py-1.5 transition-colors ${view === "list" ? "bg-hp-green/10 text-hp-green" : "text-dim hover:text-text bg-surface"}`}
@@ -421,7 +422,7 @@ export function FindCareResults() {
               ))}
 
               {providers.length === 0 && !error && (
-                <div className="bg-surface border border-border rounded-xl p-8 text-center">
+                <div className="bg-surface border border-border-light rounded-2xl p-8 text-center">
                   <p className="text-dim text-sm">No providers found for this search.</p>
                   <p className="text-muted text-xs mt-1">Try a larger radius or different category.</p>
                 </div>
@@ -455,7 +456,7 @@ export function FindCareResults() {
                   }}
                 />
               ) : (
-                <div className="bg-surface border border-border rounded-xl p-8 text-center">
+                <div className="bg-surface border border-border-light rounded-2xl p-8 text-center">
                   <p className="text-dim text-sm">No map pins available for individual providers.</p>
                   <p className="text-muted text-xs mt-1">Map shows facilities with known coordinates. Switch to List view to see all providers.</p>
                 </div>
@@ -492,7 +493,7 @@ function ProviderCard({ provider: p, onSelect, compact }: { provider: Provider; 
   return (
     <button
       onClick={() => onSelect(p)}
-      className={`w-full text-left bg-surface border border-border rounded-xl hover:border-hp-green/30 transition-colors group ${compact ? "p-3" : "p-4"}`}
+      className={`w-full text-left bg-surface border border-border-light rounded-2xl hover:border-hp-green/40 hover:shadow-sm transition-all group ${compact ? "p-3" : "p-4"}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -542,7 +543,7 @@ function ProviderDetail({ provider: p, onClose }: { provider: Provider; onClose:
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-text/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-bg border border-border rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[85vh] overflow-y-auto p-5 shadow-2xl">
+      <div className="relative bg-bg border border-border-light rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[85vh] overflow-y-auto p-6 shadow-2xl">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full border border-border text-dim hover:text-text hover:bg-surface transition-colors"

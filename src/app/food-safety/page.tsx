@@ -9,6 +9,8 @@ import { FoodSafetySearch } from "@/components/FoodSafetySearch";
 import { KPICard } from "@/components/KPICard";
 import { ViolationsByCuisineChart, ScoreByBoroughChart, GradeDistributionChart } from "@/components/FoodSafetyCharts";
 import { fetchFoodByCuisine, fetchFoodByBorough, fetchGradeDistribution } from "@/lib/liveData";
+import { ScrollReveal } from "@/components/ScrollReveal";
+import Link from "next/link";
 import { foodByCuisine, foodByBorough, gradeDistribution } from "@/lib/data";
 
 export default async function FoodSafetyPage() {
@@ -48,43 +50,79 @@ export default async function FoodSafetyPage() {
       description="Restaurant inspection results, critical violations, and grade distributions · NYC DOHMH · Live"
       accentColor="rgba(167,139,250,.12)"
     >
+      {/* ── Prominent Restaurant Search ── */}
+      <div className="mb-8">
+        <FoodSafetySearch />
+      </div>
+
+      <ScrollReveal>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
         <KPICard label="Grade A"         value={gradeA?.toLocaleString() ?? "311"} sub={`${gradePct} of graded`} color="green" tag={foodTag} />
         <KPICard label="Pending (N)"     value={gradeData.find(g=>g.name==="Pending N")?.value.toLocaleString() ?? "235"} sub="awaiting re-inspection" color="yellow" tag={foodTag} />
         <KPICard label="Pending (Z)"     value={gradeData.find(g=>g.name==="Pending Z")?.value.toLocaleString() ?? "88"} sub="grade under appeal" color="orange" tag={foodTag} />
         <KPICard label="Worst Avg Score" value={String(Math.max(...(byBorough ?? foodByBorough).map(b => b.avgScore)))} sub={(byBorough ?? foodByBorough).reduce((a, b) => a.avgScore > b.avgScore ? a : b).borough} color="red" tag={byBorough ? "LIVE" : "2024"} />
       </div>
+      </ScrollReveal>
 
+      {/* Stats & Charts */}
+      <ScrollReveal delay={100}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
         <ViolationsByCuisineChart data={byCuisine ?? undefined} />
         <GradeDistributionChart   data={grades    ?? undefined} />
       </div>
+      </ScrollReveal>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <ScrollReveal delay={150}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
         <ScoreByBoroughChart data={byBorough ?? undefined} />
-        <div className="bg-surface border border-border rounded-xl p-4 flex flex-col justify-center">
-          <h3 className="text-[13px] font-bold mb-2">Scoring Guide</h3>
-          <p className="text-xs text-dim leading-relaxed">
+        <div className="bg-surface border border-border-light rounded-3xl p-6 flex flex-col justify-center">
+          <h3 className="text-[13px] font-bold tracking-[1.5px] uppercase text-muted mb-3 pb-2 border-b border-border-light">Scoring Guide</h3>
+          <p className="text-[12px] text-dim leading-relaxed">
             NYC scores are penalty-based — <strong className="text-text">lower is better</strong>.
-            Grade A = 0–13 points. Grade B = 14–27. Grade C = 28+.
           </p>
-          <p className="text-xs text-dim leading-relaxed mt-2">
+          <div className="grid grid-cols-3 gap-2 mt-3 mb-3">
+            <div className="text-center px-2 py-2 rounded-xl bg-hp-green/8 border border-hp-green/15">
+              <p className="text-[18px] font-display font-bold text-hp-green">A</p>
+              <p className="text-[10px] text-dim">0–13 pts</p>
+            </div>
+            <div className="text-center px-2 py-2 rounded-xl bg-hp-orange/8 border border-hp-orange/15">
+              <p className="text-[18px] font-display font-bold text-hp-orange">B</p>
+              <p className="text-[10px] text-dim">14–27 pts</p>
+            </div>
+            <div className="text-center px-2 py-2 rounded-xl bg-hp-red/8 border border-hp-red/15">
+              <p className="text-[18px] font-display font-bold text-hp-red">C</p>
+              <p className="text-[10px] text-dim">28+ pts</p>
+            </div>
+          </div>
+          <p className="text-[11px] text-dim leading-relaxed">
             <strong className="text-text">N</strong> = not yet graded (initial inspection).
             <strong className="text-text"> Z</strong> = grade pending appeal.
           </p>
           <div className="mt-3 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
             <p className="text-[10px] text-hp-green font-semibold">Live — updates hourly from NYC DOHMH</p>
           </div>
-          <p className="text-[10px] text-muted mt-1">data.cityofnewyork.us/resource/43nn-pn8j.json</p>
         </div>
       </div>
+      </ScrollReveal>
 
-      {/* Divider */}
-      <div className="border-t border-border my-6" />
-
-      {/* Restaurant Inspection Search */}
-      <FoodSafetySearch />
+      {/* Cross-links */}
+      <div className="flex flex-wrap gap-3 mt-6">
+        <Link href="/eat-smart" className="flex items-center gap-3 flex-1 min-w-[240px] px-5 py-4 rounded-2xl bg-surface border border-border-light hover:border-hp-green/30 hover:shadow-sm transition-all group">
+          <span className="text-lg">🥗</span>
+          <div>
+            <p className="text-[13px] font-semibold text-text group-hover:text-hp-green transition-colors">Healthy options at this chain</p>
+            <p className="text-[11px] text-muted">Low-calorie orders at 30+ NYC chains</p>
+          </div>
+        </Link>
+        <Link href="/building-health" className="flex items-center gap-3 flex-1 min-w-[240px] px-5 py-4 rounded-2xl bg-surface border border-border-light hover:border-hp-green/30 hover:shadow-sm transition-all group">
+          <span className="text-lg">🏢</span>
+          <div>
+            <p className="text-[13px] font-semibold text-text group-hover:text-hp-green transition-colors">Check the building too</p>
+            <p className="text-[11px] text-muted">HPD violations, DOB records, and ECB fines</p>
+          </div>
+        </Link>
+      </div>
     </SectionShell>
     </>
   );

@@ -8,6 +8,7 @@ import { SectionShell } from "@/components/SectionShell";
 import { KPICard } from "@/components/KPICard";
 import { IliFullChart, FluVaccinationChart } from "@/components/FluCharts";
 import { FluWastewaterChart } from "@/components/FluWastewaterChart";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import { fetchFluWastewater } from "@/lib/liveData";
 
 export const revalidate = 604800;
@@ -49,14 +50,16 @@ export default async function FluPage() {
       description="ER visit proportion by borough · NYC DOHMH EpiQuery · Wk42 2025 – Wk3 2026"
       accentColor="rgba(245,158,66,.12)"
     >
+      <ScrollReveal>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
         <KPICard label="Current Rate" value="3.84%" sub="Wk3 · ↓ Declining" color="orange" tag="Jan 2026" />
         <KPICard label="Season Peak" value="11.03%" sub="Wk51 — winter surge" color="red" tag="Jan 2026" />
         <KPICard label="Highest Borough" value="Bronx" sub="Consistently elevated" color="red" tag="Jan 2026" />
       </div>
+      </ScrollReveal>
 
       {/* ILI data gap notice */}
-      <div className="bg-surface border border-hp-yellow/30 border-l-4 border-l-hp-yellow rounded-xl p-4 mb-4">
+      <div className="bg-surface border border-hp-yellow/30 border-l-4 border-l-hp-yellow rounded-3xl p-6 mb-4">
         <h3 className="text-sm font-bold mb-1 text-hp-yellow">Seed Data — No Live API Available</h3>
         <p className="text-xs text-dim leading-relaxed">
           ILI surveillance data is sourced from NYC DOHMH EpiQuery — no public REST endpoint is available
@@ -65,9 +68,11 @@ export default async function FluPage() {
         </p>
       </div>
 
+      <ScrollReveal delay={100}>
       <div className="mb-3">
         <IliFullChart />
       </div>
+      </ScrollReveal>
 
       {fluWw && fluWw.length > 0 && (
         <div className="mb-3">
@@ -75,9 +80,10 @@ export default async function FluPage() {
         </div>
       )}
 
+      <ScrollReveal delay={200}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <FluVaccinationChart />
-        <div className="bg-surface border border-border rounded-xl p-4 flex flex-col justify-center">
+        <div className="bg-surface border border-border-light rounded-3xl p-6 flex flex-col justify-center">
           <h3 className="text-[13px] font-bold mb-2">About ILI Surveillance</h3>
           <p className="text-xs text-dim leading-relaxed">
             ILI (Influenza-Like Illness) is defined as fever ≥100°F plus cough or sore throat.
@@ -96,6 +102,7 @@ export default async function FluPage() {
           )}
         </div>
       </div>
+      </ScrollReveal>
     </SectionShell>
     </>
   );
