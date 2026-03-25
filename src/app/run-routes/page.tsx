@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { SectionShell } from "@/components/SectionShell";
-import { RouteGenerator } from "@/components/RouteGenerator";
 import { SmartRouteRecommender } from "@/components/SmartRouteRecommender";
 import { RunningClubs } from "@/components/RunningClubs";
+import { SmartRunRoutesWrapper } from "@/components/SmartRunRoutesWrapper";
 
 export const metadata: Metadata = {
   title: "Smart Run Routes — AI-Optimized NYC Running Routes",
@@ -18,8 +18,8 @@ export default function RunRoutesPage() {
       description="Real-time route scoring for NYC runners — every route scored 0-100 based on air quality, street safety, scenery, and terrain"
       accentColor="rgba(45,212,160,.12)"
     >
-      {/* Route Generator — the main feature */}
-      <RouteGenerator />
+      {/* Smart Route Generator — map-first layout */}
+      <SmartRunRoutesWrapper />
 
       {/* Data Factors — how scoring works */}
       <div className="flex items-center gap-3 mt-8 mb-4">
