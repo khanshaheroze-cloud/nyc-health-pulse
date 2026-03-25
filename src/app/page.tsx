@@ -11,6 +11,7 @@ import { OutdoorHero } from "@/components/OutdoorHero";
 import { MyNeighborhood } from "@/components/MyNeighborhood";
 import { FoodPriceTracker } from "@/components/FoodPriceTracker";
 import { EatSmartTeaser } from "@/components/EatSmartTeaser";
+import NutritionSummaryCard from "@/components/nutrition-tracker/NutritionSummaryCard";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { ROUTES } from "@/lib/routes";
 import { fmtPM25 } from "@/lib/format";
@@ -106,6 +107,11 @@ export default async function OverviewPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
           <FoodPriceTracker />
           <EatSmartTeaser />
+        </div>
+
+        {/* Nutrition Tracker */}
+        <div className="mt-4">
+          <NutritionSummaryCard />
         </div>
       </ScrollReveal>
 

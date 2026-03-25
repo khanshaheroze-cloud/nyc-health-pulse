@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchNycDatabase } from "@/lib/nycFoodDatabase";
+import { searchCommonFoods, parseQueryQuantity, type CommonFood } from "@/lib/commonFoods";
 
 /* ── Types ────────────────────────────────────────────────────── */
 
@@ -41,7 +42,7 @@ interface SearchResult extends Partial<NutrientInfo> {
   fat: number | null;
   fiber: number | null;
   servingSize: string | null;
-  source: "nyc" | "usda" | "openfoodfacts";
+  source: "nyc" | "usda" | "openfoodfacts" | "common";
 }
 
 /* ── USDA nutrient ID → key mapping ──────────────────────────── */
@@ -189,6 +190,49 @@ function mapOpenFoodFacts(product: OFFProduct): SearchResult | null {
   };
 }
 
+/* ── NYC trigger words ───────────────────────────────────────── */
+
+const NYC_TRIGGERS = [
+  "bodega", "deli", "halal", "cart", "food cart", "street",
+  "sweetgreen", "dig", "chopt", "just salad", "cava", "panera",
+  "chipotle", "shake shack", "five guys", "wingstop", "popeyes",
+  "chick-fil-a", "chickfila", "mcdonalds", "mcdonald's", "wendys",
+  "burger king", "subway", "jersey mikes", "jersey mike's",
+  "pret", "levain", "insomnia", "crumbl",
+  "van leeuwen", "milk bar", "katz", "katz's", "russ and daughters",
+  "gray's papaya", "grays papaya", "halal guys", "grimaldi's",
+  "los tacos", "bonchon", "mamoun's", "mamouns", "xi'an",
+  "trader joes", "trader joe's", "whole foods",
+  "bacon egg and cheese", "bacon egg cheese", "bec",
+  "chicken over rice", "lamb over rice", "combo over rice",
+  "chopped cheese", "dollar pizza", "dollar slice",
+  "street meat", "dirty water dog", "knish",
+  "black and white cookie", "rainbow cookie",
+  "egg cream", "bodega sandwich", "hero sandwich",
+];
+
+function shouldSearchNYC(query: string): boolean {
+  const q = query.toLowerCase().trim();
+  return NYC_TRIGGERS.some((trigger) => q.includes(trigger));
+}
+
+/* ── Common food mapper ──────────────────────────────────────── */
+
+function mapCommonFood(food: CommonFood): SearchResult {
+  return {
+    id: `common_${food.id}`,
+    name: food.name,
+    brand: food.servingLabel,
+    calories: food.calories,
+    protein: food.protein,
+    carbs: food.carbs,
+    fat: food.fat,
+    fiber: food.fiber,
+    servingSize: food.servingLabel,
+    source: "common" as const,
+  };
+}
+
 /* ── Deduplication ────────────────────────────────────────────── */
 
 function dedup(results: SearchResult[]): SearchResult[] {
@@ -207,75 +251,84 @@ function dedup(results: SearchResult[]): SearchResult[] {
 /* ── GET handler ──────────────────────────────────────────────── */
 
 export async function GET(req: NextRequest) {
-  const query = req.nextUrl.searchParams.get("q")?.trim();
-  if (!query || query.length === 0) {
+  const rawQuery = req.nextUrl.searchParams.get("q")?.trim();
+  if (!rawQuery || rawQuery.length === 0) {
     return NextResponse.json({ results: [] });
   }
 
   try {
-    // 1. NYC curated database (instant, no network)
-    const nycMatches = searchNycDatabase(query);
-    const nycResults: SearchResult[] = nycMatches.map((item) => ({
-      id: item.id,
-      name: item.name,
-      brand: item.chain ?? undefined,
-      calories: item.calories,
-      protein: item.protein,
-      carbs: item.carbs,
-      fat: item.fat,
-      fiber: item.fiber,
-      sodium: item.sodium ?? null,
-      saturatedFat: item.saturatedFat ?? null,
-      sugar: item.sugar ?? null,
-      servingSize: item.servingSize,
-      source: "nyc" as const,
-    }));
+    // Parse quantity from query (e.g., "8oz chicken breast" → cleanQuery="chicken breast", oz=8)
+    const { cleanQuery, quantity, grams, oz } = parseQueryQuantity(rawQuery);
+    const query = cleanQuery || rawQuery;
 
-    // 2. USDA FoodData Central (if API key available)
-    const usdaKey = process.env.USDA_API_KEY;
+    // TIER 1: Common foods (instant, always searched first)
+    const commonMatches = searchCommonFoods(query);
+    const commonResults: SearchResult[] = commonMatches.map(mapCommonFood);
+
+    // TIER 2: NYC database (only if query triggers NYC-specific search)
+    let nycResults: SearchResult[] = [];
+    if (shouldSearchNYC(query)) {
+      const nycMatches = searchNycDatabase(query);
+      nycResults = nycMatches.map((item) => ({
+        id: item.id,
+        name: item.name,
+        brand: item.chain ?? undefined,
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+        fiber: item.fiber,
+        sodium: item.sodium ?? null,
+        saturatedFat: item.saturatedFat ?? null,
+        sugar: item.sugar ?? null,
+        servingSize: item.servingSize,
+        source: "nyc" as const,
+      }));
+    }
+
+    // TIER 3: USDA (if fewer than 8 results so far)
     let usdaResults: SearchResult[] = [];
-    if (usdaKey) {
-      try {
-        const usdaUrl = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&pageSize=10&api_key=${usdaKey}`;
-        const usdaRes = await fetch(usdaUrl, {
-          signal: AbortSignal.timeout(5000),
-        });
-        if (usdaRes.ok) {
-          const usdaData = await usdaRes.json();
-          const foods: FdcSearchFood[] = usdaData.foods ?? [];
-          usdaResults = foods.map(mapUsdaFood);
-        }
-      } catch {
-        // USDA fetch failed — continue without it
+    const soFar = commonResults.length + nycResults.length;
+    if (soFar < 8) {
+      const usdaKey = process.env.USDA_API_KEY;
+      if (usdaKey) {
+        try {
+          const usdaUrl = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&pageSize=10&api_key=${usdaKey}`;
+          const usdaRes = await fetch(usdaUrl, { signal: AbortSignal.timeout(5000) });
+          if (usdaRes.ok) {
+            const usdaData = await usdaRes.json();
+            const foods: FdcSearchFood[] = usdaData.foods ?? [];
+            usdaResults = foods.map(mapUsdaFood);
+          }
+        } catch { /* USDA fetch failed */ }
       }
     }
 
-    // 3. Open Food Facts
+    // TIER 4: Open Food Facts (if still under 8 results)
     let offResults: SearchResult[] = [];
-    try {
-      const offUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10`;
-      const offRes = await fetch(offUrl, {
-        signal: AbortSignal.timeout(5000),
-      });
-      if (offRes.ok) {
-        const offData = await offRes.json();
-        const products: OFFProduct[] = offData.products ?? [];
-        offResults = products
-          .map(mapOpenFoodFacts)
-          .filter((r): r is SearchResult => r !== null);
-      }
-    } catch {
-      // OFF fetch failed — continue without it
+    const totalSoFar = commonResults.length + nycResults.length + usdaResults.length;
+    if (totalSoFar < 8) {
+      try {
+        const offUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10`;
+        const offRes = await fetch(offUrl, { signal: AbortSignal.timeout(5000) });
+        if (offRes.ok) {
+          const offData = await offRes.json();
+          const products: OFFProduct[] = offData.products ?? [];
+          offResults = products.map(mapOpenFoodFacts).filter((r): r is SearchResult => r !== null);
+        }
+      } catch { /* OFF fetch failed */ }
     }
 
-    // Merge: NYC first, then USDA, then OFF — deduplicate, cap at 25
-    const all = dedup([...nycResults, ...usdaResults, ...offResults]);
+    // Merge: Common first, then NYC, then USDA, then OFF
+    const all = dedup([...commonResults, ...nycResults, ...usdaResults, ...offResults]);
     const results = all.slice(0, 25);
 
     return NextResponse.json({
-      query,
+      query: rawQuery,
+      cleanQuery: query,
       count: results.length,
       results,
+      parsedQuantity: quantity || grams || oz ? { quantity, grams, oz } : undefined,
     });
   } catch {
     return NextResponse.json(

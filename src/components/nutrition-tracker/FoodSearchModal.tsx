@@ -97,17 +97,21 @@ function getSavedFoods(): FoodEntry[] {
 /* ── Source badge ──────────────────────────────────────────── */
 
 function SourceBadge({ source }: { source: string }) {
-  const config: Record<string, { emoji: string; label: string; color: string }> = {
-    nyc: { emoji: "🗽", label: "NYC", color: "bg-accent-bg text-accent" },
-    usda: { emoji: "🔬", label: "USDA", color: "bg-blue-50 text-sky" },
-    openfoodfacts: { emoji: "🌐", label: "OFF", color: "bg-purple-50 text-hp-purple" },
-    custom: { emoji: "✏️", label: "Custom", color: "bg-bg text-dim" },
-    quick: { emoji: "⚡", label: "Quick", color: "bg-bg text-dim" },
-  };
-  const c = config[source] || config.custom;
   return (
-    <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${c.color}`}>
-      {c.emoji} {c.label}
+    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ml-1.5 ${
+      source === "common" ? "bg-hp-green/10 text-hp-green" :
+      source === "nyc" ? "bg-hp-orange/10 text-hp-orange" :
+      source === "usda" ? "bg-hp-blue/10 text-hp-blue" :
+      source === "openfoodfacts" ? "bg-border text-muted" :
+      source === "custom" ? "bg-border text-muted" :
+      "bg-border text-muted"
+    }`}>
+      {source === "common" ? "Common" :
+       source === "nyc" ? "NYC" :
+       source === "usda" ? "USDA" :
+       source === "openfoodfacts" ? "Packaged" :
+       source === "custom" ? "Custom" :
+       source === "quick" ? "Quick" : source}
     </span>
   );
 }

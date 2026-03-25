@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import BodyProfile from "@/components/nutrition-tracker/BodyProfile";
+import type { MacroTargets } from "@/components/nutrition-tracker/BodyProfile";
 import DailySummary from "@/components/nutrition-tracker/DailySummary";
 import type { FoodEntry, UserGoals } from "@/components/nutrition-tracker/DailySummary";
 import MealSection from "@/components/nutrition-tracker/MealSection";
@@ -71,6 +73,7 @@ export default function NutritionTrackerPage() {
   const [date, setDate] = useState(todayStr);
   const [day, setDay] = useState<NutritionDay>(() => loadDay(todayStr()));
   const [goals, setGoals] = useState<UserGoals>(DEFAULT_GOALS);
+  const [profileTargets, setProfileTargets] = useState<MacroTargets | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchMeal, setSearchMeal] = useState<MealKey>("breakfast");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -94,6 +97,18 @@ export default function NutritionTrackerPage() {
     if (!mounted) return;
     saveDay(day);
   }, [day, mounted]);
+
+  const handleProfileTargets = useCallback((targets: MacroTargets) => {
+    setProfileTargets(targets);
+    setGoals({
+      dailyCalories: targets.calories,
+      proteinGoal: targets.protein,
+      carbGoal: targets.carbs,
+      fatGoal: targets.fat,
+      fiberGoal: targets.fiber,
+      waterGoalOz: 64,
+    });
+  }, []);
 
   const handleDateChange = useCallback((newDate: string) => {
     setDate(newDate);
@@ -178,6 +193,11 @@ export default function NutritionTrackerPage() {
         </p>
       </div>
 
+      {/* Body Profile / Targets */}
+      <div className="mb-4">
+        <BodyProfile onTargetsChange={handleProfileTargets} />
+      </div>
+
       {/* Daily summary (calories + macros + date nav) */}
       <DailySummary
         date={date}
@@ -245,6 +265,17 @@ export default function NutritionTrackerPage() {
           onClose={() => setSettingsOpen(false)}
         />
       )}
+
+      {/* Floating quick-log button */}
+      <button
+        onClick={() => { setSearchMeal("snacks"); setSearchOpen(true); }}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-hp-green text-white rounded-full shadow-lg hover:bg-hp-green/90 transition-all hover:scale-105 flex items-center justify-center"
+        aria-label="Log food"
+      >
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
     </>
   );
 }
