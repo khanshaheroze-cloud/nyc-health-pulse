@@ -209,6 +209,7 @@ export default function RootLayout({
                       { href: "/neighborhood", label: "Neighborhoods" },
                       { href: "/find-care", label: "Find Care" },
                       { href: "/building-health", label: "Building Safety" },
+                      { href: "/nutrition-tracker", label: "Nutrition Tracker" },
                       { href: "/run-routes", label: "Run Routes" },
                     ].map((link) => (
                       <a key={link.href} href={link.href} className="text-[12px] text-dim hover:text-hp-green transition-colors">{link.label}</a>

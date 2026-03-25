@@ -26,6 +26,7 @@ const NAV_ITEMS: NavItem[] = [
 
 const FOOD_ITEMS = [
   { href: "/eat-smart", label: "Eat Smart" },
+  { href: "/nutrition-tracker", label: "Nutrition Tracker" },
   { href: "/restaurants", label: "Restaurant Guide" },
   { href: "/food-safety", label: "Food Safety" },
   { href: "/grocery", label: "Grocery Prices" },

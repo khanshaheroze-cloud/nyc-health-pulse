@@ -64,6 +64,21 @@ export default async function NutritionPage() {
       description="Population-level nutritional data, food resource programs, and fresh food access across NYC"
       accentColor="rgba(245,197,66,.12)"
     >
+      {/* ── Nutrition Tracker CTA ── */}
+      <a
+        href="/nutrition-tracker"
+        className="flex items-center gap-3 mb-5 p-4 bg-accent-bg border border-hp-green/20 rounded-2xl hover:bg-hp-green/10 transition-colors group"
+      >
+        <span className="text-2xl">🍽️</span>
+        <div className="flex-1">
+          <p className="text-[13px] font-bold text-hp-green group-hover:underline">Track Your Daily Meals</p>
+          <p className="text-[11px] text-dim">Log food with NYC&apos;s largest curated database — halal carts, bodegas, chains & more</p>
+        </div>
+        <svg className="w-5 h-5 text-hp-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+
       {/* ── NYC Diet by the Numbers ── */}
       <h3 className="text-sm font-bold mb-2">NYC Diet by the Numbers</h3>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
