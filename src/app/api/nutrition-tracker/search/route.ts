@@ -146,6 +146,7 @@ interface OFFProduct {
   code?: string;
   _id?: string;
   product_name?: string;
+  lang?: string;
   brands?: string;
   serving_size?: string;
   nutriments?: Record<string, number | undefined>;
@@ -286,10 +287,9 @@ export async function GET(req: NextRequest) {
       }));
     }
 
-    // TIER 3: USDA (if fewer than 8 results so far)
+    // TIER 3: USDA (always search for more variety — common DB is limited)
     let usdaResults: SearchResult[] = [];
-    const soFar = commonResults.length + nycResults.length;
-    if (soFar < 8) {
+    {
       const usdaKey = process.env.USDA_API_KEY;
       if (usdaKey) {
         try {
@@ -309,12 +309,16 @@ export async function GET(req: NextRequest) {
     const totalSoFar = commonResults.length + nycResults.length + usdaResults.length;
     if (totalSoFar < 8) {
       try {
-        const offUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10`;
+        const offUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10&lc=en&cc=us`;
         const offRes = await fetch(offUrl, { signal: AbortSignal.timeout(5000) });
         if (offRes.ok) {
           const offData = await offRes.json();
           const products: OFFProduct[] = offData.products ?? [];
-          offResults = products.map(mapOpenFoodFacts).filter((r): r is SearchResult => r !== null);
+          offResults = products
+            .filter((p) => !p.lang || p.lang === "en")
+            .map(mapOpenFoodFacts)
+            .filter((r): r is SearchResult => r !== null)
+            .filter((r) => /^[a-zA-Z0-9\s\-&',.()/]+$/.test(r.name));
         }
       } catch { /* OFF fetch failed */ }
     }

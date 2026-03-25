@@ -768,7 +768,12 @@ export async function POST(request: NextRequest) {
           scenery: sceneryResult.score,
           terrain: terrainResult.score,
         };
-        const runScore = breakdown.airQuality + breakdown.safety + breakdown.scenery + breakdown.terrain;
+        // Distance accuracy penalty: routes far from target get penalized heavily
+        const distError = Math.abs(result.distanceMi - dist) / dist;
+        // 0% error = 0 penalty, 10% = -5, 20% = -10, 30% = -15, 40%+ = -20
+        const distPenalty = Math.round(Math.min(distError * 50, 20));
+        const rawScore = breakdown.airQuality + breakdown.safety + breakdown.scenery + breakdown.terrain;
+        const runScore = Math.max(0, rawScore - distPenalty);
 
         const directions = parseDirections(result.legs);
         const exportUrls = buildExportUrls(lat, lng, result.candidate.waypoints, routeType);
@@ -785,6 +790,7 @@ export async function POST(request: NextRequest) {
           directions,
           summary,
           exportUrls,
+          distancePenalty: distPenalty,
           lowQuality: runScore < 40,
           candidateLabel: result.candidate.label,
           waypoints: result.candidate.waypoints,
