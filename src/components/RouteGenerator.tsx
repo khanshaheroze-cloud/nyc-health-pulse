@@ -107,6 +107,7 @@ export function RouteGenerator() {
   const [difficulty, setDifficulty] = useState<"beginner" | "intermediate" | "advanced">("beginner");
   const [optimizeFor, setOptimizeFor] = useState<string[]>(["air", "safety"]);
   const [timeOfDay, setTimeOfDay] = useState<"morning" | "midday" | "evening" | "night">("morning");
+  const [preferParks, setPreferParks] = useState(true);
 
   // Geocoder state
   const [suggestions, setSuggestions] = useState<{ name: string; lat: number; lng: number }[]>([]);
@@ -219,6 +220,7 @@ export function RouteGenerator() {
           routeType,
           difficulty,
           optimizeFor,
+          preferParks,
         }),
       });
 
@@ -416,6 +418,21 @@ export function RouteGenerator() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Prefer Parks toggle */}
+        <div className="flex items-center justify-between py-3 px-4 bg-white/60 rounded-xl mb-5">
+          <div>
+            <span className="text-sm font-medium text-slate-700">Prefer Parks & Waterfront</span>
+            <span className="text-xs text-slate-500 block mt-0.5">Routes through nearby parks and along the water</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPreferParks(!preferParks)}
+            className={`relative w-11 h-6 rounded-full transition-colors ${preferParks ? "bg-[#4A7C59]" : "bg-slate-300"}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${preferParks ? "translate-x-5" : ""}`} />
+          </button>
         </div>
 
         {/* Generate button */}

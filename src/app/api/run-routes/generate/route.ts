@@ -9,6 +9,7 @@ interface GenerateRequest {
   routeType: "loop" | "out-back";
   difficulty: "beginner" | "intermediate" | "advanced";
   optimizeFor: string[];
+  preferParks?: boolean;
 }
 
 interface RouteCandidate {
@@ -114,6 +115,115 @@ async function fetchNearbyParks(
     console.error("[run-routes/generate] Parks error:", error);
     return [];
   }
+}
+
+// ── Waterfront access areas ──────────────────────────────────────────
+
+async function fetchNearbyWaterfront(
+  lat: number,
+  lng: number,
+  radiusMeters: number,
+): Promise<ParkPoint[]> {
+  try {
+    const url = `https://data.cityofnewyork.us/resource/9y58-8zvz.json?$where=within_circle(the_geom,${lat},${lng},${radiusMeters})&$limit=20`;
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(6000),
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const points: ParkPoint[] = [];
+    for (const row of data) {
+      const geom = row.the_geom;
+      if (!geom?.coordinates) continue;
+      if (geom.type === "Point") {
+        points.push({ lat: geom.coordinates[1], lng: geom.coordinates[0] });
+      } else if (geom.type === "MultiPolygon" || geom.type === "Polygon") {
+        const ring = geom.type === "MultiPolygon" ? geom.coordinates[0][0] : geom.coordinates[0];
+        if (ring?.length > 0) {
+          const n = Math.min(ring.length, 20);
+          let sumLat = 0, sumLng = 0;
+          for (let i = 0; i < n; i++) { sumLng += ring[i][0]; sumLat += ring[i][1]; }
+          points.push({ lat: sumLat / n, lng: sumLng / n });
+        }
+      }
+    }
+    return points;
+  } catch (error) {
+    console.error("[run-routes/generate] Waterfront error:", error);
+    return [];
+  }
+}
+
+// ── Park-first waypoint generation ──────────────────────────────────
+
+/**
+ * Generate waypoints routed THROUGH nearby parks and waterfront instead of
+ * random compass-angle points. Falls back to compass angles when no
+ * parks/waterfront are found.
+ */
+function generateParkFirstWaypoints(
+  startLat: number,
+  startLng: number,
+  parkPoints: ParkPoint[],
+  waterfrontPoints: ParkPoint[],
+  radiusMiles: number,
+  routeType: "loop" | "out-back",
+): { lat: number; lng: number }[] | null {
+  // Sort by distance from start, skip very close ones (already in a park)
+  const withDist = (pts: ParkPoint[]) =>
+    pts
+      .map(p => ({ ...p, dist: haversineMeters(startLat, startLng, p.lat, p.lng) }))
+      .filter(p => p.dist > 200)
+      .sort((a, b) => a.dist - b.dist);
+
+  const sortedParks = withDist(parkPoints);
+  const sortedWaterfront = withDist(waterfrontPoints);
+
+  if (sortedParks.length === 0 && sortedWaterfront.length === 0) return null;
+
+  const waypoints: { lat: number; lng: number }[] = [];
+
+  // Add nearest park
+  if (sortedParks.length > 0) {
+    waypoints.push({ lat: sortedParks[0].lat, lng: sortedParks[0].lng });
+    console.log(`[run-routes/generate] Park waypoint: ${sortedParks[0].lat.toFixed(5)}, ${sortedParks[0].lng.toFixed(5)} (${Math.round(sortedParks[0].dist)}m away)`);
+  }
+
+  // Add nearest waterfront if it's in a different direction (>300m from park waypoint)
+  if (sortedWaterfront.length > 0) {
+    const wf = sortedWaterfront[0];
+    const tooClose = waypoints.length > 0 &&
+      haversineMeters(waypoints[0].lat, waypoints[0].lng, wf.lat, wf.lng) < 300;
+    if (!tooClose) {
+      waypoints.push({ lat: wf.lat, lng: wf.lng });
+      console.log(`[run-routes/generate] Waterfront waypoint: ${wf.lat.toFixed(5)}, ${wf.lng.toFixed(5)} (${Math.round(wf.dist)}m away)`);
+    }
+  }
+
+  // If we only have 1 waypoint, add a second park for a better loop
+  if (waypoints.length < 2 && sortedParks.length > 1) {
+    const second = sortedParks[1];
+    if (haversineMeters(waypoints[0].lat, waypoints[0].lng, second.lat, second.lng) > 300) {
+      waypoints.push({ lat: second.lat, lng: second.lng });
+      console.log(`[run-routes/generate] Second park waypoint: ${second.lat.toFixed(5)}, ${second.lng.toFixed(5)} (${Math.round(second.dist)}m away)`);
+    }
+  }
+
+  // For longer routes (>5mi), try to add a third waypoint for better coverage
+  if (waypoints.length >= 2 && radiusMiles > 0.7) {
+    const allSorted = [...sortedParks.slice(1), ...sortedWaterfront.slice(1)]
+      .filter(p => waypoints.every(wp => haversineMeters(wp.lat, wp.lng, p.lat, p.lng) > 400))
+      .sort((a, b) => a.dist - b.dist);
+    if (allSorted.length > 0) {
+      waypoints.push({ lat: allSorted[0].lat, lng: allSorted[0].lng });
+    }
+  }
+
+  if (waypoints.length === 0) return null;
+
+  console.log(`[run-routes/generate] Using ${waypoints.length} park/waterfront waypoints (park-first mode)`);
+  return waypoints;
 }
 
 // ── Waypoint generation ───────────────────────────────────────────────
@@ -566,29 +676,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { startLat, startLng, distanceMiles, routeType, difficulty, optimizeFor } = body;
-  console.log("[run-routes/generate] Request:", { startLat, startLng, distanceMiles, routeType, difficulty });
+  const { startLat, startLng, distanceMiles, routeType, difficulty, optimizeFor, preferParks: preferParksParam } = body;
+  const preferParks = preferParksParam !== false; // default true
+  console.log("[run-routes/generate] Request:", { startLat, startLng, distanceMiles, routeType, difficulty, preferParks });
 
   if (!startLat || !startLng || !distanceMiles) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
   try {
-    // 1. Fetch AQI, isochrone, and nearby parks in parallel
-    const [cityAqi, isochrone, parkPoints] = await Promise.all([
+    // 1. Fetch AQI, isochrone, parks, and waterfront in parallel
+    const searchRadius = Math.min(5000, distanceMiles * 800);
+    const [cityAqi, isochrone, parkPoints, waterfrontPoints] = await Promise.all([
       fetchCityAqi(),
       getIsochrone(startLat, startLng, distanceMiles),
-      fetchNearbyParks(startLat, startLng, Math.min(5000, distanceMiles * 800)),
+      fetchNearbyParks(startLat, startLng, searchRadius),
+      preferParks ? fetchNearbyWaterfront(startLat, startLng, searchRadius) : Promise.resolve([]),
     ]);
 
-    console.log("[run-routes/generate] Parallel fetch done — AQI:", cityAqi, "isochrone:", !!isochrone, "parks:", parkPoints.length);
+    console.log("[run-routes/generate] Parallel fetch done — AQI:", cityAqi, "isochrone:", !!isochrone, "parks:", parkPoints.length, "waterfront:", waterfrontPoints.length);
 
     // Walking routes are ~7-8x the radius (streets aren't straight lines).
     // 3mi request → radius 0.43mi → 4 waypoints → ~3mi walking distance.
     const radius = routeType === "loop" ? distanceMiles / 7 : distanceMiles / 3;
     const optimizeGreen = optimizeFor.includes("green");
 
-    // 2. Define candidate angle sets — more waypoints for longer routes
+    // 2a. Park-first: try to route through parks/waterfront directly
+    const parkFirstWaypoints = preferParks
+      ? generateParkFirstWaypoints(startLat, startLng, parkPoints, waterfrontPoints, radius, routeType)
+      : null;
+
+    // 2b. Define candidate angle sets — more waypoints for longer routes
     const baseSets =
       routeType === "loop"
         ? distanceMiles >= 6
@@ -620,6 +738,54 @@ export async function POST(req: NextRequest) {
     // 3. Generate and score candidates
     const candidates: RouteCandidate[] = [];
 
+    // 3a. Try park-first waypoints as first candidate
+    if (parkFirstWaypoints && parkFirstWaypoints.length > 0) {
+      const start = { lat: startLat, lng: startLng };
+      const routeCoords =
+        routeType === "loop"
+          ? [start, ...parkFirstWaypoints, start]
+          : [start, ...parkFirstWaypoints];
+
+      console.log("[run-routes/generate] Trying park-first route with", parkFirstWaypoints.length, "waypoints");
+      const directions = await getDirections(routeCoords);
+      if (directions) {
+        const distMiles = directions.distanceMeters / 1609.34;
+        const geoCoords = directions.geojson.coordinates as [number, number][];
+        console.log("[run-routes/generate] Park-first route:", distMiles.toFixed(2), "mi");
+
+        const [elevGain, safetyResult, sceneryPts] = await Promise.all([
+          sampleElevation(geoCoords),
+          scoreSafety(geoCoords, distMiles),
+          scoreScenery(geoCoords),
+        ]);
+
+        const breakdown = {
+          airQuality: scoreAqi(cityAqi),
+          safety: safetyResult.pts,
+          scenery: sceneryPts,
+          terrain: scoreTerrain(elevGain, difficulty),
+        };
+
+        const runScore = computeFinalScore(breakdown, optimizeFor);
+        const estMinutes = Math.round(distMiles * (PACE_MAP[difficulty] ?? 10));
+
+        console.log("[run-routes/generate] Park-first scored:", { runScore, breakdown, distMiles: distMiles.toFixed(2), elevGain });
+
+        candidates.push({
+          geojson: directions.geojson,
+          distance: Math.round(distMiles * 100) / 100,
+          elevationGain: elevGain,
+          estimatedMinutes: estMinutes,
+          runScore,
+          scoreBreakdown: breakdown,
+          lowQuality: runScore < 40,
+        });
+      } else {
+        console.log("[run-routes/generate] Park-first directions failed, falling back to compass angles");
+      }
+    }
+
+    // 3b. Generate compass-angle candidates (fewer needed if park-first succeeded)
     for (const angles of candidateAngleSets) {
       // Generate isochrone-constrained, park-biased waypoints (no API calls — pure math)
       const waypoints = generateConstrainedWaypoints(
