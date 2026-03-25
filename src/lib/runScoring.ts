@@ -2,7 +2,7 @@
  * Smart Run Routes — Scoring Algorithm (v2)
  *
  * Scores routes 0-100 using 4 location-based factors:
- *   Air Quality (0-25), Street Safety (0-25), Green Space (0-25), Terrain (0-25)
+ *   Air Quality (0-25), Street Safety (0-25), Scenery (0-25), Terrain (0-25)
  */
 
 import type { Route } from "./routes";
@@ -22,7 +22,7 @@ export interface RunConditions {
 export interface ScoreBreakdown {
   airQuality: number;
   safety: number;
-  greenSpace: number;
+  scenery: number;
   terrain: number;
 }
 
@@ -89,28 +89,38 @@ const ROUTE_CRASH_SCORE: Record<string, number> = {
   "Staten Island Half Marathon": 20,
 };
 
-/** Per-route green space coverage (0-25) */
-const ROUTE_GREEN_SCORE: Record<string, number> = {
-  "Central Park Full Loop": 25,
-  "Central Park Reservoir (Bridle Path)": 25,
-  "Prospect Park Loop": 25,
-  "Van Cortlandt Park (XC Trail)": 25,
-  "Forest Park (Oak Trail)": 25,
-  "Staten Island Greenbelt (White Trail)": 25,
-  "Pelham Bay / Orchard Beach": 22,
-  "Flushing Meadows Corona Park": 20,
-  "Hudson River Greenway": 15,
-  "Brooklyn Waterfront Greenway": 12,
-  "East River Greenway (South)": 10,
-  "FDR Boardwalk": 14,
-  "Brooklyn Bridge": 3,
-  "The High Line": 18,
-  "NYC Marathon Course": 14,
-  "Brooklyn Half Marathon": 18,
-  "NYC Half Marathon": 10,
-  "Queens 10K": 20,
-  "Bronx 10 Mile": 16,
-  "Staten Island Half Marathon": 20,
+/**
+ * Per-route Scenery score (0-25)
+ * Combines: Water Proximity (0-10), Green Space (0-10), Landmarks & Views (0-5)
+ * Water: rivers, waterfronts, lakes, reservoirs, beaches
+ * Green: parks, tree canopy, greenways, forest trails
+ * Landmarks: scenic landmarks, bridges, notable views
+ */
+const ROUTE_SCENERY_SCORE: Record<string, number> = {
+  // Park routes: high green (10) + some water/views
+  "Central Park Full Loop": 23,            // 6 water(reservoir) + 10 green + 5 landmarks(Bethesda, Belvedere)
+  "Central Park Reservoir (Bridle Path)": 22, // 8 water(reservoir loop) + 10 green + 4 views
+  "Prospect Park Loop": 22,               // 6 water(lake) + 10 green + 4 landmarks(boathouse)
+  "Van Cortlandt Park (XC Trail)": 18,    // 2 water + 10 green(forest) + 3 landmarks
+  "Forest Park (Oak Trail)": 17,           // 0 water + 10 green(oak forest) + 2 landmarks
+  "Staten Island Greenbelt (White Trail)": 18, // 2 water + 10 green(dense forest) + 3 views
+  "Pelham Bay / Orchard Beach": 23,        // 10 water(beach/shore) + 8 green + 3 views
+  "Flushing Meadows Corona Park": 18,      // 4 water(Meadow Lake) + 8 green + 5 landmarks(Unisphere)
+  // Waterfront routes: high water + moderate green
+  "Hudson River Greenway": 22,            // 10 water(river) + 6 green(path trees) + 4 landmarks(Intrepid, Little Island)
+  "Brooklyn Waterfront Greenway": 21,     // 10 water(harbor) + 4 green + 5 landmarks(Statue of Liberty views, bridges)
+  "East River Greenway (South)": 22,      // 10 water(river) + 4 green + 5 landmarks(bridges, skyline)
+  "FDR Boardwalk": 22,                    // 10 water(ocean) + 5 green(beach grass) + 3 views
+  // Urban routes: lower green, higher landmarks
+  "Brooklyn Bridge": 18,                  // 8 water(river views) + 0 green + 5 landmarks(iconic bridge)
+  "The High Line": 20,                    // 2 water(Hudson glimpses) + 8 green(elevated garden) + 5 landmarks(art, architecture)
+  // Race routes
+  "NYC Marathon Course": 16,              // 6 water(Verrazzano, East River) + 4 green(CP finish) + 5 landmarks(all boroughs)
+  "Brooklyn Half Marathon": 20,           // 8 water(boardwalk finish) + 8 green(Prospect Park) + 4 landmarks
+  "NYC Half Marathon": 17,                // 6 water(Manhattan Bridge) + 4 green(CP finish) + 5 landmarks(Times Square)
+  "Queens 10K": 18,                       // 4 water(Meadow Lake) + 8 green + 5 landmarks(Unisphere)
+  "Bronx 10 Mile": 15,                   // 2 water + 8 green(VCP) + 3 landmarks(Grand Concourse)
+  "Staten Island Half Marathon": 20,      // 8 water(waterfront) + 8 green(Greenbelt) + 3 views
 };
 
 /** Per-route elevation gain estimates (feet) */
@@ -159,12 +169,13 @@ function safetyScore(routeName: string): { pts: number; reason: string | null } 
   return { pts, reason };
 }
 
-/** Green space sub-score (0-25) */
-function greenScore(routeName: string): { pts: number; reason: string | null } {
-  const pts = ROUTE_GREEN_SCORE[routeName] ?? 15;
+/** Scenery sub-score (0-25): water proximity + green space + landmarks */
+function sceneryScore(routeName: string): { pts: number; reason: string | null } {
+  const pts = ROUTE_SCENERY_SCORE[routeName] ?? 15;
   let reason: string | null = null;
-  if (pts >= 23) reason = "Fully within park/greenway";
-  else if (pts <= 10) reason = "Limited green space";
+  if (pts >= 22) reason = "Excellent scenery — water, parks, or landmarks";
+  else if (pts >= 17) reason = "Good scenic variety along this route";
+  else if (pts <= 10) reason = "Limited scenic features";
   return { pts, reason };
 }
 
@@ -203,13 +214,13 @@ function bestForLabel(route: Route): string {
 export function scoreRoute(route: Route, conditions: RunConditions): ScoredRoute {
   const air = aqiScore(conditions.aqi, route.name);
   const safe = safetyScore(route.name);
-  const green = greenScore(route.name);
+  const green = sceneryScore(route.name);
   const terrain = terrainScore(route.name, route.difficulty);
 
   const breakdown: ScoreBreakdown = {
     airQuality: air.pts,
     safety: safe.pts,
-    greenSpace: green.pts,
+    scenery: green.pts,
     terrain: terrain.pts,
   };
 
@@ -280,21 +291,21 @@ export function cityRunScore(conditions: RunConditions): { score: number; headli
 
 /** Score a generated route based on its scoring data */
 export function scoreGeneratedRoute(breakdown: ScoreBreakdown, optimizeFor: string[]): number {
-  let weights = { airQuality: 1, safety: 1, greenSpace: 1, terrain: 1 };
+  let weights = { airQuality: 1, safety: 1, scenery: 1, terrain: 1 };
 
   // 2x boost for selected optimization preferences
   for (const pref of optimizeFor) {
     if (pref === "air") weights.airQuality = 2;
     if (pref === "safety") weights.safety = 2;
-    if (pref === "green") weights.greenSpace = 2;
+    if (pref === "green") weights.scenery = 2;
     if (pref === "flat" || pref === "hilly") weights.terrain = 2;
   }
 
-  const totalWeight = weights.airQuality + weights.safety + weights.greenSpace + weights.terrain;
+  const totalWeight = weights.airQuality + weights.safety + weights.scenery + weights.terrain;
   const weighted =
     (breakdown.airQuality * weights.airQuality +
       breakdown.safety * weights.safety +
-      breakdown.greenSpace * weights.greenSpace +
+      breakdown.scenery * weights.scenery +
       breakdown.terrain * weights.terrain) /
     totalWeight;
 

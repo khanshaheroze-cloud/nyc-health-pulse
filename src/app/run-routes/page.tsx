@@ -7,7 +7,7 @@ import { RunningClubs } from "@/components/RunningClubs";
 export const metadata: Metadata = {
   title: "Smart Run Routes — AI-Optimized NYC Running Routes",
   description:
-    "Generate optimized running routes anywhere in NYC using real-time air quality, street safety, green space, and elevation data. 20+ curated routes including NYRR race courses, refuel suggestions, amenities, and 10 running clubs.",
+    "Generate optimized running routes anywhere in NYC using real-time air quality, street safety, scenery, and terrain data. 20+ curated routes including NYRR race courses, refuel suggestions, amenities, and 10 running clubs.",
 };
 
 export default function RunRoutesPage() {
@@ -15,7 +15,7 @@ export default function RunRoutesPage() {
     <SectionShell
       icon="🏃‍♂️"
       title="Smart Run Routes"
-      description="Real-time route scoring for NYC runners — every route scored 0-100 based on air quality, street safety, green space, and terrain"
+      description="Real-time route scoring for NYC runners — every route scored 0-100 based on air quality, street safety, scenery, and terrain"
       accentColor="rgba(45,212,160,.12)"
     >
       {/* Route Generator — the main feature */}
@@ -50,11 +50,11 @@ export default function RunRoutesPage() {
 
         <div className="bg-surface border border-border rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">🌳</span>
-            <h3 className="text-[13px] font-bold text-text">Green Space (0-25)</h3>
+            <span className="text-lg">🏞️</span>
+            <h3 className="text-[13px] font-bold text-text">Scenery (0-25)</h3>
           </div>
           <p className="text-[11px] text-dim leading-relaxed">
-            NYC Parks & Recreation property data. Measures what percentage of the route runs through or alongside parks, greenways, and open space.
+            Water proximity (0-10), green space (0-10), and landmarks (0-5). Routes along rivers, through parks, and past scenic landmarks score highest. Uses 7 NYC Open Data sources.
           </p>
         </div>
 
@@ -100,7 +100,7 @@ export default function RunRoutesPage() {
       <div className="flex items-center gap-1.5 mt-4">
         <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
         <p className="text-[10px] text-hp-green font-semibold">
-          Powered by EPA AirNow · NYPD Collisions · NYC Parks · USGS Elevation
+          Powered by EPA AirNow · NYPD Collisions · NYC Parks · NYC Waterfront · LPC Landmarks · USGS Elevation
         </p>
       </div>
     </SectionShell>

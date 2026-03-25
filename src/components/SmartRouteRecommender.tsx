@@ -169,8 +169,8 @@ export function SmartRouteRecommender() {
                   <ScoreBar value={topPick.scoreBreakdown.safety} max={25} color="bg-hp-blue" />
                 </div>
                 <div>
-                  <p className="text-[9px] text-muted mb-0.5">🌳 Green Space</p>
-                  <ScoreBar value={topPick.scoreBreakdown.greenSpace} max={25} color="bg-hp-green" />
+                  <p className="text-[9px] text-muted mb-0.5">🏞️ Scenery</p>
+                  <ScoreBar value={topPick.scoreBreakdown.scenery} max={25} color="bg-hp-blue" />
                 </div>
                 <div>
                   <p className="text-[9px] text-muted mb-0.5">⛰️ Terrain</p>
@@ -271,8 +271,8 @@ export function SmartRouteRecommender() {
                       <p className="text-[8px] text-muted">Safety</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-[10px] font-bold text-text">{route.scoreBreakdown.greenSpace}/25</p>
-                      <p className="text-[8px] text-muted">Green</p>
+                      <p className="text-[10px] font-bold text-text">{route.scoreBreakdown.scenery}/25</p>
+                      <p className="text-[8px] text-muted">Scenery</p>
                     </div>
                     <div className="text-center">
                       <p className="text-[10px] font-bold text-text">{route.scoreBreakdown.terrain}/25</p>

@@ -17,14 +17,14 @@ interface GeneratedRoute {
   elevationGain: number;
   estimatedMinutes: number;
   runScore: number;
-  scoreBreakdown: { airQuality: number; safety: number; greenSpace: number; terrain: number };
+  scoreBreakdown: { airQuality: number; safety: number; scenery: number; terrain: number };
   lowQuality: boolean;
 }
 
 const OPTIMIZE_OPTIONS = [
   { id: "air", label: "Best Air Quality", icon: "🌬️" },
   { id: "safety", label: "Safest Streets", icon: "🛡️" },
-  { id: "green", label: "Most Green Space", icon: "🌳" },
+  { id: "green", label: "Best Scenery", icon: "🏞️" },
   { id: "scenic", label: "Scenic / Landmarks", icon: "📸" },
   { id: "flat", label: "Flattest Terrain", icon: "➡️" },
   { id: "water", label: "Water Fountains", icon: "🚰" },
@@ -474,7 +474,7 @@ export function RouteGenerator() {
               {[
                 { label: "Air Quality", value: currentRoute.scoreBreakdown.airQuality, icon: "🌬️", color: "hp-green" },
                 { label: "Street Safety", value: currentRoute.scoreBreakdown.safety, icon: "🛡️", color: "hp-blue" },
-                { label: "Green Space", value: currentRoute.scoreBreakdown.greenSpace, icon: "🌳", color: "hp-green" },
+                { label: "Scenery", value: currentRoute.scoreBreakdown.scenery, icon: "🏞️", color: "hp-blue" },
                 { label: "Terrain", value: currentRoute.scoreBreakdown.terrain, icon: "⛰️", color: "hp-purple" },
               ].map((f) => (
                 <div key={f.label} className="bg-surface-sage rounded-xl p-3 text-center">

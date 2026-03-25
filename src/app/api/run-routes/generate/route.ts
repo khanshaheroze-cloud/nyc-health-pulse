@@ -17,7 +17,7 @@ interface RouteCandidate {
   elevationGain: number;
   estimatedMinutes: number;
   runScore: number;
-  scoreBreakdown: { airQuality: number; safety: number; greenSpace: number; terrain: number };
+  scoreBreakdown: { airQuality: number; safety: number; scenery: number; terrain: number };
   lowQuality: boolean;
 }
 
@@ -338,57 +338,111 @@ async function scoreSafety(
   return { pts, crashCount: totalCrashes };
 }
 
+/** Haversine distance in meters between two lat/lng points */
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** Extract lat/lng from various NYC Open Data geometry formats */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractCoords(row: any): { lat: number; lng: number } | null {
+  // Point geometry
+  if (row.the_geom?.coordinates) {
+    const c = row.the_geom.coordinates;
+    if (Array.isArray(c) && c.length >= 2) return { lat: c[1], lng: c[0] };
+  }
+  // Flat lat/lng fields
+  if (row.latitude && row.longitude) return { lat: +row.latitude, lng: +row.longitude };
+  if (row.lat && row.lng) return { lat: +row.lat, lng: +row.lng };
+  return null;
+}
+
+/** Safe fetch that never throws — returns empty array on error */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchSafe(url: string): Promise<any[]> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000), headers: { Accept: "application/json" } });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (error) {
+    console.error("[run-routes/generate] Scenery fetch failed:", error instanceof Error ? error.message : error);
+    return [];
+  }
+}
+
 /**
- * Green Space scoring — parks + greenways
- * Samples points along route, checks proximity to parks AND greenways
+ * Scenery scoring (0-25) — water proximity + green space + landmarks
+ * Uses bounding-box batch fetching: ONE call per data source, then distance checks in JS.
+ * Water (0-10) + Green (0-10) + Landmarks (0-5) = 0-25
  */
-async function scoreGreenSpace(
+async function scoreScenery(
   coords: [number, number][],
 ): Promise<number> {
-  const samples = sampleRoutePoints(coords, 8);
-  let nearGreen = 0;
+  const samples = sampleRoutePoints(coords, 10);
+  if (samples.length === 0) return 0;
 
-  await Promise.all(
-    samples.map(async ([lng, lat]) => {
-      let found = false;
+  // Compute bounding box center + radius for batch queries
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  for (const [lng, lat] of coords) {
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
+  }
+  const centerLat = (minLat + maxLat) / 2;
+  const centerLng = (minLng + maxLng) / 2;
+  const radius = Math.max(500, haversineMeters(minLat, minLng, maxLat, maxLng) / 2 + 300);
 
-      // Check parks (200m radius)
-      try {
-        const parkUrl = `https://data.cityofnewyork.us/resource/enfk-uwib.json?$where=within_circle(the_geom,${lat},${lng},200)&$limit=1&$select=gispropnum`;
-        const res = await fetch(parkUrl, {
-          signal: AbortSignal.timeout(5000),
-          headers: { Accept: "application/json" },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.length > 0) found = true;
-        }
-      } catch (error) {
-        console.error("[run-routes/generate] Parks query failed:", error instanceof Error ? error.message : error);
-      }
+  // Batch fetch all scenery data in parallel (10 API calls total, not 200)
+  const [waterfront, waterBodies, parks, openSpace, greenways, landmarks, pois] = await Promise.all([
+    fetchSafe(`https://data.cityofnewyork.us/resource/9y58-8zvz.json?$where=within_circle(the_geom,${centerLat},${centerLng},${radius})&$limit=100`),
+    fetchSafe(`https://data.cityofnewyork.us/resource/drh3-e2fd.json?$where=within_circle(the_geom,${centerLat},${centerLng},${radius})&$limit=50`),
+    fetchSafe(`https://data.cityofnewyork.us/resource/enfk-uwib.json?$where=within_circle(the_geom,${centerLat},${centerLng},${radius})&$limit=50`),
+    fetchSafe(`https://data.cityofnewyork.us/resource/g84h-jbjm.json?$where=within_circle(the_geom,${centerLat},${centerLng},${radius})&$limit=50`),
+    fetchSafe(`https://data.cityofnewyork.us/resource/7vsa-caz7.json?$where=within_circle(the_geom,${centerLat},${centerLng},${radius})&$limit=50`),
+    fetchSafe(`https://data.cityofnewyork.us/resource/gi7d-8gt5.json?$where=within_circle(the_geom,${centerLat},${centerLng},${radius})&$limit=30`),
+    fetchSafe(`https://data.cityofnewyork.us/resource/rxuy-2muj.json?$where=within_circle(the_geom,${centerLat},${centerLng},${radius})&$limit=50`),
+  ]);
 
-      // Check greenways (150m radius) if not already near a park
-      if (!found) {
-        try {
-          const gwUrl = `https://data.cityofnewyork.us/resource/7vsa-caz7.json?$where=within_circle(the_geom,${lat},${lng},150)&$limit=1&$select=ft_facilit`;
-          const res = await fetch(gwUrl, {
-            signal: AbortSignal.timeout(5000),
-            headers: { Accept: "application/json" },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.length > 0) found = true;
-          }
-        } catch (error) {
-          console.error("[run-routes/generate] Greenways score query failed:", error instanceof Error ? error.message : error);
-        }
-      }
+  // Extract coordinates from all features
+  const waterCoords = [...waterfront, ...waterBodies].map(extractCoords).filter(Boolean) as { lat: number; lng: number }[];
+  const greenCoords = [...parks, ...openSpace].map(extractCoords).filter(Boolean) as { lat: number; lng: number }[];
+  const greenwayCoords = greenways.flatMap((row) => {
+    const geom = row.the_geom;
+    if (!geom) return [];
+    const coordsList = geom.type === "MultiLineString" ? geom.coordinates.flat() : geom.type === "LineString" ? geom.coordinates : [];
+    return coordsList.filter((c: number[]) => Array.isArray(c) && c.length >= 2).map((c: number[]) => ({ lat: c[1], lng: c[0] }));
+  });
+  const landmarkCoords = [...landmarks, ...pois].map(extractCoords).filter(Boolean) as { lat: number; lng: number }[];
 
-      if (found) nearGreen++;
-    }),
-  );
+  // Score each sample point
+  let waterHits = 0, greenHits = 0, landmarkHits = 0;
 
-  return samples.length > 0 ? Math.round(25 * (nearGreen / samples.length)) : 0;
+  for (const [lng, lat] of samples) {
+    // Water: within 200m
+    const nearWater = waterCoords.some(w => haversineMeters(lat, lng, w.lat, w.lng) < 200);
+    if (nearWater) waterHits++;
+
+    // Green: park/open space within 200m OR greenway within 150m
+    const nearPark = greenCoords.some(g => haversineMeters(lat, lng, g.lat, g.lng) < 200);
+    const nearGreenway = greenwayCoords.some(g => haversineMeters(lat, lng, g.lat, g.lng) < 150);
+    if (nearPark || nearGreenway) greenHits++;
+
+    // Landmarks: within 300m
+    const nearLandmark = landmarkCoords.some(l => haversineMeters(lat, lng, l.lat, l.lng) < 300);
+    if (nearLandmark) landmarkHits++;
+  }
+
+  const total = samples.length;
+  const waterScore = Math.round(10 * (waterHits / total));       // 0-10
+  const greenScore = Math.round(10 * (greenHits / total));       // 0-10
+  const landmarkScore = Math.round(5 * (landmarkHits / total));  // 0-5
+
+  return waterScore + greenScore + landmarkScore; // 0-25
 }
 
 /** AQI score (0-25) */
@@ -413,18 +467,18 @@ function computeFinalScore(
   breakdown: RouteCandidate["scoreBreakdown"],
   optimizeFor: string[],
 ): number {
-  const weights = { airQuality: 1, safety: 1, greenSpace: 1, terrain: 1 };
+  const weights = { airQuality: 1, safety: 1, scenery: 1, terrain: 1 };
   for (const pref of optimizeFor) {
     if (pref === "air") weights.airQuality = 2;
     if (pref === "safety") weights.safety = 2;
-    if (pref === "green") weights.greenSpace = 2;
+    if (pref === "green") weights.scenery = 2;
     if (pref === "flat" || pref === "scenic") weights.terrain = 2;
   }
-  const totalWeight = weights.airQuality + weights.safety + weights.greenSpace + weights.terrain;
+  const totalWeight = weights.airQuality + weights.safety + weights.scenery + weights.terrain;
   const weighted =
     (breakdown.airQuality * weights.airQuality +
       breakdown.safety * weights.safety +
-      breakdown.greenSpace * weights.greenSpace +
+      breakdown.scenery * weights.scenery +
       breakdown.terrain * weights.terrain) /
     totalWeight;
   return Math.round(Math.min(100, weighted * 4));
@@ -542,16 +596,16 @@ export async function POST(req: NextRequest) {
       console.log("[run-routes/generate] Got route:", distMiles.toFixed(2), "mi,", geoCoords.length, "coords for angles:", angles);
 
       // Score all 4 factors in parallel
-      const [elevGain, safetyResult, greenPts] = await Promise.all([
+      const [elevGain, safetyResult, sceneryPts] = await Promise.all([
         sampleElevation(geoCoords),
         scoreSafety(geoCoords, distMiles),
-        scoreGreenSpace(geoCoords),
+        scoreScenery(geoCoords),
       ]);
 
       const breakdown = {
         airQuality: scoreAqi(cityAqi),
         safety: safetyResult.pts,
-        greenSpace: greenPts,
+        scenery: sceneryPts,
         terrain: scoreTerrain(elevGain, difficulty),
       };
 

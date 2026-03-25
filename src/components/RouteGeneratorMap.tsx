@@ -9,7 +9,7 @@ interface GeneratedRoute {
   elevationGain: number;
   estimatedMinutes: number;
   runScore: number;
-  scoreBreakdown: { airQuality: number; safety: number; greenSpace: number; terrain: number };
+  scoreBreakdown: { airQuality: number; safety: number; scenery: number; terrain: number };
   lowQuality: boolean;
 }
 
