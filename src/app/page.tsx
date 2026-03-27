@@ -10,7 +10,8 @@ import { OutdoorHero } from "@/components/OutdoorHero";
 import { MyNeighborhood } from "@/components/MyNeighborhood";
 import { FoodPriceTracker } from "@/components/FoodPriceTracker";
 import { EatSmartTeaser } from "@/components/EatSmartTeaser";
-import NutritionSummaryCard from "@/components/nutrition-tracker/NutritionSummaryCard";
+import InlineFoodLogger from "@/components/InlineFoodLogger";
+import { ExploreGrid } from "@/components/ExploreGrid";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { ROUTES } from "@/lib/routes";
 import { fmtPM25 } from "@/lib/format";
@@ -105,9 +106,9 @@ export default async function OverviewPage() {
           <EatSmartTeaser />
         </div>
 
-        {/* Nutrition Tracker */}
+        {/* Inline Food Logger */}
         <div className="mt-4">
-          <NutritionSummaryCard />
+          <InlineFoodLogger />
         </div>
       </ScrollReveal>
 
@@ -152,6 +153,13 @@ export default async function OverviewPage() {
         </div>
         <div className="mb-6">
           <ShareableInsights />
+        </div>
+      </ScrollReveal>
+
+      {/* ── Explore Pulse NYC ── */}
+      <ScrollReveal>
+        <div className="mb-6">
+          <ExploreGrid />
         </div>
       </ScrollReveal>
 
