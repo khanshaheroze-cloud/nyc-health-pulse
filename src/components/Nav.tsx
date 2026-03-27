@@ -41,7 +41,6 @@ const HEALTH_ITEMS = [
   { href: "/overdose", label: "Overdose & Lead" },
   { href: "/demographics", label: "Demographics" },
   { href: "/environment", label: "Environment" },
-  { href: "/active", label: "Active & Routes" },
   { href: "/wellness", label: "Wellness" },
   { href: "/safety", label: "Street Safety" },
 ];

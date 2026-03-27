@@ -1,20 +1,14 @@
-import { SavedNeighborhoodsPanel } from "@/components/SavedNeighborhoodsPanel";
 import { HealthNewsFeed } from "@/components/HealthNewsFeed";
 import { EmailSignup } from "@/components/EmailSignup";
-import { ShareableInsights } from "@/components/ShareableInsights";
 import { WeeklyChanges } from "@/components/WeeklyChanges";
 import { DailyHealthCheck } from "@/components/DailyHealthCheck";
-import { ReturnVisitorBanner } from "@/components/ReturnVisitorBanner";
 import { AlertBanner } from "@/components/AlertBanner";
 import { OutdoorHero } from "@/components/OutdoorHero";
 import { MyNeighborhood } from "@/components/MyNeighborhood";
-import { FoodPriceTracker } from "@/components/FoodPriceTracker";
-import { EatSmartTeaser } from "@/components/EatSmartTeaser";
-import InlineFoodLogger from "@/components/InlineFoodLogger";
 import { ExploreGrid } from "@/components/ExploreGrid";
+import { FeaturedInsights } from "@/components/FeaturedInsights";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { ROUTES } from "@/lib/routes";
-import { fmtPM25 } from "@/lib/format";
 import {
   fetchCovidByBorough,
   fetchRodentByBorough,
@@ -61,7 +55,7 @@ export default async function OverviewPage() {
 
   return (
     <div className="stagger-children">
-      {/* Today in NYC — compact status strip (top of page) */}
+      {/* 1. TODAY IN NYC ticker */}
       <DailyHealthCheck
         airLabel={airLabel}
         airAqi={airNow?.aqi ?? null}
@@ -71,7 +65,10 @@ export default async function OverviewPage() {
         waterSafePct={waterSafePct}
       />
 
-      {/* HERO — unified search + outdoor conditions */}
+      {/* 2. Neighborhood banner (search + personalization) */}
+      <MyNeighborhood />
+
+      {/* 3. HERO — outdoor conditions + inline food logger */}
       <OutdoorHero
         aqi={airNow?.aqi ?? null}
         aqiCategory={airNow?.category ?? airLabel}
@@ -88,93 +85,33 @@ export default async function OverviewPage() {
       {/* Emergency alert banner */}
       <AlertBanner aqi={airNow?.aqi ?? null} />
 
-      {/* My Neighborhood — elevated CTA banner */}
-      <MyNeighborhood />
-
-      {/* Saved neighborhoods */}
-      <SavedNeighborhoodsPanel />
-
-      {/* ── What's Happening ── */}
-      <ScrollReveal>
-        <div className="mt-6 mb-4">
-          <WeeklyChanges />
-        </div>
-
-        {/* Grocery prices + eat smart */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-          <FoodPriceTracker />
-          <EatSmartTeaser />
-        </div>
-
-        {/* Inline Food Logger */}
-        <div className="mt-4">
-          <InlineFoodLogger />
-        </div>
-      </ScrollReveal>
-
-      {/* Smart Run Routes featured card — full width */}
-      <ScrollReveal>
-        <a
-          href="/run-routes"
-          className="card-hover flex items-center gap-5 px-5 py-5 mb-4 rounded-2xl bg-surface border border-border hover:border-hp-green/30 hover:shadow-md transition-all group"
-        >
-          <div className="w-14 h-14 rounded-2xl bg-hp-green/10 border border-hp-green/20 flex items-center justify-center text-2xl shrink-0">
-            🏃‍♂️
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <p className="text-[15px] font-bold text-text group-hover:text-hp-green transition-colors">
-                Smart Run Routes
-              </p>
-              <span className="text-[9px] px-2 py-0.5 rounded-full bg-hp-green/10 border border-hp-green/20 text-hp-green font-bold uppercase tracking-wide">New</span>
-            </div>
-            <p className="text-[12px] text-dim">
-              Generate optimized running routes using real-time air quality, street safety, and park data. Or explore 14 curated routes scored 0-100.
-            </p>
-          </div>
-          <div className="hidden sm:flex flex-col items-center gap-1 shrink-0">
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
-              <span className="text-[10px] font-semibold tracking-widest text-hp-green">LIVE</span>
-            </div>
-            <span className="text-[10px] text-muted">4 data sources</span>
-          </div>
-        </a>
-      </ScrollReveal>
-
-      {/* Return visitor email signup */}
-      <ReturnVisitorBanner />
-
-      {/* ── NYC Health Insights ── */}
-      <ScrollReveal>
-        <div className="flex items-center gap-3 mt-2 mb-3">
-          <h2 className="text-[11px] font-bold tracking-[2px] uppercase text-muted whitespace-nowrap">NYC Health Insights</h2>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-        <div className="mb-6">
-          <ShareableInsights />
-        </div>
-      </ScrollReveal>
-
-      {/* ── Explore Pulse NYC ── */}
+      {/* 4. Explore Pulse NYC grid */}
       <ScrollReveal>
         <div className="mb-6">
           <ExploreGrid />
         </div>
       </ScrollReveal>
 
-      {/* ── News ── */}
+      {/* 5. What's Happening — compact list */}
+      <ScrollReveal>
+        <div className="mb-6">
+          <WeeklyChanges />
+        </div>
+      </ScrollReveal>
+
+      {/* 6. NYC Health News + Featured Insights */}
       <ScrollReveal>
         <div className="flex items-center gap-3 mb-3">
           <h2 className="text-[11px] font-bold tracking-[2px] uppercase text-muted whitespace-nowrap">NYC Health News</h2>
           <div className="flex-1 h-px bg-border" />
         </div>
-        <div className="mb-8">
+        <FeaturedInsights />
+        <div className="mt-4 mb-8">
           <HealthNewsFeed />
         </div>
       </ScrollReveal>
 
-      {/* ── Stay Connected ── */}
+      {/* 7. Stay Connected — single newsletter CTA */}
       <ScrollReveal>
         <div className="flex items-center gap-3 mb-3">
           <h2 className="text-[11px] font-bold tracking-[2px] uppercase text-muted whitespace-nowrap">Stay Connected</h2>

@@ -97,7 +97,7 @@ export default function NeighborhoodIndexPage() {
         <KPICard
           label="Shortest Life Expectancy"
           value={`${worstLifeExp.metrics.lifeExp}y`}
-          sub={`${topLifeExp.metrics.lifeExp - worstLifeExp.metrics.lifeExp}y gap · ${worstLifeExp.name}`}
+          sub={`${(topLifeExp.metrics.lifeExp - worstLifeExp.metrics.lifeExp).toFixed(1)}y gap · ${worstLifeExp.name}`}
           color="orange"
           tag="2019"
         />

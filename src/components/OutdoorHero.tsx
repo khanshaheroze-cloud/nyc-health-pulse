@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { UnifiedSearch } from "./UnifiedSearch";
 import type { Route } from "@/lib/routes";
 
 /* ── Count-up hook ─────────────────────────────────────────────────────── */
@@ -142,16 +141,367 @@ function buildAdvice(aqi: number | null, pollen: { level: string } | null, uv: n
   return { verdict: "Consider indoor exercise today", tips, good: false };
 }
 
-/* ── Action Chips ──────────────────────────────────────────────────────── */
+/* ── Food Logger Types & Helpers ──────────────────────────────────────── */
 
-const ACTION_CHIPS = [
-  { href: "/building-health", icon: "🏠", label: "My Building" },
-  { href: "/eat-smart",       icon: "🥗", label: "Eat Smart" },
-  { href: "/neighborhood",    icon: "📍", label: "My Hood" },
-  { href: "/food-safety",     icon: "🍽️", label: "Restaurant" },
-  { href: "/run-routes",      icon: "🏃", label: "Run Route" },
-  { href: "/find-care",       icon: "👨‍⚕️", label: "Doctor" },
+interface FoodEntry {
+  id: string;
+  name: string;
+  source: string;
+  servings: number;
+  servingSize: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  timestamp: number;
+}
+
+interface DayLog {
+  date: string;
+  meals: {
+    breakfast: FoodEntry[];
+    lunch: FoodEntry[];
+    dinner: FoodEntry[];
+    snacks: FoodEntry[];
+  };
+}
+
+type MealKey = "breakfast" | "lunch" | "dinner" | "snacks";
+
+const MEAL_PERIODS: { key: MealKey; label: string; emoji: string }[] = [
+  { key: "breakfast", label: "Breakfast", emoji: "\u2600" },
+  { key: "lunch",     label: "Lunch",     emoji: "\uD83C\uDF24" },
+  { key: "dinner",    label: "Dinner",    emoji: "\uD83C\uDF19" },
+  { key: "snacks",    label: "Snack",     emoji: "\uD83C\uDF4E" },
 ];
+
+const SOURCE_BADGES: Record<string, string> = {
+  common: "\uD83D\uDED2 Common",
+  nyc:    "\uD83E\uDD61 NYC",
+  usda:   "\uD83C\uDFDB USDA",
+};
+
+function todayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function emptyDayLog(date: string): DayLog {
+  return { date, meals: { breakfast: [], lunch: [], dinner: [], snacks: [] } };
+}
+
+function loadDayLog(date: string): DayLog {
+  try {
+    const raw = localStorage.getItem(`pulsenyc_nutrition_${date}`);
+    if (raw) return JSON.parse(raw) as DayLog;
+  } catch { /* ignore */ }
+  return emptyDayLog(date);
+}
+
+function saveDayLog(log: DayLog) {
+  localStorage.setItem(`pulsenyc_nutrition_${log.date}`, JSON.stringify(log));
+  window.dispatchEvent(new CustomEvent("pulsenyc-nutrition-change"));
+}
+
+function loadCalorieGoal(): number {
+  try {
+    const goals = localStorage.getItem("pulsenyc_nutrition_goals");
+    if (goals) {
+      const parsed = JSON.parse(goals);
+      if (parsed.dailyCalories) return parsed.dailyCalories;
+    }
+    const profile = localStorage.getItem("pulsenyc_nutrition_profile");
+    if (profile) {
+      const parsed = JSON.parse(profile);
+      if (parsed.tdee) return parsed.tdee;
+    }
+  } catch { /* ignore */ }
+  return 2000;
+}
+
+function mealEmoji(key: MealKey): string {
+  return MEAL_PERIODS.find((m) => m.key === key)?.emoji ?? "";
+}
+
+/* ── Inline Food Logger ──────────────────────────────────────────────── */
+
+interface SearchResult {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  servingSize: string;
+  source: string;
+}
+
+function InlineFoodLogger() {
+  const [expanded, setExpanded] = useState(false);
+  const [dayLog, setDayLog] = useState<DayLog>(() => emptyDayLog(todayKey()));
+  const [goal, setGoal] = useState(2000);
+  const [selectedMeal, setSelectedMeal] = useState<MealKey>(() => {
+    const h = new Date().getHours();
+    if (h < 11) return "breakfast";
+    if (h < 15) return "lunch";
+    if (h < 20) return "dinner";
+    return "snacks";
+  });
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    setDayLog(loadDayLog(todayKey()));
+    setGoal(loadCalorieGoal());
+  }, []);
+
+  // Listen for external changes
+  useEffect(() => {
+    const handler = () => setDayLog(loadDayLog(todayKey()));
+    window.addEventListener("pulsenyc-nutrition-change", handler);
+    return () => window.removeEventListener("pulsenyc-nutrition-change", handler);
+  }, []);
+
+  // Close results dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowResults(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  // Computed totals
+  const allEntries = useMemo(() => {
+    const m = dayLog.meals;
+    return [...m.breakfast, ...m.lunch, ...m.dinner, ...m.snacks];
+  }, [dayLog]);
+
+  const totalCal = useMemo(() => allEntries.reduce((s, e) => s + e.calories, 0), [allEntries]);
+  const totalP = useMemo(() => allEntries.reduce((s, e) => s + e.protein, 0), [allEntries]);
+  const totalC = useMemo(() => allEntries.reduce((s, e) => s + e.carbs, 0), [allEntries]);
+  const totalF = useMemo(() => allEntries.reduce((s, e) => s + e.fat, 0), [allEntries]);
+
+  const pct = goal > 0 ? Math.min((totalCal / goal) * 100, 100) : 0;
+
+  // Last 3 logged items across all meals, most recent first
+  const recentEntries = useMemo(() => {
+    const tagged = allEntries.map((e) => {
+      const meal = (Object.entries(dayLog.meals) as [MealKey, FoodEntry[]][]).find(([, arr]) =>
+        arr.some((a) => a.id === e.id)
+      );
+      return { ...e, mealKey: meal?.[0] as MealKey };
+    });
+    return tagged.sort((a, b) => b.timestamp - a.timestamp).slice(0, 3);
+  }, [allEntries, dayLog.meals]);
+
+  // Search with debounce
+  const doSearch = useCallback((q: string) => {
+    if (!q.trim()) {
+      setResults([]);
+      setShowResults(false);
+      return;
+    }
+    setSearching(true);
+    setShowResults(true);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    // Local fast search (150ms debounce), then API (350ms)
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/nutrition-tracker/search?q=${encodeURIComponent(q)}&local=1`);
+        if (res.ok) {
+          const data = await res.json();
+          setResults((data.results ?? data).slice(0, 5));
+        }
+      } catch { /* ignore */ }
+      setSearching(false);
+    }, 150);
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setQuery(v);
+    doSearch(v);
+  };
+
+  const logFood = (item: SearchResult) => {
+    const entry: FoodEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: item.name,
+      source: item.source,
+      servings: 1,
+      servingSize: item.servingSize,
+      calories: item.calories,
+      protein: item.protein,
+      carbs: item.carbs,
+      fat: item.fat,
+      fiber: item.fiber,
+      timestamp: Date.now(),
+    };
+    const updated = { ...dayLog };
+    updated.meals = { ...updated.meals };
+    updated.meals[selectedMeal] = [...updated.meals[selectedMeal], entry];
+    setDayLog(updated);
+    saveDayLog(updated);
+    setQuery("");
+    setResults([]);
+    setShowResults(false);
+  };
+
+  const handleSummaryClick = () => {
+    setExpanded((p) => !p);
+  };
+
+  const handleSearchFocus = () => {
+    setExpanded(true);
+    if (query.trim()) setShowResults(true);
+  };
+
+  const barColor = pct >= 100 ? "#f07070" : pct >= 80 ? "#f5c542" : "#2dd4a0";
+
+  return (
+    <div className="border-t border-black/[0.06] mt-4 pt-4">
+      {/* Summary row - always visible */}
+      <button
+        type="button"
+        onClick={handleSummaryClick}
+        className="w-full flex items-center gap-3 text-left group"
+      >
+        <span className="text-[11px] font-bold uppercase tracking-[1px] text-dim flex-shrink-0">
+          \uD83C\uDF7D FOOD LOG
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-text tabular-nums">
+              Today: {Math.round(totalCal)} / {goal} cal
+            </span>
+            <div className="flex-1 h-1.5 bg-black/[0.06] rounded-full overflow-hidden max-w-[120px]">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${pct}%`, backgroundColor: barColor }}
+              />
+            </div>
+          </div>
+        </div>
+        <span className="text-[11px] text-muted tabular-nums flex-shrink-0">
+          P:{Math.round(totalP)}g C:{Math.round(totalC)}g F:{Math.round(totalF)}g
+        </span>
+        <svg
+          width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+          strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+          className={`text-dim transition-transform duration-200 flex-shrink-0 ${expanded ? "rotate-180" : ""}`}
+        >
+          <path d="M4 5.5l3 3 3-3"/>
+        </svg>
+      </button>
+
+      {/* Expanded panel */}
+      <div
+        className="overflow-hidden transition-all duration-300 ease-in-out"
+        style={{ maxHeight: expanded ? "400px" : "0", opacity: expanded ? 1 : 0 }}
+      >
+        <div className="pt-3 space-y-3">
+          {/* Meal period chips */}
+          <div className="flex gap-1.5 flex-wrap">
+            {MEAL_PERIODS.map((m) => (
+              <button
+                key={m.key}
+                type="button"
+                onClick={() => setSelectedMeal(m.key)}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all ${
+                  selectedMeal === m.key
+                    ? "bg-accent text-white shadow-sm"
+                    : "bg-white/60 text-dim border border-black/[0.08] hover:border-accent/30"
+                }`}
+              >
+                <span>{m.emoji}</span> {m.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Search input */}
+          <div ref={wrapperRef} className="relative">
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={handleInputChange}
+              onFocus={handleSearchFocus}
+              placeholder="Quick add: what did you eat?"
+              className="w-full h-9 px-3 rounded-lg bg-white/70 border border-black/[0.08] text-[13px] text-text placeholder:text-muted focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20 transition-all"
+            />
+            {searching && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <div className="w-3.5 h-3.5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+              </div>
+            )}
+
+            {/* Results dropdown */}
+            {showResults && results.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-border shadow-lg z-50 overflow-hidden">
+                {results.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => logFood(r)}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-hp-green/5 transition-colors border-b border-border/50 last:border-b-0"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-text truncate">{r.name}</p>
+                      <p className="text-[11px] text-muted">{r.servingSize}</p>
+                    </div>
+                    <span className="text-[12px] font-semibold text-text tabular-nums flex-shrink-0">
+                      {Math.round(r.calories)} cal
+                    </span>
+                    <span className="text-[10px] text-muted flex-shrink-0">
+                      {SOURCE_BADGES[r.source] ?? r.source}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {showResults && query.trim() && results.length === 0 && !searching && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-border shadow-lg z-50 px-3 py-2">
+                <p className="text-[12px] text-muted">No results found</p>
+              </div>
+            )}
+          </div>
+
+          {/* Recent entries timeline */}
+          {recentEntries.length > 0 && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {recentEntries.map((e) => (
+                <span key={e.id} className="text-[11px] text-dim">
+                  {mealEmoji(e.mealKey)} {e.name} <span className="text-muted tabular-nums">{Math.round(e.calories)}cal</span>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Full diary link */}
+          <Link
+            href="/nutrition-tracker"
+            className="inline-flex items-center gap-1 text-[12px] font-semibold text-accent hover:underline"
+          >
+            Full Diary <span aria-hidden="true">&rarr;</span>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ── Stagger animation wrapper ─────────────────────────────────────────── */
 
@@ -291,25 +641,6 @@ export function OutdoorHero({ aqi, aqiCategory, pollen, uvIndex, tempF, feelsLik
 
   return (
     <div className="mb-4">
-      {/* Search bar */}
-      <div className="relative bg-surface border border-border rounded-xl overflow-hidden animate-fade-in-up p-5 mb-4">
-        <UnifiedSearch />
-      </div>
-
-      {/* Quick action pills */}
-      <div className="flex flex-nowrap md:flex-wrap gap-2.5 mt-7 overflow-x-auto scrollbar-none pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
-        {ACTION_CHIPS.map((chip) => (
-          <Link
-            key={chip.href}
-            href={chip.href}
-            className="action-pill inline-flex items-center gap-2 px-4 py-3 sm:py-2.5 rounded-full bg-surface border border-border text-[13px] font-medium text-dim whitespace-nowrap flex-shrink-0 hover:border-accent hover:text-hp-green hover:bg-accent-bg hover:-translate-y-px hover:shadow-sm transition-all duration-200"
-          >
-            <span className="text-base">{chip.icon}</span>
-            {chip.label}
-          </Link>
-        ))}
-      </div>
-
       {/* ── Immersive hero ───────────────────────────────────── */}
       <div
         className="outdoor-hero relative overflow-hidden rounded-[32px]"
@@ -416,6 +747,9 @@ export function OutdoorHero({ aqi, aqiCategory, pollen, uvIndex, tempF, feelsLik
               </svg>
             </Link>
           )}
+
+          {/* Inline food logger */}
+          <InlineFoodLogger />
         </div>
       </div>
     </div>

@@ -551,10 +551,32 @@ const MAJOR_PARKS: { name: string; minLat: number; maxLat: number; minLng: numbe
   { name: "Marine Park", minLat: 40.594, maxLat: 40.613, minLng: -73.930, maxLng: -73.910 },
 ];
 
+// Major NYC park centroids — fallback detection for routes near large parks
+// where bounding-box or API point-based detection may miss
+const MAJOR_PARK_CENTROIDS = [
+  { name: "Central Park",          lat: 40.7829, lng: -73.9654 },
+  { name: "Prospect Park",         lat: 40.6602, lng: -73.9690 },
+  { name: "Flushing Meadows",      lat: 40.7400, lng: -73.8408 },
+  { name: "Van Cortlandt Park",    lat: 40.8972, lng: -73.8862 },
+  { name: "Riverside Park",        lat: 40.8015, lng: -73.9714 },
+  { name: "Inwood Hill Park",      lat: 40.8677, lng: -73.9212 },
+  { name: "Randall's Island",      lat: 40.7934, lng: -73.9213 },
+  { name: "Hudson River Greenway", lat: 40.7580, lng: -74.0100 },
+];
+
+/** ~500m proximity threshold in degrees (rough, works at NYC latitude) */
+const PARK_CENTROID_THRESHOLD = 0.005;
+
+function isNearMajorParkCentroid(lat: number, lng: number): boolean {
+  return MAJOR_PARK_CENTROIDS.some(
+    (p) => Math.abs(lat - p.lat) < PARK_CENTROID_THRESHOLD && Math.abs(lng - p.lng) < PARK_CENTROID_THRESHOLD,
+  );
+}
+
 function isInMajorPark(lat: number, lng: number): boolean {
   return MAJOR_PARKS.some(
     (p) => lat >= p.minLat && lat <= p.maxLat && lng >= p.minLng && lng <= p.maxLng,
-  );
+  ) || isNearMajorParkCentroid(lat, lng);
 }
 
 function scoreScenery(

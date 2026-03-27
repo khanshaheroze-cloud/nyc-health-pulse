@@ -3557,3 +3557,34 @@ export function searchNycDatabase(query: string): NycFoodItem[] {
 
   return scored.slice(0, 15).map((s) => s.item);
 }
+
+/** Search NYC database by tags (union match — any tag matches). Scored by number of matching tags. */
+export function searchNycByTags(tags: string[], limit = 15): NycFoodItem[] {
+  if (!tags.length) return [];
+
+  const lowerTags = tags.map((t) => t.toLowerCase());
+
+  const scored: { item: NycFoodItem; score: number }[] = [];
+
+  for (const item of NYC_FOOD_DATABASE) {
+    let score = 0;
+    const itemTags = item.tags.map((t) => t.toLowerCase());
+    const lowerCat = item.category.toLowerCase();
+
+    for (const tag of lowerTags) {
+      if (itemTags.some((it) => it.includes(tag) || tag.includes(it))) {
+        score += 3;
+      }
+      if (lowerCat.includes(tag)) {
+        score += 1;
+      }
+    }
+
+    if (score > 0) {
+      scored.push({ item, score });
+    }
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, limit).map((s) => s.item);
+}

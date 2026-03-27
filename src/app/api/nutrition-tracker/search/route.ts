@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchNycDatabase } from "@/lib/nycFoodDatabase";
+import { searchNycDatabase, searchNycByTags } from "@/lib/nycFoodDatabase";
 import { searchCommonFoods, parseQueryQuantity, type CommonFood } from "@/lib/commonFoods";
 
 /* ── Types ────────────────────────────────────────────────────── */
@@ -213,6 +213,8 @@ const NYC_TRIGGERS = [
   "shackburger", "shack burger",
   "black and white cookie", "rainbow cookie",
   "egg cream", "bodega sandwich", "hero sandwich",
+  "pizza", "pizza slice", "cheese slice", "pepperoni slice",
+  "sicilian", "margherita", "grandma slice", "square slice",
 ];
 
 function shouldSearchNYC(query: string): boolean {
@@ -261,6 +263,30 @@ export async function GET(req: NextRequest) {
   const localOnly = req.nextUrl.searchParams.get("local") === "1";
   // "source" param: fetch only a specific API source ("usda" or "off")
   const sourceOnly = req.nextUrl.searchParams.get("source")?.trim() || undefined;
+
+  // Tag-based NYC favorites search (no q required)
+  const tagsParam = req.nextUrl.searchParams.get("tags")?.trim();
+  if (tagsParam && sourceOnly === "nyc") {
+    const tags = tagsParam.split(",").map(t => t.trim()).filter(Boolean);
+    const limitParam = parseInt(req.nextUrl.searchParams.get("limit") || "15", 10);
+    const nycMatches = searchNycByTags(tags, limitParam);
+    const results: SearchResult[] = nycMatches.map((item) => ({
+      id: item.id,
+      name: item.name,
+      brand: item.chain ?? undefined,
+      calories: item.calories,
+      protein: item.protein,
+      carbs: item.carbs,
+      fat: item.fat,
+      fiber: item.fiber,
+      sodium: item.sodium ?? null,
+      saturatedFat: item.saturatedFat ?? null,
+      sugar: item.sugar ?? null,
+      servingSize: item.servingSize,
+      source: "nyc" as const,
+    }));
+    return NextResponse.json({ results, count: results.length, tier: "nyc-tags" });
+  }
 
   if (!rawQuery || rawQuery.length === 0) {
     return NextResponse.json({ results: [] });
