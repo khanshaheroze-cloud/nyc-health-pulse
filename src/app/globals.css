@@ -226,6 +226,26 @@
 .animate-slide-in-right {
   animation: slideInRight 0.4s ease-out both;
 }
+@keyframes slideUpIn {
+  from { transform: translateY(100%); opacity: 0.8; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-up {
+  animation: slideUpIn 0.2s ease-out both;
+}
+
+/* ── Food search modal viewport fixes ────────────────────── */
+.modal-viewport {
+  height: 100vh;
+  height: 100dvh;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.modal-scroll-area {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
 .animate-heartbeat {
   animation: heartbeat 1.5s ease-in-out infinite;
 }

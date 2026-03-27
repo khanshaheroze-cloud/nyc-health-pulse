@@ -41,8 +41,8 @@ export default async function AirQualityPage() {
 
   // Highest NO2 from borough data
   const topNo2 = byBorough ? [...byBorough].sort((a, b) => b.no2 - a.no2)[0] : null;
-  const avgNo2 = byBorough ? byBorough.reduce((s, b) => s + b.no2, 0) / byBorough.length : null;
-  const avgO3 = byBorough ? byBorough.reduce((s, b) => s + b.o3, 0) / byBorough.length : null;
+  const avgNo2 = byBorough ? Math.round(byBorough.reduce((s, b) => s + b.no2, 0) / byBorough.length * 10) / 10 : null;
+  const avgO3 = byBorough ? Math.round(byBorough.reduce((s, b) => s + b.o3, 0) / byBorough.length * 10) / 10 : null;
   const liveTag = neighborhoods ? "LIVE" : "2023";
 
   const jsonLd = datasetJsonLdString([

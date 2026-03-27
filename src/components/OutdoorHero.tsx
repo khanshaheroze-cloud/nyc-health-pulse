@@ -388,6 +388,22 @@ export function OutdoorHero({ aqi, aqiCategory, pollen, uvIndex, tempF, feelsLik
             </div>
           </div>
 
+          {/* Quick action buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <Link
+              href="/nutrition-tracker"
+              className="inline-flex items-center justify-center gap-2 px-5 h-10 rounded-full border-2 border-accent text-accent font-semibold text-[14px] hover:bg-accent hover:text-white transition-all btn-press"
+            >
+              <span>🍽</span> Log Food
+            </Link>
+            <Link
+              href="/run-routes"
+              className="inline-flex items-center justify-center gap-2 px-5 h-10 rounded-full bg-accent text-white font-semibold text-[14px] hover:bg-accent/90 transition-all btn-press"
+            >
+              <span>🏃</span> Plan a Run
+            </Link>
+          </div>
+
           {/* Park suggestion */}
           {suggestedRoute && advice.good && (
             <Link href="/run-routes" className="flex items-center gap-2 mt-3 rounded-xl px-4 py-3 bg-hp-blue/8 border border-hp-blue/15 hover:bg-hp-blue/12 btn-press transition-all group">

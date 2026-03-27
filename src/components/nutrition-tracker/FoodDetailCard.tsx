@@ -25,7 +25,7 @@ interface FoodData {
   fat: number;
   fiber: number;
   servingSize: string;
-  source: "nyc" | "usda" | "openfoodfacts" | "custom";
+  source: "nyc" | "usda" | "openfoodfacts" | "custom" | "common";
   nycBadge?: boolean;
   variants?: FoodVariant[];
   tip?: string;
@@ -121,62 +121,198 @@ function MacroCircle({
   );
 }
 
+/* ── Weight conversion helpers ────────────────────────────── */
+
+type WeightUnit = "g" | "oz" | "lb";
+
+const WEIGHT_TO_GRAMS: Record<WeightUnit, number> = {
+  g: 1,
+  oz: 28.3495,
+  lb: 453.592,
+};
+
+const WEIGHT_LABELS: Record<WeightUnit, string> = {
+  g: "grams",
+  oz: "ounces",
+  lb: "pounds",
+};
+
+const QUICK_WEIGHTS: Record<WeightUnit, number[]> = {
+  g: [50, 100, 150, 200, 250],
+  oz: [2, 4, 6, 8, 12],
+  lb: [0.25, 0.5, 0.75, 1, 1.5],
+};
+
+/** Parse a serving size string to extract approximate grams for per-serving reference */
+function parseServingGrams(servingSize: string): number | null {
+  if (!servingSize) return null;
+  const match = servingSize.match(/(\d+\.?\d*)\s*(g|grams?|ml)\b/i);
+  if (match) return parseFloat(match[1]);
+  // per 100g is common from Open Food Facts
+  if (/per\s*100\s*g/i.test(servingSize)) return 100;
+  return null;
+}
+
 /* ── Quantity selector ────────────────────────────────────── */
 
+type QuantityMode = "servings" | "weight";
 const QUICK_AMOUNTS = [0.5, 1, 1.5, 2, 3];
 
 function QuantitySelector({
   value,
   onChange,
+  mode,
+  onModeChange,
+  weightValue,
+  weightUnit,
+  onWeightChange,
+  onWeightUnitChange,
+  servingGrams,
 }: {
   value: number;
   onChange: (v: number) => void;
+  mode: QuantityMode;
+  onModeChange: (m: QuantityMode) => void;
+  weightValue: number;
+  weightUnit: WeightUnit;
+  onWeightChange: (v: number) => void;
+  onWeightUnitChange: (u: WeightUnit) => void;
+  servingGrams: number | null;
 }) {
   return (
     <div className="space-y-2">
-      <label className="text-xs font-medium text-dim">Quantity</label>
-      <div className="flex items-center gap-2">
-        {/* Quick buttons */}
-        <div className="flex gap-1.5 flex-wrap">
-          {QUICK_AMOUNTS.map((amt) => (
-            <button
-              key={amt}
-              onClick={() => onChange(amt)}
-              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                value === amt
-                  ? "bg-accent text-white"
-                  : "bg-bg text-dim hover:bg-border"
-              }`}
-            >
-              {amt}
-            </button>
-          ))}
-        </div>
-        {/* +/- stepper */}
-        <div className="flex items-center gap-1 ml-auto">
+      {/* Mode toggle */}
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium text-dim">Quantity</label>
+        <div className="flex bg-bg rounded-lg p-0.5 gap-0.5">
           <button
-            onClick={() => onChange(Math.max(0.25, value - 0.25))}
-            className="w-8 h-8 rounded-lg bg-bg text-dim hover:bg-border flex items-center justify-center transition-colors"
-            aria-label="Decrease quantity"
+            onClick={() => onModeChange("servings")}
+            className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${
+              mode === "servings"
+                ? "bg-accent text-white shadow-sm"
+                : "text-muted hover:text-dim"
+            }`}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
-            </svg>
+            Servings
           </button>
-          <span className="w-10 text-center text-sm font-bold text-text tabular-nums">
-            {value % 1 === 0 ? value : value.toFixed(2).replace(/0$/, "")}
-          </span>
           <button
-            onClick={() => onChange(Math.min(10, value + 0.25))}
-            className="w-8 h-8 rounded-lg bg-bg text-dim hover:bg-border flex items-center justify-center transition-colors"
-            aria-label="Increase quantity"
+            onClick={() => onModeChange("weight")}
+            className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${
+              mode === "weight"
+                ? "bg-accent text-white shadow-sm"
+                : "text-muted hover:text-dim"
+            }`}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
+            By Weight
           </button>
         </div>
       </div>
+
+      {mode === "servings" ? (
+        <div className="flex items-center gap-2">
+          {/* Quick buttons */}
+          <div className="flex gap-1.5 flex-wrap">
+            {QUICK_AMOUNTS.map((amt) => (
+              <button
+                key={amt}
+                onClick={() => onChange(amt)}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  value === amt
+                    ? "bg-accent text-white"
+                    : "bg-bg text-dim hover:bg-border"
+                }`}
+              >
+                {amt}
+              </button>
+            ))}
+          </div>
+          {/* +/- stepper */}
+          <div className="flex items-center gap-1 ml-auto">
+            <button
+              onClick={() => onChange(Math.max(0.25, value - 0.25))}
+              className="w-8 h-8 rounded-lg bg-bg text-dim hover:bg-border flex items-center justify-center transition-colors"
+              aria-label="Decrease quantity"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
+              </svg>
+            </button>
+            <span className="w-10 text-center text-sm font-bold text-text tabular-nums">
+              {value % 1 === 0 ? value : value.toFixed(2).replace(/0$/, "")}
+            </span>
+            <button
+              onClick={() => onChange(Math.min(10, value + 0.25))}
+              className="w-8 h-8 rounded-lg bg-bg text-dim hover:bg-border flex items-center justify-center transition-colors"
+              aria-label="Increase quantity"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {/* Unit selector */}
+          <div className="flex gap-1.5">
+            {(["g", "oz", "lb"] as WeightUnit[]).map((u) => (
+              <button
+                key={u}
+                onClick={() => onWeightUnitChange(u)}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  weightUnit === u
+                    ? "bg-accent text-white"
+                    : "bg-bg text-dim hover:bg-border"
+                }`}
+              >
+                {WEIGHT_LABELS[u]}
+              </button>
+            ))}
+          </div>
+          {/* Quick weight buttons */}
+          <div className="flex gap-1.5 flex-wrap">
+            {QUICK_WEIGHTS[weightUnit].map((w) => (
+              <button
+                key={w}
+                onClick={() => onWeightChange(w)}
+                className={`px-2.5 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  weightValue === w
+                    ? "bg-hp-blue text-white"
+                    : "bg-bg text-dim hover:bg-border"
+                }`}
+              >
+                {w}{weightUnit}
+              </button>
+            ))}
+          </div>
+          {/* Manual weight input */}
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={weightValue || ""}
+              onChange={(e) => onWeightChange(parseFloat(e.target.value) || 0)}
+              placeholder={`Enter ${WEIGHT_LABELS[weightUnit]}`}
+              className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-bg text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent min-h-[40px]"
+              min={0}
+              step={weightUnit === "lb" ? 0.25 : 1}
+            />
+            <span className="text-sm font-medium text-dim w-8">{weightUnit}</span>
+          </div>
+          {/* Conversion info */}
+          {servingGrams && weightValue > 0 && (
+            <p className="text-[10px] text-muted">
+              {weightValue}{weightUnit} = {(weightValue * WEIGHT_TO_GRAMS[weightUnit]).toFixed(0)}g
+              {" "}({((weightValue * WEIGHT_TO_GRAMS[weightUnit]) / servingGrams).toFixed(1)} servings of {servingGrams}g)
+            </p>
+          )}
+          {!servingGrams && weightValue > 0 && (
+            <p className="text-[10px] text-muted">
+              {weightValue}{weightUnit} = {(weightValue * WEIGHT_TO_GRAMS[weightUnit]).toFixed(0)}g
+              {" "}(nutrition scaled from per-serving data)
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -236,6 +372,12 @@ export default function FoodDetailCard({
   const [quantity, setQuantity] = useState(initialQuantity ?? 1);
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
   const [showMicros, setShowMicros] = useState(false);
+  const [quantityMode, setQuantityMode] = useState<QuantityMode>("servings");
+  const [weightValue, setWeightValue] = useState<number>(100);
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>("g");
+
+  // Parse serving size to grams for weight conversion
+  const servingGrams = useMemo(() => parseServingGrams(food.servingSize), [food.servingSize]);
   const [saved, setSaved] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -267,16 +409,28 @@ export default function FoodDetailCard({
     };
   }, [food, selectedVariant]);
 
+  // Effective multiplier: in weight mode, convert to serving-equivalent
+  const effectiveMultiplier = useMemo(() => {
+    if (quantityMode === "servings") return quantity;
+    if (!servingGrams || servingGrams <= 0) {
+      // No gram reference — assume serving size is 100g (common for USDA/OFF data)
+      const grams = weightValue * WEIGHT_TO_GRAMS[weightUnit];
+      return grams / 100;
+    }
+    const grams = weightValue * WEIGHT_TO_GRAMS[weightUnit];
+    return grams / servingGrams;
+  }, [quantityMode, quantity, weightValue, weightUnit, servingGrams]);
+
   // Scaled macros
   const scaled = useMemo(
     () => ({
-      calories: activeMacros.calories * quantity,
-      protein: activeMacros.protein * quantity,
-      carbs: activeMacros.carbs * quantity,
-      fat: activeMacros.fat * quantity,
-      fiber: activeMacros.fiber * quantity,
+      calories: activeMacros.calories * effectiveMultiplier,
+      protein: activeMacros.protein * effectiveMultiplier,
+      carbs: activeMacros.carbs * effectiveMultiplier,
+      fat: activeMacros.fat * effectiveMultiplier,
+      fiber: activeMacros.fiber * effectiveMultiplier,
     }),
-    [activeMacros, quantity]
+    [activeMacros, effectiveMultiplier]
   );
 
   // Micronutrients
@@ -286,7 +440,7 @@ export default function FoodDetailCard({
       .filter(([key]) => DAILY_VALUES[key])
       .map(([key, amount]) => {
         const dv = DAILY_VALUES[key];
-        const scaledAmount = (amount as number) * quantity;
+        const scaledAmount = (amount as number) * effectiveMultiplier;
         const dvPct = dv.dv > 0 ? (scaledAmount / dv.dv) * 100 : 0;
         return {
           key,
@@ -297,7 +451,7 @@ export default function FoodDetailCard({
         };
       })
       .sort((a, b) => b.dvPct - a.dvPct);
-  }, [food.micronutrients, quantity]);
+  }, [food.micronutrients, effectiveMultiplier]);
 
   const handleSave = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -337,12 +491,17 @@ export default function FoodDetailCard({
       selectedVariant !== null && food.variants
         ? ` (${food.variants[selectedVariant].name})`
         : "";
+    const weightSuffix = quantityMode === "weight"
+      ? ` (${weightValue}${weightUnit})`
+      : "";
     const entry: FoodEntry = {
       id: `${food.id}-${Date.now()}`,
-      name: food.name + variantName,
+      name: food.name + variantName + weightSuffix,
       source: food.source || "custom",
-      servings: quantity,
-      servingSize: food.servingSize || "1 serving",
+      servings: effectiveMultiplier,
+      servingSize: quantityMode === "weight"
+        ? `${weightValue}${weightUnit}`
+        : (food.servingSize || "1 serving"),
       calories: activeMacros.calories,
       protein: activeMacros.protein,
       carbs: activeMacros.carbs,
@@ -353,7 +512,7 @@ export default function FoodDetailCard({
       nycBadge: food.nycBadge || food.source === "nyc",
     };
     onAdd(entry);
-  }, [food, quantity, activeMacros, selectedVariant, onAdd]);
+  }, [food, effectiveMultiplier, activeMacros, selectedVariant, onAdd, quantityMode, weightValue, weightUnit]);
 
   return (
     <div className="flex flex-col">
@@ -445,7 +604,17 @@ export default function FoodDetailCard({
 
       {/* Quantity */}
       <div className="px-4 pb-4">
-        <QuantitySelector value={quantity} onChange={setQuantity} />
+        <QuantitySelector
+          value={quantity}
+          onChange={setQuantity}
+          mode={quantityMode}
+          onModeChange={setQuantityMode}
+          weightValue={weightValue}
+          weightUnit={weightUnit}
+          onWeightChange={setWeightValue}
+          onWeightUnitChange={setWeightUnit}
+          servingGrams={servingGrams}
+        />
       </div>
 
       {/* Macro display */}

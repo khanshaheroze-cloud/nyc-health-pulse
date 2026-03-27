@@ -356,8 +356,8 @@ export default async function NeighborhoodPage({ params }: Props) {
               { label: "Preterm Birth", val: m.pretermBirth, avg: cityAvg.pretermBirth, unit: "%",     invert: true },
               { label: "Life Expectancy",val: m.lifeExp,  avg: cityAvg.lifeExp,  unit: "y",   invert: false },
             ].map(({ label, val, avg, unit, invert }) => {
-              const pct = Math.min(100, (val / (avg * 2.2)) * 100);
-              const avgPct = Math.min(100, (avg / (avg * 2.2)) * 100);
+              const pct = Math.round(Math.min(100, (val / (avg * 2.2)) * 100) * 10) / 10;
+              const avgPct = Math.round(Math.min(100, (avg / (avg * 2.2)) * 100) * 10) / 10;
               const worse = invert ? val > avg : val < avg;
               return (
                 <div key={label}>

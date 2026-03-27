@@ -172,7 +172,7 @@ export function AirQualityHero({ aqi, category, pm25, no2, o3, period }: AirQual
       {/* ── Pollutant Breakdown ──────────────── */}
       <div className={`grid gap-3 ${pollutants.length === 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"}`}>
         {pollutants.map((p) => {
-          const fillPct = Math.min((p.value / p.max) * 100, 100);
+          const fillPct = Math.round(Math.min((p.value / p.max) * 100, 100) * 10) / 10;
           return (
             <div key={p.name} className="bg-surface border border-border-light rounded-2xl p-5 animate-fade-in-up">
               <div className="flex items-center gap-2 mb-3">

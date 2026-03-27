@@ -55,10 +55,12 @@ function EntryRow({
   entry,
   index,
   onRemove,
+  onEdit,
 }: {
   entry: FoodEntry;
   index: number;
   onRemove: (i: number) => void;
+  onEdit?: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const cals = Math.round(entry.calories * entry.servings);
@@ -71,7 +73,7 @@ function EntryRow({
       onMouseLeave={() => setHovered(false)}
     >
       {/* Food info */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0" onClick={onEdit} role={onEdit ? "button" : undefined} style={onEdit ? { cursor: "pointer" } : undefined}>
         <div className="flex items-center gap-1.5">
           <span className="text-sm font-medium text-text truncate">{entry.name}</span>
           {(entry.source === "nyc" || entry.nycBadge) && (
@@ -79,11 +81,17 @@ function EntryRow({
               🗽
             </span>
           )}
+          {entry.builderSource && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-hp-purple/10 text-hp-purple">
+              Built
+            </span>
+          )}
         </div>
         <p className="text-xs text-muted mt-0.5">
           {entry.servings !== 1
             ? `${entry.servings} servings`
             : entry.servingSize || "1 serving"}
+          {onEdit && <span className="text-accent ml-1">· tap to edit</span>}
         </p>
       </div>
 
@@ -116,6 +124,7 @@ interface MealSectionProps {
   entries: FoodEntry[];
   onAddFood: () => void;
   onRemoveEntry: (index: number) => void;
+  onEditBuilder?: (entry: FoodEntry, index: number) => void;
 }
 
 export default function MealSection({
@@ -123,6 +132,7 @@ export default function MealSection({
   entries,
   onAddFood,
   onRemoveEntry,
+  onEditBuilder,
 }: MealSectionProps) {
   const { label, Icon } = MEAL_CONFIG[meal];
   const totalCals = entries.reduce((s, e) => s + e.calories * e.servings, 0);
@@ -174,6 +184,7 @@ export default function MealSection({
               entry={entry}
               index={i}
               onRemove={onRemoveEntry}
+              onEdit={entry.builderSource ? () => onEditBuilder?.(entry, i) : undefined}
             />
           ))
         )}

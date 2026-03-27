@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 export interface FoodEntry {
   id: string;
   name: string;
-  source: "nyc" | "usda" | "openfoodfacts" | "custom" | "quick";
+  source: "nyc" | "usda" | "openfoodfacts" | "custom" | "quick" | "common";
   servings: number;
   servingSize: string;
   calories: number;
@@ -18,6 +18,7 @@ export interface FoodEntry {
   micronutrients?: Record<string, number>;
   timestamp: number;
   nycBadge?: boolean;
+  builderSource?: string; // e.g. "chipotle", "cava", "pizza" — enables re-editing in MealBuilder
 }
 
 export interface UserGoals {

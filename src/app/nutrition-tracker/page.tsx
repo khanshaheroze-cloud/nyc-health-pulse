@@ -76,6 +76,7 @@ export default function NutritionTrackerPage() {
   const [profileTargets, setProfileTargets] = useState<MacroTargets | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchMeal, setSearchMeal] = useState<MealKey>("breakfast");
+  const [editBuilderEntry, setEditBuilderEntry] = useState<{ entry: FoodEntry; meal: MealKey; index: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -138,6 +139,12 @@ export default function NutritionTrackerPage() {
         [meal]: prev.meals[meal].filter((_, i) => i !== index),
       },
     }));
+  }, []);
+
+  const handleEditBuilder = useCallback((entry: FoodEntry, index: number, meal: MealKey) => {
+    setEditBuilderEntry({ entry, meal, index });
+    setSearchMeal(meal);
+    setSearchOpen(true);
   }, []);
 
   const handleGoalsSave = useCallback((newGoals: UserGoals) => {
@@ -216,6 +223,7 @@ export default function NutritionTrackerPage() {
             entries={day.meals[meal]}
             onAddFood={() => openAddFood(meal)}
             onRemoveEntry={(index) => removeEntry(meal, index)}
+            onEditBuilder={(entry, index) => handleEditBuilder(entry, index, meal)}
           />
         ))}
       </div>
@@ -252,9 +260,23 @@ export default function NutritionTrackerPage() {
       {/* Food search modal */}
       <FoodSearchModal
         open={searchOpen}
-        onClose={() => setSearchOpen(false)}
+        onClose={() => { setSearchOpen(false); setEditBuilderEntry(null); }}
         meal={searchMeal}
-        onAddFood={addFoodEntry}
+        onAddFood={(entry) => {
+          if (editBuilderEntry) {
+            // Replace existing entry at index
+            setDay((prev) => {
+              const updated = [...prev.meals[editBuilderEntry.meal]];
+              updated[editBuilderEntry.index] = entry;
+              return { ...prev, meals: { ...prev.meals, [editBuilderEntry.meal]: updated } };
+            });
+            setSearchOpen(false);
+            setEditBuilderEntry(null);
+          } else {
+            addFoodEntry(entry);
+          }
+        }}
+        editBuilderEntry={editBuilderEntry?.entry}
       />
 
       {/* Goal settings panel */}

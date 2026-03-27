@@ -125,7 +125,7 @@ export function WeeklyChanges() {
       <div className="flex items-end justify-between mb-1">
         <div>
           <h2 className="font-display text-[22px] text-text leading-snug">What&apos;s Happening</h2>
-          {weekLabel && <p className="text-[12px] text-muted mt-0.5">Week of {weekLabel}</p>}
+          {weekLabel && <p className="text-[12px] text-muted mt-0.5">Week of {weekLabel} · <span className="text-hp-green font-semibold">Updated today</span></p>}
         </div>
         <Link href="/changelog" className="text-[13px] font-semibold text-hp-green hover:underline flex-shrink-0">
           View all →

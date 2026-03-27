@@ -5,7 +5,7 @@ import { useState, useMemo } from "react";
 interface FoodEntry {
   id: string;
   name: string;
-  source: "nyc" | "usda" | "openfoodfacts" | "custom" | "quick";
+  source: "nyc" | "usda" | "openfoodfacts" | "custom" | "quick" | "common";
   servings: number;
   servingSize: string;
   calories: number;

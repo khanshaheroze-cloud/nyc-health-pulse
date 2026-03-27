@@ -253,18 +253,60 @@ function dedup(results: SearchResult[]): SearchResult[] {
 
 export async function GET(req: NextRequest) {
   const rawQuery = req.nextUrl.searchParams.get("q")?.trim();
+  const categoryFilter = req.nextUrl.searchParams.get("category")?.trim() || undefined;
+  // "local" param: return only common foods (for client-side instant results)
+  const localOnly = req.nextUrl.searchParams.get("local") === "1";
+  // "source" param: fetch only a specific API source ("usda" or "off")
+  const sourceOnly = req.nextUrl.searchParams.get("source")?.trim() || undefined;
+
   if (!rawQuery || rawQuery.length === 0) {
     return NextResponse.json({ results: [] });
   }
 
   try {
-    // Parse quantity from query (e.g., "8oz chicken breast" → cleanQuery="chicken breast", oz=8)
     const { cleanQuery, quantity, grams, oz } = parseQueryQuantity(rawQuery);
     const query = cleanQuery || rawQuery;
 
     // TIER 1: Common foods (instant, always searched first)
-    const commonMatches = searchCommonFoods(query);
+    const commonMatches = searchCommonFoods(query, categoryFilter);
     const commonResults: SearchResult[] = commonMatches.map(mapCommonFood);
+
+    // If local-only mode, return immediately with just common foods
+    if (localOnly) {
+      return NextResponse.json({
+        query: rawQuery,
+        cleanQuery: query,
+        count: commonResults.length,
+        results: commonResults,
+        parsedQuantity: quantity || grams || oz ? { quantity, grams, oz } : undefined,
+        tier: "local",
+      });
+    }
+
+    // If source-only mode, fetch just that one API source
+    if (sourceOnly === "usda") {
+      const usdaResults = await fetchUsda(query);
+      const all = dedup([...commonResults, ...usdaResults]);
+      return NextResponse.json({
+        query: rawQuery,
+        cleanQuery: query,
+        count: all.length,
+        results: all.slice(0, 25),
+        parsedQuantity: quantity || grams || oz ? { quantity, grams, oz } : undefined,
+        tier: "usda",
+      });
+    }
+    if (sourceOnly === "off") {
+      const offResults = await fetchOpenFoodFacts(query);
+      return NextResponse.json({
+        query: rawQuery,
+        cleanQuery: query,
+        count: offResults.length,
+        results: offResults.slice(0, 15),
+        parsedQuantity: quantity || grams || oz ? { quantity, grams, oz } : undefined,
+        tier: "off",
+      });
+    }
 
     // TIER 2: NYC database (only if query triggers NYC-specific search)
     let nycResults: SearchResult[] = [];
@@ -287,41 +329,11 @@ export async function GET(req: NextRequest) {
       }));
     }
 
-    // TIER 3: USDA (always search for more variety — common DB is limited)
-    let usdaResults: SearchResult[] = [];
-    {
-      const usdaKey = process.env.USDA_API_KEY || "DEMO_KEY";
-      {
-        try {
-          const usdaUrl = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&pageSize=10&api_key=${usdaKey}`;
-          const usdaRes = await fetch(usdaUrl, { signal: AbortSignal.timeout(5000) });
-          if (usdaRes.ok) {
-            const usdaData = await usdaRes.json();
-            const foods: FdcSearchFood[] = usdaData.foods ?? [];
-            usdaResults = foods.map(mapUsdaFood);
-          }
-        } catch { /* USDA fetch failed */ }
-      }
-    }
-
-    // TIER 4: Open Food Facts (if still under 8 results)
-    let offResults: SearchResult[] = [];
-    const totalSoFar = commonResults.length + nycResults.length + usdaResults.length;
-    if (totalSoFar < 8) {
-      try {
-        const offUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10&lc=en&cc=us`;
-        const offRes = await fetch(offUrl, { signal: AbortSignal.timeout(5000) });
-        if (offRes.ok) {
-          const offData = await offRes.json();
-          const products: OFFProduct[] = offData.products ?? [];
-          offResults = products
-            .filter((p) => !p.lang || p.lang === "en")
-            .map(mapOpenFoodFacts)
-            .filter((r): r is SearchResult => r !== null)
-            .filter((r) => /^[a-zA-Z0-9\s\-&',.()/]+$/.test(r.name));
-        }
-      } catch { /* OFF fetch failed */ }
-    }
+    // TIER 3 + 4: USDA and Open Food Facts — fetched in PARALLEL
+    const [usdaResults, offResults] = await Promise.all([
+      fetchUsda(query),
+      fetchOpenFoodFacts(query),
+    ]);
 
     // Merge: Common first, then NYC, then USDA, then OFF
     const all = dedup([...commonResults, ...nycResults, ...usdaResults, ...offResults]);
@@ -340,4 +352,37 @@ export async function GET(req: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+/* ── API fetch helpers (extracted for parallel use) ──────────── */
+
+async function fetchUsda(query: string): Promise<SearchResult[]> {
+  try {
+    const usdaKey = process.env.USDA_API_KEY || "DEMO_KEY";
+    const usdaUrl = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&pageSize=10&api_key=${usdaKey}`;
+    const usdaRes = await fetch(usdaUrl, { signal: AbortSignal.timeout(5000) });
+    if (usdaRes.ok) {
+      const usdaData = await usdaRes.json();
+      const foods: FdcSearchFood[] = usdaData.foods ?? [];
+      return foods.map(mapUsdaFood);
+    }
+  } catch { /* USDA fetch failed */ }
+  return [];
+}
+
+async function fetchOpenFoodFacts(query: string): Promise<SearchResult[]> {
+  try {
+    const offUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10&lc=en&cc=us`;
+    const offRes = await fetch(offUrl, { signal: AbortSignal.timeout(5000) });
+    if (offRes.ok) {
+      const offData = await offRes.json();
+      const products: OFFProduct[] = offData.products ?? [];
+      return products
+        .filter((p) => !p.lang || p.lang === "en")
+        .map(mapOpenFoodFacts)
+        .filter((r): r is SearchResult => r !== null)
+        .filter((r) => /^[a-zA-Z0-9\s\-&',.()/]+$/.test(r.name));
+    }
+  } catch { /* OFF fetch failed */ }
+  return [];
 }

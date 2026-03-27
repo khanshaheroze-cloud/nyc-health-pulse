@@ -6,7 +6,6 @@ import { WeeklyChanges } from "@/components/WeeklyChanges";
 import { DailyHealthCheck } from "@/components/DailyHealthCheck";
 import { ReturnVisitorBanner } from "@/components/ReturnVisitorBanner";
 import { AlertBanner } from "@/components/AlertBanner";
-import { LiveCounterStrip } from "@/components/LiveCounterStrip";
 import { OutdoorHero } from "@/components/OutdoorHero";
 import { MyNeighborhood } from "@/components/MyNeighborhood";
 import { FoodPriceTracker } from "@/components/FoodPriceTracker";
@@ -61,8 +60,15 @@ export default async function OverviewPage() {
 
   return (
     <div className="stagger-children">
-      {/* Live 311 activity feed — top of page */}
-      <LiveCounterStrip />
+      {/* Today in NYC — compact status strip (top of page) */}
+      <DailyHealthCheck
+        airLabel={airLabel}
+        airAqi={airNow?.aqi ?? null}
+        covidLabel={covidLabel}
+        totalHosp={totalHosp}
+        iliRate={3.84}
+        waterSafePct={waterSafePct}
+      />
 
       {/* HERO — unified search + outdoor conditions */}
       <OutdoorHero
@@ -81,17 +87,7 @@ export default async function OverviewPage() {
       {/* Emergency alert banner */}
       <AlertBanner aqi={airNow?.aqi ?? null} />
 
-      {/* Today in NYC — compact status strip */}
-      <DailyHealthCheck
-        airLabel={airLabel}
-        airAqi={airNow?.aqi ?? null}
-        covidLabel={covidLabel}
-        totalHosp={totalHosp}
-        iliRate={3.84}
-        waterSafePct={waterSafePct}
-      />
-
-      {/* My Neighborhood — elevated CTA banner (moved up before What's Happening) */}
+      {/* My Neighborhood — elevated CTA banner */}
       <MyNeighborhood />
 
       {/* Saved neighborhoods */}
