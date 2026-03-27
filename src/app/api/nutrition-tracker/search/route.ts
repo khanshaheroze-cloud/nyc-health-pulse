@@ -128,13 +128,21 @@ function mapUsdaFood(food: FdcSearchFood): SearchResult {
     }
   }
 
+  const servingDesc = food.servingSize
+    ? `${food.servingSize}${food.servingSizeUnit ?? "g"}`
+    : null;
+
+  // Flag high-calorie USDA entries that are likely per-100g values
+  let name = food.description;
+  if (nutrients.calories != null && nutrients.calories > 900) {
+    name = `${name} (per 100g)`;
+  }
+
   return {
     id: `usda_${food.fdcId}`,
-    name: food.description,
+    name,
     brand: food.brandOwner || food.brandName || "USDA",
-    servingSize: food.servingSize
-      ? `${food.servingSize}${food.servingSizeUnit ?? "g"}`
-      : null,
+    servingSize: servingDesc,
     source: "usda",
     ...nutrients,
   };

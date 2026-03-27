@@ -1136,7 +1136,7 @@ export async function fetchDogBitesByBorough(): Promise<DogBiteByBorough[] | nul
   try {
     const params = new URLSearchParams({
       "$select": "borough,breed,count(*) as cnt",
-      "$where": `dateofbite > '${daysAgo(365)}'`,
+      "$where": `dateofbite > '${daysAgo(730)}'`,
       "$group": "borough,breed",
       "$order": "cnt DESC",
       "$limit": "200",
