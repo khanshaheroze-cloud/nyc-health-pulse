@@ -253,8 +253,11 @@ function InlineFoodLogger() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [lastLogged, setLastLogged] = useState<{entry: FoodEntry, meal: string} | null>(null);
+  const [showUndo, setShowUndo] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Load from localStorage on mount
@@ -358,6 +361,26 @@ function InlineFoodLogger() {
     setQuery("");
     setResults([]);
     setShowResults(false);
+    // Track for undo
+    setLastLogged({ entry, meal: selectedMeal });
+    setShowUndo(true);
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    undoTimerRef.current = setTimeout(() => setShowUndo(false), 10000);
+  };
+
+  const handleUndo = () => {
+    if (!lastLogged) return;
+    const key = `pulsenyc_nutrition_${todayKey()}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+    const data = JSON.parse(raw) as DayLog;
+    const mealKey = lastLogged.meal as keyof typeof data.meals;
+    data.meals[mealKey] = data.meals[mealKey].filter((e: FoodEntry) => e.id !== lastLogged.entry.id);
+    localStorage.setItem(key, JSON.stringify(data));
+    setDayLog(data);
+    setLastLogged(null);
+    setShowUndo(false);
+    window.dispatchEvent(new CustomEvent("pulsenyc-nutrition-change"));
   };
 
   const handleSummaryClick = () => {
@@ -482,9 +505,18 @@ function InlineFoodLogger() {
           {/* Recent entries timeline */}
           {recentEntries.length > 0 && (
             <div className="flex flex-wrap gap-x-4 gap-y-1">
-              {recentEntries.map((e) => (
+              {recentEntries.map((e, i) => (
                 <span key={e.id} className="text-[11px] text-dim">
                   {mealEmoji(e.mealKey)} {e.name} <span className="text-muted tabular-nums">{Math.round(e.calories)}cal</span>
+                  {i === 0 && showUndo && lastLogged && lastLogged.entry.id === e.id && (
+                    <button
+                      type="button"
+                      onClick={handleUndo}
+                      className="ml-1 text-[10px] text-accent hover:underline font-medium"
+                    >
+                      [undo]
+                    </button>
+                  )}
                 </span>
               ))}
             </div>

@@ -622,6 +622,7 @@ export default function FoodSearchModal({
 }: FoodSearchModalProps) {
   const [tab, setTab] = useState<Tab>("search");
   const [foodCategory, setFoodCategory] = useState<FoodCategory>("all");
+  const [showFilters, setShowFilters] = useState(false);
   const [query, setQuery] = useState("");
   const [localResults, setLocalResults] = useState<SearchResult[]>([]);
   const [apiResults, setApiResults] = useState<SearchResult[]>([]);
@@ -983,67 +984,87 @@ export default function FoodSearchModal({
 
         {/* Search input — sticky */}
         <div className="px-4 pb-2 shrink-0">
-          <div className="relative">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder={foodCategory === "all"
-                ? "Search foods, restaurants, brands..."
-                : `Search within ${CATEGORY_TABS.find(t => t.key === foodCategory)?.label ?? ""}...`
-              }
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                if (tab !== "search") setTab("search");
-              }}
-              className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-border bg-bg text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent min-h-[44px]"
-            />
-            {query && (
-              <button
-                onClick={() => setQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded text-muted hover:text-dim min-w-[28px] min-h-[28px] flex items-center justify-center"
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder={foodCategory === "all"
+                  ? "Search foods, restaurants, brands..."
+                  : `Search within ${CATEGORY_TABS.find(t => t.key === foodCategory)?.label ?? ""}...`
+                }
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  if (tab !== "search") setTab("search");
+                }}
+                className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-border bg-bg text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent min-h-[44px]"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded text-muted hover:text-dim min-w-[28px] min-h-[28px] flex items-center justify-center"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setShowFilters((p) => !p)}
+              className={`relative p-2 rounded-xl border transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center ${
+                showFilters || foodCategory !== "all"
+                  ? "bg-accent/10 border-accent/30 text-accent"
+                  : "bg-bg border-border text-dim hover:text-text"
+              }`}
+              aria-label="Toggle category filters"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              {foodCategory !== "all" && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-accent rounded-full border-2 border-surface" />
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Category tabs — horizontally scrollable */}
-        <div className="relative shrink-0">
-          <div
-            ref={categoryScrollRef}
-            className="flex px-4 gap-1.5 overflow-x-auto scrollbar-hide pb-2"
-          >
-            {CATEGORY_TABS.map((ct) => (
-              <button
-                key={ct.key}
-                onClick={() => handleCategoryChange(ct.key)}
-                className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors min-h-[36px] shrink-0 ${
-                  foodCategory === ct.key
-                    ? "bg-accent text-white"
-                    : "bg-bg text-dim hover:bg-border"
-                }`}
-              >
-                {ct.emoji && <span className="text-[11px]">{ct.emoji}</span>}
-                {ct.label}
-              </button>
-            ))}
+        {/* Category tabs — horizontally scrollable, hidden by default */}
+        {(showFilters || foodCategory !== "all") && (
+          <div className="relative shrink-0">
+            <div
+              ref={categoryScrollRef}
+              className="flex px-4 gap-1.5 overflow-x-auto scrollbar-hide pb-2"
+            >
+              {CATEGORY_TABS.map((ct) => (
+                <button
+                  key={ct.key}
+                  onClick={() => handleCategoryChange(ct.key)}
+                  className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors min-h-[36px] shrink-0 ${
+                    foodCategory === ct.key
+                      ? "bg-accent text-white"
+                      : "bg-bg text-dim hover:bg-border"
+                  }`}
+                >
+                  {ct.emoji && <span className="text-[11px]">{ct.emoji}</span>}
+                  {ct.label}
+                </button>
+              ))}
+            </div>
+            {/* Fade indicator for scrollable */}
+            <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none sm:hidden" />
           </div>
-          {/* Fade indicator for scrollable */}
-          <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none sm:hidden" />
-        </div>
+        )}
 
         {/* Main tabs */}
         <div className="flex px-4 gap-1 border-b border-border shrink-0">
