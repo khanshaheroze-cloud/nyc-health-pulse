@@ -457,19 +457,24 @@ export function WorkoutTracker() {
         )}
 
         {/* Exercises */}
-        {activeWorkout.exercises.map((loggedEx, exIdx) => (
-          <ExerciseLogCard
-            key={`${loggedEx.exerciseId}-${exIdx}`}
-            loggedEx={loggedEx}
-            exIdx={exIdx}
-            settings={settings}
-            previousSets={getPreviousSets(loggedEx.exerciseId)}
-            pr={getExercisePR(loggedEx.exerciseId)}
-            onLogSet={(set) => logSet(exIdx, set)}
-            onRemoveSet={(setIdx) => removeSet(exIdx, setIdx)}
-            onRemoveExercise={() => removeExercise(exIdx)}
-          />
-        ))}
+        {activeWorkout.exercises.map((loggedEx, exIdx) => {
+          const plannedExList = todayOverride || (activeWorkout.templateId ? templates.find(t => t.id === activeWorkout.templateId)?.exercises : null) || [];
+          const plannedEx = plannedExList.find(pe => pe.exerciseId === loggedEx.exerciseId);
+          return (
+            <ExerciseLogCard
+              key={`${loggedEx.exerciseId}-${exIdx}`}
+              loggedEx={loggedEx}
+              exIdx={exIdx}
+              settings={settings}
+              previousSets={getPreviousSets(loggedEx.exerciseId)}
+              pr={getExercisePR(loggedEx.exerciseId)}
+              targetWeight={plannedEx?.targetWeight}
+              onLogSet={(set) => logSet(exIdx, set)}
+              onRemoveSet={(setIdx) => removeSet(exIdx, setIdx)}
+              onRemoveExercise={() => removeExercise(exIdx)}
+            />
+          );
+        })}
 
         <AddExercisePanel onAdd={addExerciseToWorkout} recentExercises={recentExercises} favorites={favorites} />
       </div>
@@ -1408,7 +1413,7 @@ function DayEditorView({
             const isMenuOpen = openMenuIdx === i;
 
             return (
-              <div key={`${pe.exerciseId}-${i}`} className="bg-surface rounded-xl border border-border-light shadow-sm overflow-hidden">
+              <div key={`${pe.exerciseId}-${i}`} className="bg-surface rounded-xl border border-border-light shadow-sm">
                 <div className="flex items-center gap-2 px-3 py-2.5">
                   <div className="flex flex-col gap-0.5">
                     <button onClick={() => moveExercise(i, -1)} disabled={i === 0} className="text-[9px] text-muted hover:text-accent disabled:opacity-20 leading-none">▲</button>
@@ -1562,10 +1567,10 @@ function ExerciseOverflowMenu({
 // EXERCISE LOG CARD (active workout)
 // ══════════════════════════════════════════════════════════════
 function ExerciseLogCard({
-  loggedEx, exIdx, settings, previousSets, pr, onLogSet, onRemoveSet, onRemoveExercise,
+  loggedEx, exIdx, settings, previousSets, pr, targetWeight, onLogSet, onRemoveSet, onRemoveExercise,
 }: {
   loggedEx: LoggedExercise; exIdx: number; settings: WorkoutSettings;
-  previousSets: LoggedSet[]; pr?: PersonalRecord;
+  previousSets: LoggedSet[]; pr?: PersonalRecord; targetWeight?: number;
   onLogSet: (set: LoggedSet) => void; onRemoveSet: (setIdx: number) => void; onRemoveExercise: () => void;
 }) {
   const exercise = getExerciseById(loggedEx.exerciseId);
@@ -1575,6 +1580,19 @@ function ExerciseLogCard({
   const [rpe, setRpe] = useState("");
   const [rir, setRir] = useState("");
   const [setType, setSetType] = useState<"working" | "warmup">("working");
+
+  // Auto-fill inputs from previous session (or targetWeight fallback)
+  useEffect(() => {
+    const nextSetIdx = loggedEx.sets.length;
+    const prev = previousSets[nextSetIdx];
+    if (prev) {
+      if (prev.weight) setWeight(String(prev.weight));
+      if (prev.reps) setReps(String(prev.reps));
+      if (prev.duration) setDuration(String(prev.duration));
+    } else if (nextSetIdx === 0 && targetWeight) {
+      setWeight(String(targetWeight));
+    }
+  }, [loggedEx.sets.length, previousSets, targetWeight]);
 
   if (!exercise) return null;
 
