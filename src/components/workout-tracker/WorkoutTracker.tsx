@@ -385,14 +385,14 @@ export function WorkoutTracker() {
               const hasPR = ex.sets.some(s => s.isPersonalRecord);
               return (
                 <p key={i} className="text-[12px] text-dim">
-                  {exercise?.name || ex.exerciseId} — {setsStr} {hasPR ? "��" : ""}
+                  {exercise?.name || ex.exerciseId} — {setsStr} {hasPR ? "🏆" : ""}
                 </p>
               );
             })}
           </div>
           {prsHit.length > 0 && (
             <div className="bg-hp-yellow/10 rounded-xl p-3">
-              <p className="text-[13px] font-bold text-text">�� New PRs!</p>
+              <p className="text-[13px] font-bold text-text">🏆 New PRs!</p>
               {prsHit.map((pr, i) => {
                 const ex = getExerciseById(pr.exerciseId);
                 const est = pr.set.weight && pr.set.reps ? estimated1RM(pr.set.weight, pr.set.reps) : 0;
@@ -405,7 +405,7 @@ export function WorkoutTracker() {
             </div>
           )}
           <p className="text-center text-[14px] font-semibold text-accent">
-            �� Streak: {getStreak()} days!
+            🔥 Streak: {getStreak()} days!
           </p>
         </div>
         <div className="flex gap-3">
@@ -433,8 +433,8 @@ export function WorkoutTracker() {
           </div>
           <div className="flex gap-4 text-[12px] text-muted">
             <span>⏱ {elapsed} min</span>
-            <span>��️ {activeWorkout.exercises.length} exercises</span>
-            <span>�� {calculateTotalVolume(activeWorkout.exercises).toLocaleString()} {settings.units} volume</span>
+            <span>🏋️ {activeWorkout.exercises.length} exercises</span>
+            <span>📊 {calculateTotalVolume(activeWorkout.exercises).toLocaleString()} {settings.units} volume</span>
           </div>
         </div>
 
@@ -488,7 +488,7 @@ export function WorkoutTracker() {
           <div className="bg-surface rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto p-5 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-[15px] font-bold text-text">
-                �� {new Date(pastWorkout.completedAt!).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} — {pastWorkout.name}
+                📋 {new Date(pastWorkout.completedAt!).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} — {pastWorkout.name}
               </h2>
               <button onClick={() => setPastWorkoutDate(null)} className="text-[12px] text-muted hover:text-text">Close</button>
             </div>
@@ -505,7 +505,7 @@ export function WorkoutTracker() {
                 const hasPR = ex.sets.some(s => s.isPersonalRecord);
                 return (
                   <p key={i} className="text-[13px] text-dim">
-                    <span className="font-semibold text-text">{exercise?.name || ex.exerciseId}</span> — {setsStr} {hasPR ? "��" : ""}
+                    <span className="font-semibold text-text">{exercise?.name || ex.exerciseId}</span> — {setsStr} {hasPR ? "🏆" : ""}
                   </p>
                 );
               })}
@@ -562,7 +562,7 @@ export function WorkoutTracker() {
       {view === "stats" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg text-text">�� Stats</h2>
+            <h2 className="font-display text-lg text-text">📊 Stats</h2>
             <button onClick={() => setView("calendar")} className="text-[13px] text-accent font-semibold hover:underline">← Back</button>
           </div>
           <StatsView workoutLog={workoutLog} prs={prs} streak={getStreak()} settings={settings} />
@@ -606,7 +606,7 @@ export function WorkoutTracker() {
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full border border-accent" /> planned</span>
             </div>
             {getStreak() > 0 && (
-              <span className="text-[12px] font-semibold text-text">�� {getStreak()}-day streak</span>
+              <span className="text-[12px] font-semibold text-text">🔥 {getStreak()}-day streak</span>
             )}
           </div>
 
@@ -677,11 +677,11 @@ export function WorkoutTracker() {
               </button>
             ) : (
               <button onClick={() => setView("routineSetup")} className="flex-1 py-3 rounded-xl bg-accent text-white text-[14px] font-semibold hover:bg-accent/90 transition-colors">
-                �� Create Your Routine
+                💪 Create Your Routine
               </button>
             )}
             <button onClick={() => setView("stats")} className="py-3 px-5 rounded-xl border border-border text-[13px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">
-              ��
+              📊
             </button>
           </div>
 
@@ -859,7 +859,7 @@ function TodayWorkoutCard({
       <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-5">
         <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-1">TODAY: {dayName}</p>
         <div className="flex items-center gap-3 mt-3">
-          <span className="text-[32px]">��</span>
+          <span className="text-[32px]">📊</span>
           <div>
             <p className="text-[15px] font-bold text-text">Rest Day</p>
             <p className="text-[12px] text-muted">Recover and recharge</p>
@@ -906,7 +906,7 @@ function TodayWorkoutCard({
       <div className="flex items-start justify-between">
         <div>
           <p className="text-[16px] font-bold text-text">
-            {todayTemplate?.emoji || "��️"} {todayTemplate?.name || "Workout"}
+            {todayTemplate?.emoji || "🏋️"} {todayTemplate?.name || "Workout"}
           </p>
           <p className="text-[12px] text-muted mt-0.5">{exercises.length} exercises</p>
         </div>
@@ -936,8 +936,8 @@ function TodayWorkoutCard({
           {showRoutineMenu && (
             <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-surface rounded-xl border border-border-light shadow-lg py-1">
               <button onClick={() => { setShowRoutineMenu(false); onEditRoutineDay(); }} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">✏️ Edit {new Date().toLocaleDateString("en-US", { weekday: "long" })}&apos;s Routine</button>
-              <button onClick={() => { setShowRoutineMenu(false); onEditFullRoutine(); }} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">�� Edit Full Weekly Routine</button>
-              <button onClick={() => { setShowRoutineMenu(false); onSwitchSplit(); }} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">�� Switch to a Different Split</button>
+              <button onClick={() => { setShowRoutineMenu(false); onEditFullRoutine(); }} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">📋 Edit Full Weekly Routine</button>
+              <button onClick={() => { setShowRoutineMenu(false); onSwitchSplit(); }} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">🔄 Switch to a Different Split</button>
             </div>
           )}
         </div>
@@ -983,18 +983,18 @@ function RoutineSetupFlow({
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg text-text">�� Create Your Workout Routine</h2>
+          <h2 className="font-display text-lg text-text">💪 Create Your Workout Routine</h2>
           <button onClick={onBack} className="text-[12px] text-muted hover:text-text">✕</button>
         </div>
         <p className="text-[13px] text-muted">How do you want to set up your week?</p>
 
         <button onClick={() => setStep("pickDefaults")} className="w-full text-left p-5 rounded-2xl border border-border-light hover:border-accent hover:bg-accent/5 transition-colors">
-          <p className="text-[15px] font-bold text-text">�� Pick from Defaults</p>
+          <p className="text-[15px] font-bold text-text">📥 Pick from Defaults</p>
           <p className="text-[12px] text-muted mt-1">Choose a pre-built split and customize it</p>
         </button>
 
         <button onClick={() => setStep("buildOwn")} className="w-full text-left p-5 rounded-2xl border border-border-light hover:border-accent hover:bg-accent/5 transition-colors">
-          <p className="text-[15px] font-bold text-text">�� Build My Own</p>
+          <p className="text-[15px] font-bold text-text">🛠 Build My Own</p>
           <p className="text-[12px] text-muted mt-1">Start from scratch and pick exercises for each day</p>
         </button>
       </div>
@@ -1013,7 +1013,7 @@ function RoutineSetupFlow({
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg text-text">�� Pick a Split</h2>
+          <h2 className="font-display text-lg text-text">📥 Pick a Split</h2>
           <button onClick={() => setStep("choose")} className="text-[13px] text-accent font-semibold hover:underline">← Back</button>
         </div>
 
@@ -1069,7 +1069,7 @@ function RoutineSetupFlow({
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg text-text">�� Build Your Week</h2>
+          <h2 className="font-display text-lg text-text">🛠 Build Your Week</h2>
           <button onClick={() => setStep("choose")} className="text-[13px] text-accent font-semibold hover:underline">← Back</button>
         </div>
         <p className="text-[13px] text-muted">Tap a day to assign a workout:</p>
@@ -1107,7 +1107,7 @@ function RoutineSetupFlow({
                       })}
                     </div>
                     <button onClick={() => { onUpdateWeek({ ...weekPlan, [d.key]: null }); setBuildDayMenu(null); }}
-                      className="text-[11px] text-muted hover:text-text">�� Rest Day</button>
+                      className="text-[11px] text-muted hover:text-text">😴 Rest Day</button>
                   </div>
                 )}
               </div>
@@ -1193,7 +1193,7 @@ function RoutineSetupFlow({
                   {exercisePreview && <p className="text-[11px] text-dim truncate mt-0.5">{exercisePreview}</p>}
                 </div>
               ) : (
-                <p className="flex-1 text-[13px] text-muted">�� Rest Day</p>
+                <p className="flex-1 text-[13px] text-muted">😴 Rest Day</p>
               )}
               <span className="text-muted text-[11px]">›</span>
             </button>
@@ -1204,12 +1204,12 @@ function RoutineSetupFlow({
       <p className="text-[11px] text-dim text-center">Tap any day to edit its exercises. Tap [Save] when done.</p>
 
       <div className="flex gap-2">
-        <button onClick={() => setStep("pickDefaults")} className="flex-1 py-2.5 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">�� Load Different Split</button>
+        <button onClick={() => setStep("pickDefaults")} className="flex-1 py-2.5 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">📥 Load Different Split</button>
         <button onClick={() => {
           if (confirm("Clear all workouts from your week?")) {
             onUpdateWeek({ monday: null, tuesday: null, wednesday: null, thursday: null, friday: null, saturday: null, sunday: null });
           }
-        }} className="py-2.5 px-4 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-hp-red hover:text-hp-red transition-colors">��</button>
+        }} className="py-2.5 px-4 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-hp-red hover:text-hp-red transition-colors">📊</button>
       </div>
     </div>
   );
@@ -1267,7 +1267,7 @@ function DayEditorView({
   const ensureTemplate = (): DayTemplate => {
     if (template) return template;
     const blank: DayTemplate = {
-      id: generateId(), name: dayInfo.label + " Workout", emoji: "��️", assignedDays: [],
+      id: generateId(), name: dayInfo.label + " Workout", emoji: "🏋️", assignedDays: [],
       exercises: [], estimatedDuration: 0, notes: "", createdAt: new Date().toISOString(),
     };
     onCreateTemplate(blank);
@@ -1392,7 +1392,7 @@ function DayEditorView({
         </div>
       ) : (
         <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-4 text-center">
-          <p className="text-[14px] text-muted mb-2">�� Rest Day</p>
+          <p className="text-[14px] text-muted mb-2">😴 Rest Day</p>
           <p className="text-[11px] text-dim">Tap below to assign a workout</p>
         </div>
       )}
@@ -1417,7 +1417,7 @@ function DayEditorView({
                   <span className="text-[11px] text-muted font-bold w-5">{i + 1}.</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-semibold text-text truncate">{ex.name}</p>
-                    <p className="text-[11px] text-dim">{pe.targetSets} × {pe.targetReps}{pe.notes ? " · ��" : ""}</p>
+                    <p className="text-[11px] text-dim">{pe.targetSets} × {pe.targetReps}{pe.notes ? " · 📝" : ""}</p>
                   </div>
                   {/* Three-dot menu with click-outside fix */}
                   <ExerciseOverflowMenu
@@ -1493,7 +1493,7 @@ function DayEditorView({
         <div className="flex gap-2">
           <button onClick={() => setShowAddExercise(true)} className="flex-1 py-2.5 rounded-xl border-2 border-dashed border-border text-[12px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">+ Add Exercise</button>
           {!isTodayOnlyEdit && (
-            <button onClick={() => setShowLoadDefault(true)} className="flex-1 py-2.5 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">�� Load Default</button>
+            <button onClick={() => setShowLoadDefault(true)} className="flex-1 py-2.5 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">📥 Load Default</button>
           )}
         </div>
       )}
@@ -1511,7 +1511,7 @@ function DayEditorView({
               <button onClick={() => {
                 onUpdateWeek({ ...weekPlan, [day]: null });
                 onBack();
-              }} className="py-2 px-3 rounded-lg border border-border-light text-[11px] font-medium text-muted hover:border-hp-red hover:text-hp-red transition-colors text-left">�� Clear (Rest Day)</button>
+              }} className="py-2 px-3 rounded-lg border border-border-light text-[11px] font-medium text-muted hover:border-hp-red hover:text-hp-red transition-colors text-left">🗑 Clear (Rest Day)</button>
             )}
           </div>
         </div>
@@ -1546,12 +1546,12 @@ function ExerciseOverflowMenu({
       {isOpen && (
         <div className="absolute right-0 top-9 z-50 bg-surface rounded-xl border border-border-light shadow-lg py-1 w-52">
           <button onClick={onEdit} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">✏️ Edit Sets & Reps</button>
-          <button onClick={onReplace} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">�� Replace Exercise</button>
-          <button onClick={onAddNote} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">�� Add Note</button>
+          <button onClick={onReplace} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">🔄 Replace Exercise</button>
+          <button onClick={onAddNote} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">📝 Add Note</button>
           <button onClick={onSetRest} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">⏱ Set Rest Time</button>
           {onMoveUp && <button onClick={onMoveUp} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">⬆️ Move Up</button>}
           {onMoveDown && <button onClick={onMoveDown} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">⬇️ Move Down</button>}
-          <button onClick={onRemove} className="w-full text-left px-3 py-2 text-[12px] text-hp-red hover:bg-surface-sage">�� Remove Exercise</button>
+          <button onClick={onRemove} className="w-full text-left px-3 py-2 text-[12px] text-hp-red hover:bg-surface-sage">🗑 Remove Exercise</button>
         </div>
       )}
     </div>
@@ -1644,7 +1644,7 @@ function ExerciseLogCard({
               <span className="font-semibold text-text tabular-nums">{set.weight || set.duration || "—"}</span>
               <span className="font-semibold text-text tabular-nums">{set.reps || "—"}</span>
               <div className="flex items-center gap-1">
-                {set.isPersonalRecord && <span title="PR">��</span>}
+                {set.isPersonalRecord && <span title="PR">🏆</span>}
                 <button onClick={() => onRemoveSet(si)} className="text-[10px] text-muted hover:text-hp-red">✕</button>
               </div>
             </div>
@@ -1709,7 +1709,7 @@ function ExerciseLogCard({
         <button onClick={() => {
           const lastSet = loggedEx.sets[loggedEx.sets.length - 1];
           if (lastSet?.weight) { setWeight(String(Math.round(lastSet.weight * 0.8))); setReps(String((lastSet.reps || 8) + 4)); }
-        }} className="text-[11px] text-muted hover:text-accent font-medium">�� Drop Set</button>
+        }} className="text-[11px] text-muted hover:text-accent font-medium">🔥 Drop Set</button>
       </div>
     </div>
   );
@@ -1797,7 +1797,7 @@ function ReplaceExercisePanel({ exerciseId, onSelect, onClose }: {
 
   return (
     <div className="px-3 pb-3 pt-2 border-t border-border-light bg-surface-sage/20 space-y-2">
-      <p className="text-[11px] font-bold uppercase tracking-wider text-muted">�� Replace: {source?.name}</p>
+      <p className="text-[11px] font-bold uppercase tracking-wider text-muted">🔄 Replace: {source?.name}</p>
       {alternatives.length > 0 && (
         <div>
           <p className="text-[10px] text-dim font-semibold uppercase mb-1">Suggested Alternatives</p>
@@ -1893,7 +1893,7 @@ function LoadDefaultPanel({ day, onSelect, onClose }: {
   const quicks = QUICK_START_IDS.map(id => SPLIT_TEMPLATES.find(s => s.id === id)).filter(Boolean) as (typeof SPLIT_TEMPLATES)[number][];
   return (
     <div className="bg-surface rounded-2xl border border-accent/30 shadow-sm p-4 space-y-3">
-      <h3 className="text-[14px] font-bold text-text">�� Load a default routine</h3>
+      <h3 className="text-[14px] font-bold text-text">📥 Load a default routine</h3>
       <p className="text-[11px] text-muted">This will replace exercises on this day.</p>
       <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto">
         {quicks.map(q => (
@@ -1943,7 +1943,7 @@ function StatsView({
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-surface rounded-xl border border-border-light p-3">
           <p className="text-[11px] text-muted uppercase tracking-wider">Streak</p>
-          <p className="text-[22px] font-display font-bold text-text">{streak > 0 ? `�� ${streak}d` : "—"}</p>
+          <p className="text-[22px] font-display font-bold text-text">{streak > 0 ? `🔥 ${streak}d` : "—"}</p>
         </div>
         <div className="bg-surface rounded-xl border border-border-light p-3">
           <p className="text-[11px] text-muted uppercase tracking-wider">This Week</p>
@@ -1967,7 +1967,7 @@ function StatsView({
             return (
               <div key={i} className="flex items-center justify-between py-1.5 border-b border-border-light/50 last:border-b-0">
                 <div>
-                  <p className="text-[12px] font-semibold text-text">�� {exercise?.name || pr.exerciseId}</p>
+                  <p className="text-[12px] font-semibold text-text">🏆 {exercise?.name || pr.exerciseId}</p>
                   <p className="text-[11px] text-muted">{pr.setDetails} (est. 1RM: {Math.round(pr.value)} {pr.unit})</p>
                 </div>
                 <p className="text-[11px] text-dim">{new Date(pr.date).toLocaleDateString()}</p>
