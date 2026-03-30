@@ -56,6 +56,15 @@ const LEVEL_COLORS: Record<SplitLevel, string> = {
   all: "bg-gray-100 text-gray-600",
 };
 
+/** Shorten a workout name for the 7-col weekly strip (max ~6 chars) */
+function shortenName(name: string): string {
+  // Remove "Quick " prefix
+  const n = name.replace(/^Quick\s+/i, "");
+  // Take first word, max 7 chars
+  const first = n.split(/[\s—/]+/)[0];
+  return first.length > 7 ? first.slice(0, 6) + "…" : first;
+}
+
 // ── Click-outside hook ──────────────────────────────────────
 function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
   useEffect(() => {
@@ -169,7 +178,7 @@ export function WorkoutTracker() {
       const newPR: PersonalRecord = {
         exerciseId, type: "1rm", value: est, unit: settings.units,
         date: new Date().toISOString(), workoutId,
-        setDetails: `${set.weight} \u00d7 ${set.reps}`,
+        setDetails: `${set.weight} × ${set.reps}`,
       };
       const updated = [...prs.filter(p => !(p.exerciseId === exerciseId && p.type === "1rm")), newPR];
       persistPrs(updated);
@@ -183,7 +192,7 @@ export function WorkoutTracker() {
     const workout: WorkoutSession = {
       id: generateId(),
       templateId,
-      name: name || `Workout \u2014 ${new Date().toLocaleDateString()}`,
+      name: name || `Workout — ${new Date().toLocaleDateString()}`,
       startedAt: new Date().toISOString(),
       duration: 0,
       exercises: (exercises || []).map(pe => ({
@@ -351,11 +360,11 @@ export function WorkoutTracker() {
     return (
       <div className="max-w-lg mx-auto space-y-5 py-6">
         <div className="text-center">
-          <p className="text-[48px] mb-2">\u2705</p>
+          <p className="text-[48px] mb-2">✅</p>
           <h1 className="font-display text-2xl text-text font-bold">Workout Complete!</h1>
         </div>
         <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-5 space-y-3">
-          <p className="text-[15px] font-bold text-text">{completedSummary.name} \u2014 {completedSummary.duration} min</p>
+          <p className="text-[15px] font-bold text-text">{completedSummary.name} — {completedSummary.duration} min</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="text-center p-2 bg-surface-sage rounded-xl">
               <p className="text-[20px] font-display font-bold text-text">{completedSummary.totalVolume.toLocaleString()}</p>
@@ -371,32 +380,32 @@ export function WorkoutTracker() {
             {completedSummary.exercises.map((ex, i) => {
               const exercise = getExerciseById(ex.exerciseId);
               const setsStr = ex.sets.filter(s => s.type !== "warmup").map(s =>
-                `${s.weight || "\u2014"}\u00d7${s.reps || s.duration || "\u2014"}`
+                `${s.weight || "—"}×${s.reps || s.duration || "—"}`
               ).join(", ");
               const hasPR = ex.sets.some(s => s.isPersonalRecord);
               return (
                 <p key={i} className="text-[12px] text-dim">
-                  {exercise?.name || ex.exerciseId} \u2014 {setsStr} {hasPR ? "\ud83c\udfc6" : ""}
+                  {exercise?.name || ex.exerciseId} — {setsStr} {hasPR ? "��" : ""}
                 </p>
               );
             })}
           </div>
           {prsHit.length > 0 && (
             <div className="bg-hp-yellow/10 rounded-xl p-3">
-              <p className="text-[13px] font-bold text-text">\ud83c\udfc6 New PRs!</p>
+              <p className="text-[13px] font-bold text-text">�� New PRs!</p>
               {prsHit.map((pr, i) => {
                 const ex = getExerciseById(pr.exerciseId);
                 const est = pr.set.weight && pr.set.reps ? estimated1RM(pr.set.weight, pr.set.reps) : 0;
                 return (
                   <p key={i} className="text-[12px] text-dim mt-1">
-                    {ex?.name} \u2014 {pr.set.weight} \u00d7 {pr.set.reps} (est 1RM: {Math.round(est)} lbs)
+                    {ex?.name} — {pr.set.weight} × {pr.set.reps} (est 1RM: {Math.round(est)} lbs)
                   </p>
                 );
               })}
             </div>
           )}
           <p className="text-center text-[14px] font-semibold text-accent">
-            \ud83d\udd25 Streak: {getStreak()} days!
+            �� Streak: {getStreak()} days!
           </p>
         </div>
         <div className="flex gap-3">
@@ -423,9 +432,9 @@ export function WorkoutTracker() {
             </div>
           </div>
           <div className="flex gap-4 text-[12px] text-muted">
-            <span>\u23f1 {elapsed} min</span>
-            <span>\ud83c\udfcb\ufe0f {activeWorkout.exercises.length} exercises</span>
-            <span>\ud83d\udcca {calculateTotalVolume(activeWorkout.exercises).toLocaleString()} {settings.units} volume</span>
+            <span>⏱ {elapsed} min</span>
+            <span>��️ {activeWorkout.exercises.length} exercises</span>
+            <span>�� {calculateTotalVolume(activeWorkout.exercises).toLocaleString()} {settings.units} volume</span>
           </div>
         </div>
 
@@ -479,7 +488,7 @@ export function WorkoutTracker() {
           <div className="bg-surface rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto p-5 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-[15px] font-bold text-text">
-                \ud83d\udccb {new Date(pastWorkout.completedAt!).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} \u2014 {pastWorkout.name}
+                �� {new Date(pastWorkout.completedAt!).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} — {pastWorkout.name}
               </h2>
               <button onClick={() => setPastWorkoutDate(null)} className="text-[12px] text-muted hover:text-text">Close</button>
             </div>
@@ -491,12 +500,12 @@ export function WorkoutTracker() {
               {pastWorkout.exercises.map((ex, i) => {
                 const exercise = getExerciseById(ex.exerciseId);
                 const setsStr = ex.sets.filter(s => s.type !== "warmup").map(s =>
-                  `${s.weight || "\u2014"}\u00d7${s.reps || s.duration || "\u2014"}`
+                  `${s.weight || "—"}×${s.reps || s.duration || "—"}`
                 ).join(", ");
                 const hasPR = ex.sets.some(s => s.isPersonalRecord);
                 return (
                   <p key={i} className="text-[13px] text-dim">
-                    <span className="font-semibold text-text">{exercise?.name || ex.exerciseId}</span> \u2014 {setsStr} {hasPR ? "\ud83c\udfc6" : ""}
+                    <span className="font-semibold text-text">{exercise?.name || ex.exerciseId}</span> — {setsStr} {hasPR ? "��" : ""}
                   </p>
                 );
               })}
@@ -553,8 +562,8 @@ export function WorkoutTracker() {
       {view === "stats" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg text-text">\ud83d\udcca Stats</h2>
-            <button onClick={() => setView("calendar")} className="text-[13px] text-accent font-semibold hover:underline">\u2190 Back</button>
+            <h2 className="font-display text-lg text-text">�� Stats</h2>
+            <button onClick={() => setView("calendar")} className="text-[13px] text-accent font-semibold hover:underline">← Back</button>
           </div>
           <StatsView workoutLog={workoutLog} prs={prs} streak={getStreak()} settings={settings} />
         </div>
@@ -597,7 +606,7 @@ export function WorkoutTracker() {
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full border border-accent" /> planned</span>
             </div>
             {getStreak() > 0 && (
-              <span className="text-[12px] font-semibold text-text">\ud83d\udd25 {getStreak()}-day streak</span>
+              <span className="text-[12px] font-semibold text-text">�� {getStreak()}-day streak</span>
             )}
           </div>
 
@@ -613,7 +622,7 @@ export function WorkoutTracker() {
               } else if (todayTemplate) {
                 startFromTemplate(todayTemplate);
               } else {
-                startWorkout([], `Workout \u2014 ${new Date().toLocaleDateString()}`);
+                startWorkout([], `Workout — ${new Date().toLocaleDateString()}`);
               }
             }}
             onEditTodayOnly={() => {
@@ -645,14 +654,14 @@ export function WorkoutTracker() {
                   const dateForDay = getDateForDayOfWeek(d.key);
                   const completed = dateForDay ? workoutLog.some(w => w.completedAt?.startsWith(dateForDay)) : false;
                   return (
-                    <div key={d.key} className={`rounded-lg py-1.5 ${isToday ? "bg-accent/10 ring-1 ring-accent/30" : ""}`}>
+                    <div key={d.key} className={`rounded-lg py-1.5 px-0.5 ${isToday ? "bg-accent/10 ring-1 ring-accent/30" : ""}`}>
                       <p className={`text-[10px] font-bold ${isToday ? "text-accent" : "text-muted"}`}>{d.letter}</p>
-                      <p className="text-[11px] mt-0.5">
-                        {completed ? <span className="text-accent">\u25cf</span> :
-                         tmpl ? <span className="text-muted">\u25cb</span> :
-                         <span className="text-border-light">\u2014</span>}
+                      <p className="text-[9px] mt-0.5">
+                        {completed ? <span className="text-accent font-bold">●</span> :
+                         tmpl ? <span className="text-muted">○</span> :
+                         <span className="text-border-light">–</span>}
                       </p>
-                      <p className="text-[9px] text-dim truncate mt-0.5">{tmpl ? tmpl.name.split(" ").slice(0, 2).join(" ") : "Rest"}</p>
+                      <p className="text-[8px] text-dim truncate mt-0.5 leading-tight">{tmpl ? shortenName(tmpl.name) : "Rest"}</p>
                     </div>
                   );
                 })}
@@ -664,22 +673,22 @@ export function WorkoutTracker() {
           <div className="flex gap-3">
             {hasRoutine ? (
               <button onClick={() => setView("routineSetup")} className="flex-1 py-3 rounded-xl border border-border text-[13px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">
-                \u270f\ufe0f Edit My Routine
+                ✏️ Edit My Routine
               </button>
             ) : (
               <button onClick={() => setView("routineSetup")} className="flex-1 py-3 rounded-xl bg-accent text-white text-[14px] font-semibold hover:bg-accent/90 transition-colors">
-                \ud83d\udcaa Create Your Routine
+                �� Create Your Routine
               </button>
             )}
             <button onClick={() => setView("stats")} className="py-3 px-5 rounded-xl border border-border text-[13px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">
-              \ud83d\udcca
+              ��
             </button>
           </div>
 
           {/* Quick Starts (if no routine) */}
           {!hasRoutine && (
             <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-4">
-              <h3 className="text-[13px] font-bold text-text mb-3">Quick Start \u2014 No Routine Needed</h3>
+              <h3 className="text-[13px] font-bold text-text mb-3">Quick Start — No Routine Needed</h3>
               <div className="grid grid-cols-2 gap-2">
                 {QUICK_START_IDS.slice(0, 8).map(id => {
                   const s = SPLIT_TEMPLATES.find(t => t.id === id);
@@ -760,9 +769,9 @@ function MonthlyCalendar({
     <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-4">
       {/* Month header */}
       <div className="flex items-center justify-between mb-3">
-        <button onClick={onPrevMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-sage text-muted text-[16px]">\u25c0</button>
+        <button onClick={onPrevMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-sage text-muted text-[16px]">◀</button>
         <h2 className="font-display text-lg text-text font-bold">{monthNames[month]} {year}</h2>
-        <button onClick={onNextMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-sage text-muted text-[16px]">\u25b6</button>
+        <button onClick={onNextMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-sage text-muted text-[16px]">▶</button>
       </div>
 
       {/* Day headers */}
@@ -800,8 +809,8 @@ function MonthlyCalendar({
               <span>{cell.date}</span>
               {/* Dots */}
               <span className="absolute bottom-0.5 text-[8px] leading-none">
-                {(completed || todayActive) ? <span className="text-accent">\u25cf</span> :
-                 missedPlan ? <span className="text-muted">\u25cb</span> :
+                {(completed || todayActive) ? <span className="text-accent">●</span> :
+                 missedPlan ? <span className="text-muted">○</span> :
                  null}
               </span>
             </button>
@@ -842,15 +851,15 @@ function TodayWorkoutCard({
   const exerciseNames = exercises.slice(0, 7).map(e => {
     const ex = getExerciseById(e.exerciseId);
     return ex?.name.split(" ").slice(0, 2).join(" ") || "?";
-  }).join(" \u00b7 ");
+  }).join(" · ");
 
   // REST DAY
   if (!todayTemplate && !todayOverride) {
     return (
       <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-5">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-1">\u2500\u2500\u2500 TODAY: {dayName} \u2500\u2500\u2500</p>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-1">TODAY: {dayName}</p>
         <div className="flex items-center gap-3 mt-3">
-          <span className="text-[32px]">\ud83d\ude34</span>
+          <span className="text-[32px]">��</span>
           <div>
             <p className="text-[15px] font-bold text-text">Rest Day</p>
             <p className="text-[12px] text-muted">Recover and recharge</p>
@@ -886,18 +895,18 @@ function TodayWorkoutCard({
   // WORKOUT DAY
   return (
     <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-5">
-      <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-2">\u2500\u2500\u2500 TODAY: {dayName} \u2500\u2500\u2500</p>
+      <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-2">TODAY: {dayName}</p>
 
       {todayOverride && (
         <div className="bg-hp-blue/10 rounded-lg px-3 py-1.5 mb-3">
-          <p className="text-[11px] text-hp-blue font-medium">\u2139\ufe0f Edited for today only. Your routine stays the same for next week.</p>
+          <p className="text-[11px] text-hp-blue font-medium">ℹ️ Edited for today only. Your routine stays the same for next week.</p>
         </div>
       )}
 
       <div className="flex items-start justify-between">
         <div>
           <p className="text-[16px] font-bold text-text">
-            {todayTemplate?.emoji || "\ud83c\udfcb\ufe0f"} {todayTemplate?.name || "Workout"}
+            {todayTemplate?.emoji || "��️"} {todayTemplate?.name || "Workout"}
           </p>
           <p className="text-[12px] text-muted mt-0.5">{exercises.length} exercises</p>
         </div>
@@ -922,13 +931,13 @@ function TodayWorkoutCard({
         )}
         <div className="relative flex-1" ref={menuRef}>
           <button onClick={() => setShowRoutineMenu(!showRoutineMenu)} className="w-full py-2 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">
-            Edit Routine \u22ef
+            Edit Routine ⋯
           </button>
           {showRoutineMenu && (
             <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-surface rounded-xl border border-border-light shadow-lg py-1">
-              <button onClick={() => { setShowRoutineMenu(false); onEditRoutineDay(); }} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">\u270f\ufe0f Edit {new Date().toLocaleDateString("en-US", { weekday: "long" })}&apos;s Routine</button>
-              <button onClick={() => { setShowRoutineMenu(false); onEditFullRoutine(); }} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">\ud83d\udccb Edit Full Weekly Routine</button>
-              <button onClick={() => { setShowRoutineMenu(false); onSwitchSplit(); }} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">\ud83d\udd04 Switch to a Different Split</button>
+              <button onClick={() => { setShowRoutineMenu(false); onEditRoutineDay(); }} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">✏️ Edit {new Date().toLocaleDateString("en-US", { weekday: "long" })}&apos;s Routine</button>
+              <button onClick={() => { setShowRoutineMenu(false); onEditFullRoutine(); }} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">�� Edit Full Weekly Routine</button>
+              <button onClick={() => { setShowRoutineMenu(false); onSwitchSplit(); }} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">�� Switch to a Different Split</button>
             </div>
           )}
         </div>
@@ -974,18 +983,18 @@ function RoutineSetupFlow({
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg text-text">\ud83d\udcaa Create Your Workout Routine</h2>
-          <button onClick={onBack} className="text-[12px] text-muted hover:text-text">\u2715</button>
+          <h2 className="font-display text-lg text-text">�� Create Your Workout Routine</h2>
+          <button onClick={onBack} className="text-[12px] text-muted hover:text-text">✕</button>
         </div>
         <p className="text-[13px] text-muted">How do you want to set up your week?</p>
 
         <button onClick={() => setStep("pickDefaults")} className="w-full text-left p-5 rounded-2xl border border-border-light hover:border-accent hover:bg-accent/5 transition-colors">
-          <p className="text-[15px] font-bold text-text">\ud83d\udce5 Pick from Defaults</p>
+          <p className="text-[15px] font-bold text-text">�� Pick from Defaults</p>
           <p className="text-[12px] text-muted mt-1">Choose a pre-built split and customize it</p>
         </button>
 
         <button onClick={() => setStep("buildOwn")} className="w-full text-left p-5 rounded-2xl border border-border-light hover:border-accent hover:bg-accent/5 transition-colors">
-          <p className="text-[15px] font-bold text-text">\ud83d\udee0 Build My Own</p>
+          <p className="text-[15px] font-bold text-text">�� Build My Own</p>
           <p className="text-[12px] text-muted mt-1">Start from scratch and pick exercises for each day</p>
         </button>
       </div>
@@ -1004,8 +1013,8 @@ function RoutineSetupFlow({
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg text-text">\ud83d\udce5 Pick a Split</h2>
-          <button onClick={() => setStep("choose")} className="text-[13px] text-accent font-semibold hover:underline">\u2190 Back</button>
+          <h2 className="font-display text-lg text-text">�� Pick a Split</h2>
+          <button onClick={() => setStep("choose")} className="text-[13px] text-accent font-semibold hover:underline">← Back</button>
         </div>
 
         <div>
@@ -1040,7 +1049,7 @@ function RoutineSetupFlow({
                   <p className="text-[12px] text-muted mt-0.5">{s.description}</p>
                   <div className="flex gap-3 mt-1.5">
                     <span className="text-[11px] text-accent font-semibold">{s.daysPerWeek} days/week</span>
-                    <span className="text-[11px] text-dim">{s.days.map(d => d.name.split(" ").slice(0, 2).join(" ")).join(" \u2022 ")}</span>
+                    <span className="text-[11px] text-dim">{s.days.map(d => d.name.split(" ").slice(0, 2).join(" ")).join(" • ")}</span>
                   </div>
                 </div>
                 <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${LEVEL_COLORS[s.level]}`}>{s.level}</span>
@@ -1049,7 +1058,7 @@ function RoutineSetupFlow({
           ))}
         </div>
         {!showAllSplits && (
-          <button onClick={() => setShowAllSplits(true)} className="text-[12px] text-accent font-semibold hover:underline">Show all splits \u2192</button>
+          <button onClick={() => setShowAllSplits(true)} className="text-[12px] text-accent font-semibold hover:underline">Show all splits →</button>
         )}
       </div>
     );
@@ -1060,8 +1069,8 @@ function RoutineSetupFlow({
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg text-text">\ud83d\udee0 Build Your Week</h2>
-          <button onClick={() => setStep("choose")} className="text-[13px] text-accent font-semibold hover:underline">\u2190 Back</button>
+          <h2 className="font-display text-lg text-text">�� Build Your Week</h2>
+          <button onClick={() => setStep("choose")} className="text-[13px] text-accent font-semibold hover:underline">← Back</button>
         </div>
         <p className="text-[13px] text-muted">Tap a day to assign a workout:</p>
 
@@ -1098,7 +1107,7 @@ function RoutineSetupFlow({
                       })}
                     </div>
                     <button onClick={() => { onUpdateWeek({ ...weekPlan, [d.key]: null }); setBuildDayMenu(null); }}
-                      className="text-[11px] text-muted hover:text-text">\ud83d\ude34 Rest Day</button>
+                      className="text-[11px] text-muted hover:text-text">�� Rest Day</button>
                   </div>
                 )}
               </div>
@@ -1108,7 +1117,7 @@ function RoutineSetupFlow({
 
         <div className="flex gap-2">
           <button onClick={() => setStep("customize")} className="flex-1 py-3 rounded-xl bg-accent text-white text-[14px] font-semibold hover:bg-accent/90 transition-colors">
-            Save Routine \u2192
+            Save Routine →
           </button>
           <button onClick={onBack} className="py-3 px-4 rounded-xl border border-border text-[12px] text-muted hover:text-text">Cancel</button>
         </div>
@@ -1145,7 +1154,7 @@ function RoutineSetupFlow({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg text-text">
-          \u270f\ufe0f {hasRoutine ? "Edit Your Routine" : "Customize Your Week"}
+          ✏️ {hasRoutine ? "Edit Your Routine" : "Customize Your Week"}
         </h2>
         <button onClick={onBack} className="px-3 py-1.5 bg-accent text-white rounded-full text-[12px] font-semibold hover:bg-accent/90">Save</button>
       </div>
@@ -1170,7 +1179,7 @@ function RoutineSetupFlow({
         {DAYS_META.map(d => {
           const tmpl = getTemplate(d.key);
           const isToday = d.key === getTodayDayOfWeek();
-          const exercisePreview = tmpl ? tmpl.exercises.slice(0, 5).map(e => getExerciseById(e.exerciseId)?.name.split(" ").slice(0, 2).join(" ") || "?").join(" \u00b7 ") : "";
+          const exercisePreview = tmpl ? tmpl.exercises.slice(0, 5).map(e => getExerciseById(e.exerciseId)?.name.split(" ").slice(0, 2).join(" ") || "?").join(" · ") : "";
           return (
             <button key={d.key} onClick={() => setEditingDay(d.key)}
               className={`w-full flex items-center gap-3 px-4 py-3 border-b border-border-light last:border-b-0 text-left transition-colors hover:bg-surface-sage/30 ${isToday ? "bg-accent/5" : ""}`}>
@@ -1184,9 +1193,9 @@ function RoutineSetupFlow({
                   {exercisePreview && <p className="text-[11px] text-dim truncate mt-0.5">{exercisePreview}</p>}
                 </div>
               ) : (
-                <p className="flex-1 text-[13px] text-muted">\ud83d\ude34 Rest Day</p>
+                <p className="flex-1 text-[13px] text-muted">�� Rest Day</p>
               )}
-              <span className="text-muted text-[11px]">\u203a</span>
+              <span className="text-muted text-[11px]">›</span>
             </button>
           );
         })}
@@ -1195,12 +1204,12 @@ function RoutineSetupFlow({
       <p className="text-[11px] text-dim text-center">Tap any day to edit its exercises. Tap [Save] when done.</p>
 
       <div className="flex gap-2">
-        <button onClick={() => setStep("pickDefaults")} className="flex-1 py-2.5 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">\ud83d\udce5 Load Different Split</button>
+        <button onClick={() => setStep("pickDefaults")} className="flex-1 py-2.5 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">�� Load Different Split</button>
         <button onClick={() => {
           if (confirm("Clear all workouts from your week?")) {
             onUpdateWeek({ monday: null, tuesday: null, wednesday: null, thursday: null, friday: null, saturday: null, sunday: null });
           }
-        }} className="py-2.5 px-4 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-hp-red hover:text-hp-red transition-colors">\ud83d\uddd1</button>
+        }} className="py-2.5 px-4 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-hp-red hover:text-hp-red transition-colors">��</button>
       </div>
     </div>
   );
@@ -1258,7 +1267,7 @@ function DayEditorView({
   const ensureTemplate = (): DayTemplate => {
     if (template) return template;
     const blank: DayTemplate = {
-      id: generateId(), name: dayInfo.label + " Workout", emoji: "\ud83c\udfcb\ufe0f", assignedDays: [],
+      id: generateId(), name: dayInfo.label + " Workout", emoji: "��️", assignedDays: [],
       exercises: [], estimatedDuration: 0, notes: "", createdAt: new Date().toISOString(),
     };
     onCreateTemplate(blank);
@@ -1326,7 +1335,7 @@ function DayEditorView({
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <button onClick={onBack} className="text-[13px] text-accent font-semibold hover:underline">\u2190 Back</button>
+        <button onClick={onBack} className="text-[13px] text-accent font-semibold hover:underline">← Back</button>
         <p className="text-[13px] font-bold text-text capitalize">{dayInfo.label}</p>
         {isTodayOnlyEdit ? (
           <button onClick={() => onSaveTodayOnly(localExercises)} className="px-3 py-1.5 bg-accent text-white rounded-full text-[12px] font-semibold">Done</button>
@@ -1337,7 +1346,7 @@ function DayEditorView({
 
       {isTodayOnlyEdit && (
         <div className="bg-hp-blue/10 rounded-lg px-3 py-2">
-          <p className="text-[11px] text-hp-blue font-medium">\u2139\ufe0f Editing today only. Your {dayInfo.label} routine stays the same for next week.</p>
+          <p className="text-[11px] text-hp-blue font-medium">ℹ️ Editing today only. Your {dayInfo.label} routine stays the same for next week.</p>
         </div>
       )}
 
@@ -1373,17 +1382,17 @@ function DayEditorView({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[16px] font-display font-bold text-text">{template.emoji} {template.name}</p>
-                <p className="text-[12px] text-muted mt-0.5">{exercises.length} exercises \u00b7 ~{exercises.length * 7} min</p>
+                <p className="text-[12px] text-muted mt-0.5">{exercises.length} exercises · ~{exercises.length * 7} min</p>
               </div>
               {!isTodayOnlyEdit && (
-                <button onClick={() => { setRenameValue(template.name); setIsRenaming(true); }} className="text-[11px] text-muted hover:text-accent">\u270f\ufe0f Rename</button>
+                <button onClick={() => { setRenameValue(template.name); setIsRenaming(true); }} className="text-[11px] text-muted hover:text-accent">✏️ Rename</button>
               )}
             </div>
           )}
         </div>
       ) : (
         <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-4 text-center">
-          <p className="text-[14px] text-muted mb-2">\ud83d\ude34 Rest Day</p>
+          <p className="text-[14px] text-muted mb-2">�� Rest Day</p>
           <p className="text-[11px] text-dim">Tap below to assign a workout</p>
         </div>
       )}
@@ -1402,13 +1411,13 @@ function DayEditorView({
               <div key={`${pe.exerciseId}-${i}`} className="bg-surface rounded-xl border border-border-light shadow-sm overflow-hidden">
                 <div className="flex items-center gap-2 px-3 py-2.5">
                   <div className="flex flex-col gap-0.5">
-                    <button onClick={() => moveExercise(i, -1)} disabled={i === 0} className="text-[9px] text-muted hover:text-accent disabled:opacity-20 leading-none">\u25b2</button>
-                    <button onClick={() => moveExercise(i, 1)} disabled={i === exercises.length - 1} className="text-[9px] text-muted hover:text-accent disabled:opacity-20 leading-none">\u25bc</button>
+                    <button onClick={() => moveExercise(i, -1)} disabled={i === 0} className="text-[9px] text-muted hover:text-accent disabled:opacity-20 leading-none">▲</button>
+                    <button onClick={() => moveExercise(i, 1)} disabled={i === exercises.length - 1} className="text-[9px] text-muted hover:text-accent disabled:opacity-20 leading-none">▼</button>
                   </div>
                   <span className="text-[11px] text-muted font-bold w-5">{i + 1}.</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-semibold text-text truncate">{ex.name}</p>
-                    <p className="text-[11px] text-dim">{pe.targetSets} \u00d7 {pe.targetReps}{pe.notes ? " \u00b7 \ud83d\udcdd" : ""}</p>
+                    <p className="text-[11px] text-dim">{pe.targetSets} × {pe.targetReps}{pe.notes ? " · ��" : ""}</p>
                   </div>
                   {/* Three-dot menu with click-outside fix */}
                   <ExerciseOverflowMenu
@@ -1484,7 +1493,7 @@ function DayEditorView({
         <div className="flex gap-2">
           <button onClick={() => setShowAddExercise(true)} className="flex-1 py-2.5 rounded-xl border-2 border-dashed border-border text-[12px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">+ Add Exercise</button>
           {!isTodayOnlyEdit && (
-            <button onClick={() => setShowLoadDefault(true)} className="flex-1 py-2.5 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">\ud83d\udce5 Load Default</button>
+            <button onClick={() => setShowLoadDefault(true)} className="flex-1 py-2.5 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">�� Load Default</button>
           )}
         </div>
       )}
@@ -1502,7 +1511,7 @@ function DayEditorView({
               <button onClick={() => {
                 onUpdateWeek({ ...weekPlan, [day]: null });
                 onBack();
-              }} className="py-2 px-3 rounded-lg border border-border-light text-[11px] font-medium text-muted hover:border-hp-red hover:text-hp-red transition-colors text-left">\ud83d\uddd1 Clear (Rest Day)</button>
+              }} className="py-2 px-3 rounded-lg border border-border-light text-[11px] font-medium text-muted hover:border-hp-red hover:text-hp-red transition-colors text-left">�� Clear (Rest Day)</button>
             )}
           </div>
         </div>
@@ -1533,16 +1542,16 @@ function ExerciseOverflowMenu({
 
   return (
     <div className="relative" ref={menuRef}>
-      <button onClick={(e) => { e.stopPropagation(); onToggle(); }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-sage text-muted text-[13px]">\u22ef</button>
+      <button onClick={(e) => { e.stopPropagation(); onToggle(); }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-sage text-muted text-[13px]">⋯</button>
       {isOpen && (
         <div className="absolute right-0 top-9 z-50 bg-surface rounded-xl border border-border-light shadow-lg py-1 w-52">
-          <button onClick={onEdit} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">\u270f\ufe0f Edit Sets & Reps</button>
-          <button onClick={onReplace} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">\ud83d\udd04 Replace Exercise</button>
-          <button onClick={onAddNote} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">\ud83d\udcdd Add Note</button>
-          <button onClick={onSetRest} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">\u23f1 Set Rest Time</button>
-          {onMoveUp && <button onClick={onMoveUp} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">\u2b06\ufe0f Move Up</button>}
-          {onMoveDown && <button onClick={onMoveDown} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">\u2b07\ufe0f Move Down</button>}
-          <button onClick={onRemove} className="w-full text-left px-3 py-2 text-[12px] text-hp-red hover:bg-surface-sage">\ud83d\uddd1 Remove Exercise</button>
+          <button onClick={onEdit} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">✏️ Edit Sets & Reps</button>
+          <button onClick={onReplace} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">�� Replace Exercise</button>
+          <button onClick={onAddNote} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">�� Add Note</button>
+          <button onClick={onSetRest} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">⏱ Set Rest Time</button>
+          {onMoveUp && <button onClick={onMoveUp} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">⬆️ Move Up</button>}
+          {onMoveDown && <button onClick={onMoveDown} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">⬇️ Move Down</button>}
+          <button onClick={onRemove} className="w-full text-left px-3 py-2 text-[12px] text-hp-red hover:bg-surface-sage">�� Remove Exercise</button>
         </div>
       )}
     </div>
@@ -1602,7 +1611,7 @@ function ExerciseLogCard({
           <h3 className="text-[14px] font-bold text-text">{exercise.name}</h3>
           {pr && <p className="text-[11px] text-muted mt-0.5">Best: {pr.setDetails} (est. 1RM: {Math.round(pr.value)} {pr.unit})</p>}
         </div>
-        <button onClick={onRemoveExercise} className="text-[11px] text-muted hover:text-hp-red transition-colors p-1">\u2715</button>
+        <button onClick={onRemoveExercise} className="text-[11px] text-muted hover:text-hp-red transition-colors p-1">✕</button>
       </div>
 
       <div className="px-4 py-2">
@@ -1612,15 +1621,15 @@ function ExerciseLogCard({
           <span>PREV</span>
           {isWeightReps && <span>{exercise.tracking === "bodyweight-reps" ? "+WT" : settings.units.toUpperCase()}</span>}
           {isTimed && <span>SEC</span>}
-          {isRepsOnly && <span>\u2014</span>}
+          {isRepsOnly && <span>—</span>}
           {isDistDur && <span>DIST</span>}
           {isCalDur && <span>CAL</span>}
           {isRoundsReps && <span>RNDS</span>}
           {(isWeightReps || isRepsOnly) && <span>REPS</span>}
-          {isTimed && <span>\u2014</span>}
+          {isTimed && <span>—</span>}
           {(isDistDur || isCalDur) && <span>TIME</span>}
           {isRoundsReps && <span>REPS</span>}
-          <span>\u2713</span>
+          <span>✓</span>
         </div>
 
         {/* Logged sets */}
@@ -1631,12 +1640,12 @@ function ExerciseLogCard({
             <div key={si} className={`grid gap-2 items-center py-1.5 border-b border-border-light/50 text-[13px] ${set.type === "warmup" ? "opacity-60" : ""} ${isOverload ? "bg-hp-green/5" : ""}`}
               style={{ gridTemplateColumns: "32px 1fr 1fr 1fr 36px" }}>
               <span className="text-muted text-[12px] font-medium">{set.type === "warmup" ? "W" : si + 1 - loggedEx.sets.filter((s, j) => j < si && s.type === "warmup").length}</span>
-              <span className="text-[11px] text-dim">{prev ? `${prev.weight || "\u2014"} \u00d7 ${prev.reps || prev.duration || "\u2014"}` : "\u2014"}</span>
-              <span className="font-semibold text-text tabular-nums">{set.weight || set.duration || "\u2014"}</span>
-              <span className="font-semibold text-text tabular-nums">{set.reps || "\u2014"}</span>
+              <span className="text-[11px] text-dim">{prev ? `${prev.weight || "—"} × ${prev.reps || prev.duration || "—"}` : "—"}</span>
+              <span className="font-semibold text-text tabular-nums">{set.weight || set.duration || "—"}</span>
+              <span className="font-semibold text-text tabular-nums">{set.reps || "—"}</span>
               <div className="flex items-center gap-1">
-                {set.isPersonalRecord && <span title="PR">\ud83c\udfc6</span>}
-                <button onClick={() => onRemoveSet(si)} className="text-[10px] text-muted hover:text-hp-red">\u2715</button>
+                {set.isPersonalRecord && <span title="PR">��</span>}
+                <button onClick={() => onRemoveSet(si)} className="text-[10px] text-muted hover:text-hp-red">✕</button>
               </div>
             </div>
           );
@@ -1651,7 +1660,7 @@ function ExerciseLogCard({
           </button>
           <button onClick={() => { const prev = previousSets[loggedEx.sets.length]; if (prev) handlePrefill(prev); }}
             className="text-[11px] text-dim hover:text-accent truncate text-left" title="Tap to copy previous">
-            {previousSets[loggedEx.sets.length] ? `${previousSets[loggedEx.sets.length].weight || "\u2014"} \u00d7 ${previousSets[loggedEx.sets.length].reps || previousSets[loggedEx.sets.length].duration || "\u2014"}` : "\u2014"}
+            {previousSets[loggedEx.sets.length] ? `${previousSets[loggedEx.sets.length].weight || "—"} × ${previousSets[loggedEx.sets.length].reps || previousSets[loggedEx.sets.length].duration || "—"}` : "—"}
           </button>
           {isWeightReps && (
             <input type="number" inputMode="decimal" value={weight} onChange={e => setWeight(e.target.value)}
@@ -1670,7 +1679,7 @@ function ExerciseLogCard({
           <button onClick={handleAddSet}
             disabled={isWeightReps ? !reps : isTimed ? !duration : (isCalDur || isDistDur) ? !weight && !duration : isRoundsReps ? !weight && !reps : !reps}
             className="w-8 h-8 flex items-center justify-center rounded-full bg-accent text-white text-[14px] font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-accent/90 transition-colors">
-            \u2713
+            ✓
           </button>
         </div>
       </div>
@@ -1681,14 +1690,14 @@ function ExerciseLogCard({
           {settings.showRPE && (
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted">RPE</span>
-              <input type="number" inputMode="decimal" min="1" max="10" step="0.5" value={rpe} onChange={e => setRpe(e.target.value)} placeholder="\u2014"
+              <input type="number" inputMode="decimal" min="1" max="10" step="0.5" value={rpe} onChange={e => setRpe(e.target.value)} placeholder="—"
                 className="w-14 bg-surface-sage border border-border-light rounded-lg px-2 py-1 text-[12px] text-text text-center tabular-nums focus:border-accent focus:outline-none" />
             </div>
           )}
           {settings.showRIR && (
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted">RIR</span>
-              <input type="number" inputMode="numeric" min="0" max="10" value={rir} onChange={e => setRir(e.target.value)} placeholder="\u2014"
+              <input type="number" inputMode="numeric" min="0" max="10" value={rir} onChange={e => setRir(e.target.value)} placeholder="—"
                 className="w-14 bg-surface-sage border border-border-light rounded-lg px-2 py-1 text-[12px] text-text text-center tabular-nums focus:border-accent focus:outline-none" />
             </div>
           )}
@@ -1700,7 +1709,7 @@ function ExerciseLogCard({
         <button onClick={() => {
           const lastSet = loggedEx.sets[loggedEx.sets.length - 1];
           if (lastSet?.weight) { setWeight(String(Math.round(lastSet.weight * 0.8))); setReps(String((lastSet.reps || 8) + 4)); }
-        }} className="text-[11px] text-muted hover:text-accent font-medium">\ud83d\udd25 Drop Set</button>
+        }} className="text-[11px] text-muted hover:text-accent font-medium">�� Drop Set</button>
       </div>
     </div>
   );
@@ -1751,7 +1760,7 @@ function AddExercisePanel({ onAdd, recentExercises, favorites }: {
               className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-sage transition-colors text-left">
               <div>
                 <p className="text-[13px] font-medium text-text">{ex.name}</p>
-                <p className="text-[11px] text-muted">{MUSCLE_GROUP_LABELS[ex.muscle] || ex.muscle} \u00b7 {ex.category}</p>
+                <p className="text-[11px] text-muted">{MUSCLE_GROUP_LABELS[ex.muscle] || ex.muscle} · {ex.category}</p>
               </div>
               <span className="text-accent text-[12px]">+</span>
             </button>
@@ -1788,7 +1797,7 @@ function ReplaceExercisePanel({ exerciseId, onSelect, onClose }: {
 
   return (
     <div className="px-3 pb-3 pt-2 border-t border-border-light bg-surface-sage/20 space-y-2">
-      <p className="text-[11px] font-bold uppercase tracking-wider text-muted">\ud83d\udd04 Replace: {source?.name}</p>
+      <p className="text-[11px] font-bold uppercase tracking-wider text-muted">�� Replace: {source?.name}</p>
       {alternatives.length > 0 && (
         <div>
           <p className="text-[10px] text-dim font-semibold uppercase mb-1">Suggested Alternatives</p>
@@ -1796,9 +1805,9 @@ function ReplaceExercisePanel({ exerciseId, onSelect, onClose }: {
             <button key={alt.id} onClick={() => onSelect(alt.id)} className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-surface-sage transition-colors text-left">
               <div>
                 <p className="text-[12px] font-medium text-text">{alt.name}</p>
-                <p className="text-[10px] text-muted">{MUSCLE_GROUP_LABELS[alt.muscle]} \u00b7 {alt.equipment}</p>
+                <p className="text-[10px] text-muted">{MUSCLE_GROUP_LABELS[alt.muscle]} · {alt.equipment}</p>
               </div>
-              <span className="text-accent text-[11px]">\u21b5</span>
+              <span className="text-accent text-[11px]">↵</span>
             </button>
           ))}
         </div>
@@ -1820,9 +1829,9 @@ function ReplaceExercisePanel({ exerciseId, onSelect, onClose }: {
               <button key={ex.id} onClick={() => onSelect(ex.id)} className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-surface-sage transition-colors text-left">
                 <div>
                   <p className="text-[12px] font-medium text-text">{ex.name}</p>
-                  <p className="text-[10px] text-muted">{MUSCLE_GROUP_LABELS[ex.muscle]} \u00b7 {ex.equipment}</p>
+                  <p className="text-[10px] text-muted">{MUSCLE_GROUP_LABELS[ex.muscle]} · {ex.equipment}</p>
                 </div>
-                <span className="text-accent text-[11px]">\u21b5</span>
+                <span className="text-accent text-[11px]">↵</span>
               </button>
             ))}
           </div>
@@ -1863,7 +1872,7 @@ function ExerciseSearchPanel({ onSelect, onClose }: { onSelect: (id: string) => 
             <button key={ex.id} onClick={() => onSelect(ex.id)} className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-surface-sage transition-colors text-left">
               <div>
                 <p className="text-[12px] font-medium text-text">{ex.name}</p>
-                <p className="text-[10px] text-muted">{MUSCLE_GROUP_LABELS[ex.muscle]} \u00b7 {ex.equipment}</p>
+                <p className="text-[10px] text-muted">{MUSCLE_GROUP_LABELS[ex.muscle]} · {ex.equipment}</p>
               </div>
               <span className="text-accent text-[11px]">+</span>
             </button>
@@ -1884,7 +1893,7 @@ function LoadDefaultPanel({ day, onSelect, onClose }: {
   const quicks = QUICK_START_IDS.map(id => SPLIT_TEMPLATES.find(s => s.id === id)).filter(Boolean) as (typeof SPLIT_TEMPLATES)[number][];
   return (
     <div className="bg-surface rounded-2xl border border-accent/30 shadow-sm p-4 space-y-3">
-      <h3 className="text-[14px] font-bold text-text">\ud83d\udce5 Load a default routine</h3>
+      <h3 className="text-[14px] font-bold text-text">�� Load a default routine</h3>
       <p className="text-[11px] text-muted">This will replace exercises on this day.</p>
       <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto">
         {quicks.map(q => (
@@ -1934,7 +1943,7 @@ function StatsView({
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-surface rounded-xl border border-border-light p-3">
           <p className="text-[11px] text-muted uppercase tracking-wider">Streak</p>
-          <p className="text-[22px] font-display font-bold text-text">{streak > 0 ? `\ud83d\udd25 ${streak}d` : "\u2014"}</p>
+          <p className="text-[22px] font-display font-bold text-text">{streak > 0 ? `�� ${streak}d` : "—"}</p>
         </div>
         <div className="bg-surface rounded-xl border border-border-light p-3">
           <p className="text-[11px] text-muted uppercase tracking-wider">This Week</p>
@@ -1942,11 +1951,11 @@ function StatsView({
         </div>
         <div className="bg-surface rounded-xl border border-border-light p-3">
           <p className="text-[11px] text-muted uppercase tracking-wider">Avg Duration</p>
-          <p className="text-[22px] font-display font-bold text-text">{avgDuration > 0 ? `${avgDuration} min` : "\u2014"}</p>
+          <p className="text-[22px] font-display font-bold text-text">{avgDuration > 0 ? `${avgDuration} min` : "—"}</p>
         </div>
         <div className="bg-surface rounded-xl border border-border-light p-3">
           <p className="text-[11px] text-muted uppercase tracking-wider">Week Volume</p>
-          <p className="text-[22px] font-display font-bold text-text">{weekVolume > 0 ? `${(weekVolume / 1000).toFixed(1)}k` : "\u2014"}</p>
+          <p className="text-[22px] font-display font-bold text-text">{weekVolume > 0 ? `${(weekVolume / 1000).toFixed(1)}k` : "—"}</p>
         </div>
       </div>
 
@@ -1958,7 +1967,7 @@ function StatsView({
             return (
               <div key={i} className="flex items-center justify-between py-1.5 border-b border-border-light/50 last:border-b-0">
                 <div>
-                  <p className="text-[12px] font-semibold text-text">\ud83c\udfc6 {exercise?.name || pr.exerciseId}</p>
+                  <p className="text-[12px] font-semibold text-text">�� {exercise?.name || pr.exerciseId}</p>
                   <p className="text-[11px] text-muted">{pr.setDetails} (est. 1RM: {Math.round(pr.value)} {pr.unit})</p>
                 </div>
                 <p className="text-[11px] text-dim">{new Date(pr.date).toLocaleDateString()}</p>
