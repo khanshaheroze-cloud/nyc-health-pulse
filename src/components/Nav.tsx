@@ -17,6 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Overview" },
   { href: "/neighborhood", label: "Neighborhoods" },
   { href: "/air-quality", label: "Air Quality" },
+  { href: "/workouts", label: "Workouts" },
   { href: "/run-routes", label: "Run Routes" },
   { href: "/eat-smart", label: "Food & Nutrition", dropdown: "food" },
   { href: "/building-health", label: "Building Safety" },
@@ -27,7 +28,6 @@ const NAV_ITEMS: NavItem[] = [
 const FOOD_ITEMS = [
   { href: "/eat-smart", label: "Eat Smart" },
   { href: "/nutrition-tracker", label: "Nutrition Tracker" },
-  { href: "/workout-tracker", label: "Workout Tracker" },
   { href: "/restaurants", label: "Restaurant Guide" },
   { href: "/food-safety", label: "Food Safety" },
   { href: "/grocery", label: "Grocery Prices" },

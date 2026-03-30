@@ -76,7 +76,7 @@ export function HomepageWorkoutWidget() {
             <span className="text-base">🏋️</span>
             <h3 className="text-[13px] font-bold text-text">Workout In Progress</h3>
           </div>
-          <Link href="/workout-tracker" className="text-[10px] text-accent font-semibold hover:underline">
+          <Link href="/workouts" className="text-[10px] text-accent font-semibold hover:underline">
             Continue &rarr;
           </Link>
         </div>
@@ -85,7 +85,7 @@ export function HomepageWorkoutWidget() {
           {doneExercises}/{totalExercises} exercises · {completedSets} sets logged
         </p>
         <Link
-          href="/workout-tracker"
+          href="/workouts"
           className="mt-3 flex items-center justify-center gap-2 w-full px-3 py-2 rounded-xl bg-accent text-white text-[12px] font-semibold hover:bg-accent/90 transition-colors"
         >
           Open Workout
@@ -103,7 +103,7 @@ export function HomepageWorkoutWidget() {
             {todayTemplate ? "Today\u2019s Workout" : "Workout Tracker"}
           </h3>
         </div>
-        <Link href="/workout-tracker" className="text-[10px] text-accent font-semibold hover:underline">
+        <Link href="/workouts" className="text-[10px] text-accent font-semibold hover:underline">
           Full Tracker &rarr;
         </Link>
       </div>
@@ -145,7 +145,7 @@ export function HomepageWorkoutWidget() {
       </div>
 
       <Link
-        href="/workout-tracker"
+        href="/workouts"
         className="mt-3 flex items-center justify-center gap-2 w-full px-3 py-2 rounded-xl bg-surface-sage border border-border-light text-[12px] text-muted hover:border-accent/30 hover:text-dim transition-colors"
       >
         <svg className="w-3.5 h-3.5 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
