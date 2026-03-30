@@ -67,10 +67,12 @@ function shortenName(name: string): string {
 
 // ── Click-outside hook ──────────────────────────────────────
 function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
   useEffect(() => {
     const listener = (e: MouseEvent | TouchEvent) => {
       if (!ref.current || ref.current.contains(e.target as Node)) return;
-      handler();
+      handlerRef.current();
     };
     document.addEventListener("mousedown", listener);
     document.addEventListener("touchstart", listener);
@@ -78,7 +80,7 @@ function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () =
       document.removeEventListener("mousedown", listener);
       document.removeEventListener("touchstart", listener);
     };
-  }, [ref, handler]);
+  }, [ref]);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -469,6 +471,8 @@ export function WorkoutTracker() {
               previousSets={getPreviousSets(loggedEx.exerciseId)}
               pr={getExercisePR(loggedEx.exerciseId)}
               targetWeight={plannedEx?.targetWeight}
+              targetSets={plannedEx?.targetSets}
+              targetReps={plannedEx?.targetReps}
               onLogSet={(set) => logSet(exIdx, set)}
               onRemoveSet={(setIdx) => removeSet(exIdx, setIdx)}
               onRemoveExercise={() => removeExercise(exIdx)}
@@ -864,7 +868,7 @@ function TodayWorkoutCard({
       <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-5">
         <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-1">TODAY: {dayName}</p>
         <div className="flex items-center gap-3 mt-3">
-          <span className="text-[32px]">📊</span>
+          <span className="text-[32px]">😴</span>
           <div>
             <p className="text-[15px] font-bold text-text">Rest Day</p>
             <p className="text-[12px] text-muted">Recover and recharge</p>
@@ -1422,7 +1426,7 @@ function DayEditorView({
                   <span className="text-[11px] text-muted font-bold w-5">{i + 1}.</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-semibold text-text truncate">{ex.name}</p>
-                    <p className="text-[11px] text-dim">{pe.targetSets} × {pe.targetReps}{pe.notes ? " · 📝" : ""}</p>
+                    <p className="text-[11px] text-dim">{pe.targetSets} × {pe.targetReps}{pe.targetWeight ? ` @ ${pe.targetWeight} lbs` : ""}{pe.notes ? " · 📝" : ""}</p>
                   </div>
                   {/* Three-dot menu with click-outside fix */}
                   <ExerciseOverflowMenu
@@ -1567,21 +1571,23 @@ function ExerciseOverflowMenu({
 // EXERCISE LOG CARD (active workout)
 // ══════════════════════════════════════════════════════════════
 function ExerciseLogCard({
-  loggedEx, exIdx, settings, previousSets, pr, targetWeight, onLogSet, onRemoveSet, onRemoveExercise,
+  loggedEx, exIdx, settings, previousSets, pr, targetWeight, targetSets, targetReps, onLogSet, onRemoveSet, onRemoveExercise,
 }: {
   loggedEx: LoggedExercise; exIdx: number; settings: WorkoutSettings;
-  previousSets: LoggedSet[]; pr?: PersonalRecord; targetWeight?: number;
+  previousSets: LoggedSet[]; pr?: PersonalRecord; targetWeight?: number; targetSets?: number; targetReps?: string;
   onLogSet: (set: LoggedSet) => void; onRemoveSet: (setIdx: number) => void; onRemoveExercise: () => void;
 }) {
   const exercise = getExerciseById(loggedEx.exerciseId);
+  const numTarget = targetSets || 3;
   const [weight, setWeight] = useState("");
   const [reps, setReps] = useState("");
   const [duration, setDuration] = useState("");
   const [rpe, setRpe] = useState("");
   const [rir, setRir] = useState("");
-  const [setType, setSetType] = useState<"working" | "warmup">("working");
+  const [setType, setSetType] = useState<LoggedSet["type"]>("working");
+  const [extraSets, setExtraSets] = useState(0);
 
-  // Auto-fill inputs from previous session (or targetWeight fallback)
+  // Auto-fill inputs from previous session (or routine targets as fallback)
   useEffect(() => {
     const nextSetIdx = loggedEx.sets.length;
     const prev = previousSets[nextSetIdx];
@@ -1589,10 +1595,19 @@ function ExerciseLogCard({
       if (prev.weight) setWeight(String(prev.weight));
       if (prev.reps) setReps(String(prev.reps));
       if (prev.duration) setDuration(String(prev.duration));
-    } else if (nextSetIdx === 0 && targetWeight) {
-      setWeight(String(targetWeight));
+    } else if (nextSetIdx === 0) {
+      if (targetWeight) setWeight(String(targetWeight));
+      if (targetReps) {
+        const ex = getExerciseById(loggedEx.exerciseId);
+        const parsed = parseInt(targetReps);
+        if (!isNaN(parsed)) {
+          const timed = ex && (ex.tracking === "duration" || ex.tracking === "weight-duration");
+          if (timed) setDuration(String(parsed));
+          else setReps(String(parsed));
+        }
+      }
     }
-  }, [loggedEx.sets.length, previousSets, targetWeight]);
+  }, [loggedEx.sets.length, loggedEx.exerciseId, previousSets, targetWeight, targetReps]);
 
   if (!exercise) return null;
 
@@ -1657,7 +1672,7 @@ function ExerciseLogCard({
           return (
             <div key={si} className={`grid gap-2 items-center py-1.5 border-b border-border-light/50 text-[13px] ${set.type === "warmup" ? "opacity-60" : ""} ${isOverload ? "bg-hp-green/5" : ""}`}
               style={{ gridTemplateColumns: "32px 1fr 1fr 1fr 36px" }}>
-              <span className="text-muted text-[12px] font-medium">{set.type === "warmup" ? "W" : si + 1 - loggedEx.sets.filter((s, j) => j < si && s.type === "warmup").length}</span>
+              <span className={`text-[12px] font-medium ${set.type === "dropset" ? "text-hp-orange" : "text-muted"}`}>{set.type === "warmup" ? "W" : set.type === "dropset" ? "D" : si + 1 - loggedEx.sets.filter((s, j) => j < si && (s.type === "warmup" || s.type === "dropset")).length}</span>
               <span className="text-[11px] text-dim">{prev ? `${prev.weight || "—"} × ${prev.reps || prev.duration || "—"}` : "—"}</span>
               <span className="font-semibold text-text tabular-nums">{set.weight || set.duration || "—"}</span>
               <span className="font-semibold text-text tabular-nums">{set.reps || "—"}</span>
@@ -1672,9 +1687,9 @@ function ExerciseLogCard({
         {/* Input row */}
         <div className="grid gap-2 items-center py-2" style={{ gridTemplateColumns: "32px 1fr 1fr 1fr 36px" }}>
           <button onClick={() => setSetType(t => t === "working" ? "warmup" : "working")}
-            className={`text-[10px] font-bold rounded px-1 py-0.5 ${setType === "warmup" ? "bg-hp-yellow/20 text-hp-yellow" : "text-muted"}`}
-            title={setType === "warmup" ? "Warm-up set" : "Working set"}>
-            {setType === "warmup" ? "W" : loggedEx.sets.filter(s => s.type !== "warmup").length + 1}
+            className={`text-[10px] font-bold rounded px-1 py-0.5 ${setType === "warmup" ? "bg-hp-yellow/20 text-hp-yellow" : setType === "dropset" ? "bg-hp-orange/20 text-hp-orange" : "text-muted"}`}
+            title={setType === "warmup" ? "Warm-up set" : setType === "dropset" ? "Drop set" : "Working set"}>
+            {setType === "warmup" ? "W" : setType === "dropset" ? "D" : loggedEx.sets.filter(s => s.type !== "warmup" && s.type !== "dropset").length + 1}
           </button>
           <button onClick={() => { const prev = previousSets[loggedEx.sets.length]; if (prev) handlePrefill(prev); }}
             className="text-[11px] text-dim hover:text-accent truncate text-left" title="Tap to copy previous">
@@ -1722,12 +1737,39 @@ function ExerciseLogCard({
         </div>
       )}
 
+      {/* Upcoming set preview rows */}
+      {(() => {
+        const totalTarget = numTarget + extraSets;
+        const remaining = Math.max(0, totalTarget - loggedEx.sets.length - 1);
+        if (remaining <= 0) return null;
+        return (
+          <div className="px-4 pb-1">
+            {Array.from({length: remaining}, (_, i) => {
+              const futureIdx = loggedEx.sets.length + 1 + i;
+              const prev = previousSets[futureIdx];
+              return (
+                <div key={`upcoming-${futureIdx}`} className="grid gap-2 items-center py-1.5 opacity-35 border-t border-border-light/30"
+                  style={{gridTemplateColumns: "32px 1fr 1fr 1fr 36px"}}>
+                  <span className="text-[12px] text-muted">{futureIdx + 1}</span>
+                  <span className="text-[11px] text-dim">{prev ? `${prev.weight || "—"} × ${prev.reps || prev.duration || "—"}` : "—"}</span>
+                  <span className="text-[12px] text-dim tabular-nums">{prev?.weight || targetWeight || "—"}</span>
+                  <span className="text-[12px] text-dim tabular-nums">{prev?.reps || "—"}</span>
+                  <span className="w-8 h-8 flex items-center justify-center rounded-full border border-border-light/50 text-[14px] text-muted/30">✓</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
       {/* Quick actions */}
-      <div className="flex items-center gap-2 px-4 py-2 border-t border-border-light bg-surface-sage/30">
+      <div className="flex items-center gap-3 px-4 py-2 border-t border-border-light bg-surface-sage/30">
+        <button onClick={() => setExtraSets(n => n + 1)} className="text-[11px] text-muted hover:text-accent font-medium">+ Set</button>
         <button onClick={() => {
           const lastSet = loggedEx.sets[loggedEx.sets.length - 1];
+          setSetType("dropset");
           if (lastSet?.weight) { setWeight(String(Math.round(lastSet.weight * 0.8))); setReps(String((lastSet.reps || 8) + 4)); }
-        }} className="text-[11px] text-muted hover:text-accent font-medium">🔥 Drop Set</button>
+        }} className="text-[11px] text-hp-orange hover:text-hp-orange/80 font-medium">🔥 Drop Set</button>
       </div>
     </div>
   );
