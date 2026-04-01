@@ -1254,8 +1254,9 @@ function DayEditorView({
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(template?.name || "");
   const [showLoadDefault, setShowLoadDefault] = useState(false);
-  // For today-only edits, work on a local copy
-  const [localExercises, setLocalExercises] = useState<PlannedExercise[]>(template?.exercises || []);
+  // For today-only edits, work on a deep copy so mutations don't leak to template
+  const deepCopyExercises = (exs: PlannedExercise[]) => exs.map(e => ({ ...e }));
+  const [localExercises, setLocalExercises] = useState<PlannedExercise[]>(() => deepCopyExercises(template?.exercises || []));
 
   // Reset all UI state when switching days
   useEffect(() => {
@@ -1265,15 +1266,18 @@ function DayEditorView({
     setShowAddExercise(false);
     setIsRenaming(false);
     setShowLoadDefault(false);
-    setLocalExercises(template?.exercises || []);
+    setLocalExercises(deepCopyExercises(template?.exercises || []));
     setRenameValue(template?.name || "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [day]);
 
-  // Sync local exercises when template exercises change (but don't reset editing state)
+  // Sync local exercises from template changes — but NEVER in today-only mode
+  // (today-only mode owns its own localExercises; template sync would revert edits)
   const templateExJson = JSON.stringify(template?.exercises || []);
   useEffect(() => {
-    setLocalExercises(template?.exercises || []);
+    if (!isTodayOnlyEdit) {
+      setLocalExercises(deepCopyExercises(template?.exercises || []));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateExJson]);
 
@@ -1303,14 +1307,14 @@ function DayEditorView({
   const moveExercise = (idx: number, dir: -1 | 1) => {
     const newIdx = idx + dir;
     if (newIdx < 0 || newIdx >= exercises.length) return;
-    const arr = [...exercises];
+    const arr = deepCopyExercises(exercises);
     [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
     arr.forEach((e, i) => e.order = i);
     doUpdate(arr);
   };
 
   const removeExercise = (idx: number) => {
-    const arr = exercises.filter((_, i) => i !== idx);
+    const arr = deepCopyExercises(exercises.filter((_, i) => i !== idx));
     arr.forEach((e, i) => e.order = i);
     doUpdate(arr);
     setOpenMenuIdx(null);
