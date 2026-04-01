@@ -13,8 +13,7 @@ export async function GET() {
   ]);
 
   const now = new Date();
-  const nycOffset = now.getTimezoneOffset() === 240 ? -4 : -5;
-  const nycHour = (now.getUTCHours() + 24 + nycOffset) % 24;
+  const nycHour = parseInt(new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" }).format(now), 10);
 
   const conditions: RunConditions = {
     aqi: airNow?.aqi ?? null,

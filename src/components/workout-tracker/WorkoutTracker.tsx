@@ -50,10 +50,10 @@ const DOW_NAMES: DayOfWeek[] = ["sunday", "monday", "tuesday", "wednesday", "thu
 const DOW_SHORT = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
 const LEVEL_COLORS: Record<SplitLevel, string> = {
-  beginner: "bg-green-100 text-green-700",
-  intermediate: "bg-amber-100 text-amber-700",
-  advanced: "bg-red-100 text-red-700",
-  all: "bg-gray-100 text-gray-600",
+  beginner: "bg-hp-green/15 text-hp-green",
+  intermediate: "bg-hp-yellow/15 text-hp-orange",
+  advanced: "bg-hp-red/15 text-hp-red",
+  all: "bg-surface-sage text-dim",
 };
 
 /** Shorten a workout name for the 7-col weekly strip (max ~6 chars) */
@@ -113,9 +113,14 @@ export function WorkoutTracker() {
   const [pastWorkoutDate, setPastWorkoutDate] = useState<string | null>(null);
   const [completedSummary, setCompletedSummary] = useState<WorkoutSession | null>(null);
 
-  // Edit Today Only
-  const [todayOverride, setTodayOverride] = useState<PlannedExercise[] | null>(null);
+  // Edit Today Only (persisted so navigation doesn't lose changes)
+  const [todayOverride, setTodayOverrideRaw] = useState<PlannedExercise[] | null>(null);
   const [editingTodayOnly, setEditingTodayOnly] = useState(false);
+  const setTodayOverride = useCallback((v: PlannedExercise[] | null) => {
+    setTodayOverrideRaw(v);
+    if (v) saveToStorage(STORAGE_KEYS.todayOverride, { exercises: v, date: new Date().toISOString().split("T")[0] });
+    else saveToStorage(STORAGE_KEYS.todayOverride, null);
+  }, []);
 
   // Rest timer
   const [restSeconds, setRestSeconds] = useState(0);
@@ -137,6 +142,13 @@ export function WorkoutTracker() {
     setFavorites(loadFromStorage(STORAGE_KEYS.favorites, []));
     setRecentExercises(loadFromStorage(STORAGE_KEYS.recentExercises, []));
     setActiveWorkout(loadFromStorage(STORAGE_KEYS.activeWorkout, null));
+    // Restore todayOverride if saved for today
+    const savedOverride = loadFromStorage<{ exercises: PlannedExercise[]; date: string } | null>(STORAGE_KEYS.todayOverride, null);
+    if (savedOverride && savedOverride.date === new Date().toISOString().split("T")[0]) {
+      setTodayOverrideRaw(savedOverride.exercises);
+    } else {
+      saveToStorage(STORAGE_KEYS.todayOverride, null);
+    }
   }, []);
 
   // ── Persist helpers ────────────────────────────────────────
@@ -172,23 +184,31 @@ export function WorkoutTracker() {
     setRestSeconds(0);
   }, []);
 
-  // ── PR detection ──────────────────────────────────────────
+  // Cleanup rest timer on unmount
+  useEffect(() => {
+    return () => { if (restInterval.current) clearInterval(restInterval.current); };
+  }, []);
+
+  // ── PR detection (uses ref to avoid stale closure) ────────
+  const prsRef = useRef(prs);
+  prsRef.current = prs;
   const checkForPR = useCallback((exerciseId: string, set: LoggedSet, workoutId: string): boolean => {
     if (!set.weight || !set.reps || set.type === "warmup") return false;
     const est = estimated1RM(set.weight, set.reps);
-    const existing = prs.find(p => p.exerciseId === exerciseId && p.type === "1rm");
+    const currentPrs = prsRef.current;
+    const existing = currentPrs.find(p => p.exerciseId === exerciseId && p.type === "1rm");
     if (!existing || est > existing.value) {
       const newPR: PersonalRecord = {
         exerciseId, type: "1rm", value: est, unit: settings.units,
         date: new Date().toISOString(), workoutId,
         setDetails: `${set.weight} × ${set.reps}`,
       };
-      const updated = [...prs.filter(p => !(p.exerciseId === exerciseId && p.type === "1rm")), newPR];
+      const updated = [...currentPrs.filter(p => !(p.exerciseId === exerciseId && p.type === "1rm")), newPR];
       persistPrs(updated);
       return true;
     }
     return false;
-  }, [prs, settings.units, persistPrs]);
+  }, [settings.units, persistPrs]);
 
   // ── Start a workout ───────────────────────────────────────
   const startWorkout = useCallback((exercises?: PlannedExercise[], name?: string, templateId?: string) => {
@@ -287,7 +307,7 @@ export function WorkoutTracker() {
     for (let i = 0; i < 365; i++) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
-      const dayStr = d.toISOString().split("T")[0];
+      const dayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       const hasWorkout = workoutLog.some(w => w.completedAt?.startsWith(dayStr));
       if (hasWorkout || (i === 0 && activeWorkout)) streak++;
       else if (i > 0) break;
@@ -371,7 +391,7 @@ export function WorkoutTracker() {
           <div className="grid grid-cols-2 gap-3">
             <div className="text-center p-2 bg-surface-sage rounded-xl">
               <p className="text-[20px] font-display font-bold text-text">{completedSummary.totalVolume.toLocaleString()}</p>
-              <p className="text-[10px] text-muted uppercase">Total Volume (lbs)</p>
+              <p className="text-[10px] text-muted uppercase">Total Volume ({settings.units})</p>
             </div>
             <div className="text-center p-2 bg-surface-sage rounded-xl">
               <p className="text-[20px] font-display font-bold text-text">{completedSummary.exercises.length}</p>
@@ -401,7 +421,7 @@ export function WorkoutTracker() {
                 const est = pr.set.weight && pr.set.reps ? estimated1RM(pr.set.weight, pr.set.reps) : 0;
                 return (
                   <p key={i} className="text-[12px] text-dim mt-1">
-                    {ex?.name} — {pr.set.weight} × {pr.set.reps} (est 1RM: {Math.round(est)} lbs)
+                    {ex?.name} — {pr.set.weight} × {pr.set.reps} (est 1RM: {Math.round(est)} {settings.units})
                   </p>
                 );
               })}
@@ -420,8 +440,17 @@ export function WorkoutTracker() {
     );
   }
 
+  // ── Elapsed time (updates every 30s) ─────────────────────
+  const [elapsedTick, setElapsedTick] = useState(0);
+  useEffect(() => {
+    if (!activeWorkout) return;
+    const id = setInterval(() => setElapsedTick(t => t + 1), 30000);
+    return () => clearInterval(id);
+  }, [activeWorkout]);
+
   // ── ACTIVE WORKOUT VIEW ───────────────────────────────────
   if (activeWorkout) {
+    void elapsedTick; // use the tick to trigger re-render
     const elapsed = Math.round((Date.now() - new Date(activeWorkout.startedAt).getTime()) / 60000);
     return (
       <div className="space-y-4">
@@ -504,7 +533,7 @@ export function WorkoutTracker() {
             </div>
             <div className="flex gap-3 text-[12px] text-muted mb-3">
               <span>Duration: {pastWorkout.duration} min</span>
-              <span>Volume: {pastWorkout.totalVolume.toLocaleString()} lbs</span>
+              <span>Volume: {pastWorkout.totalVolume.toLocaleString()} {settings.units}</span>
             </div>
             <div className="space-y-2">
               {pastWorkout.exercises.map((ex, i) => {
@@ -732,7 +761,7 @@ function getDateForDayOfWeek(day: DayOfWeek): string | null {
   const targetDate = new Date(monday);
   const dayIndex = DAYS_META.findIndex(d => d.key === day);
   targetDate.setDate(monday.getDate() + dayIndex);
-  return targetDate.toISOString().split("T")[0];
+  return `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, "0")}-${String(targetDate.getDate()).padStart(2, "0")}`;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -882,7 +911,9 @@ function TodayWorkoutCard({
           + Add a Workout Anyway
         </button>
         {showOneTimeMenu && (
-          <div className="mt-2 bg-surface rounded-xl border border-border-light shadow-lg p-3">
+          <>
+          <div className="fixed inset-0 z-30" onClick={() => setShowOneTimeMenu(false)} />
+          <div className="relative z-40 mt-2 bg-surface rounded-xl border border-border-light shadow-lg p-3">
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-2">Quick Pick</p>
             <div className="grid grid-cols-2 gap-1.5 max-h-[200px] overflow-y-auto">
               {QUICK_START_IDS.map(id => {
@@ -897,6 +928,7 @@ function TodayWorkoutCard({
               })}
             </div>
           </div>
+          </>
         )}
       </div>
     );
@@ -1321,13 +1353,13 @@ function DayEditorView({
   };
 
   const updateExercise = (idx: number, updates: Partial<PlannedExercise>) => {
-    const arr = [...exercises];
+    const arr = deepCopyExercises(exercises);
     arr[idx] = { ...arr[idx], ...updates };
     doUpdate(arr);
   };
 
   const replaceExercise = (idx: number, newExId: string) => {
-    const arr = [...exercises];
+    const arr = deepCopyExercises(exercises);
     arr[idx] = { ...arr[idx], exerciseId: newExId };
     doUpdate(arr);
     setReplacingExIdx(null);
@@ -1343,7 +1375,13 @@ function DayEditorView({
       targetReps: ex.tracking === "duration" ? "30s" : "10",
       restTime: getDefaultRestTime(ex.tracking), order: exercises.length,
     };
-    doUpdate([...exercises, pe]);
+    const newExercises = [...exercises, pe];
+    if (isTodayOnlyEdit) {
+      setLocalExercises(newExercises);
+    } else {
+      // Use `t` directly since `template` may be stale after ensureTemplate()
+      onUpdateTemplate({ ...t, exercises: newExercises, estimatedDuration: newExercises.length * 7 });
+    }
     setShowAddExercise(false);
   };
 
@@ -1572,7 +1610,7 @@ function ExerciseOverflowMenu({
         <>
           {/* Backdrop catches outside clicks — no document listeners needed */}
           <div className="fixed inset-0 z-40" onClick={act(onClose)} />
-          <div className="absolute right-0 top-9 z-50 bg-surface rounded-xl border border-border-light shadow-lg py-1 w-52">
+          <div className="absolute right-0 top-9 z-50 bg-surface rounded-xl border border-border-light shadow-lg py-1 w-52 max-w-[calc(100vw-2rem)]">
             <button onClick={act(onEdit)} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">✏️ Edit Sets & Reps</button>
             <button onClick={act(onReplace)} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">🔄 Replace Exercise</button>
             <button onClick={act(onAddNote)} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">📝 Add Note</button>

@@ -135,6 +135,7 @@ export const STORAGE_KEYS = {
   settings: `${PREFIX}settings`,
   customExercises: `${PREFIX}custom-exercises`,
   activeWorkout: `${PREFIX}active`,      // current in-progress workout
+  todayOverride: `${PREFIX}today-override`, // "Edit Today Only" exercises
   favorites: `${PREFIX}favorites`,        // favorited exercise IDs
   recentExercises: `${PREFIX}recent`,     // recently used exercise IDs
 } as const;

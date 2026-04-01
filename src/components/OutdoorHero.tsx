@@ -8,16 +8,17 @@ import { HomepageWorkoutWidget } from "@/components/workout-tracker/HomepageWork
 /* ── Count-up hook ─────────────────────────────────────────────────────── */
 function useCountUp(target: number, duration = 1200) {
   const [value, setValue] = useState(0);
-  const started = useRef(false);
+  const prevTarget = useRef(0);
   useEffect(() => {
-    if (started.current || target === 0) return;
-    started.current = true;
+    if (target === 0) return;
+    const from = prevTarget.current;
+    prevTarget.current = target;
     const start = performance.now();
     function tick(now: number) {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(eased * target));
+      setValue(Math.round(from + eased * (target - from)));
       if (progress < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
@@ -212,7 +213,7 @@ function loadCalorieGoal(): number {
       const parsed = JSON.parse(goals);
       if (parsed.dailyCalories) return parsed.dailyCalories;
     }
-    const profile = localStorage.getItem("pulsenyc_nutrition_profile");
+    const profile = localStorage.getItem("pulse_nutrition_profile");
     if (profile) {
       const parsed = JSON.parse(profile);
       if (parsed.tdee) return parsed.tdee;

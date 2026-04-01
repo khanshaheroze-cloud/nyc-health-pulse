@@ -46,7 +46,7 @@ export function HomepageWorkoutWidget() {
     for (let i = 0; i < 365; i++) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      const dayStr = d.toISOString().split("T")[0];
+      const dayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       const hasW = log.some(w => w.completedAt?.startsWith(dayStr));
       if (hasW || (i === 0 && active)) s++;
       else if (i > 0) break;

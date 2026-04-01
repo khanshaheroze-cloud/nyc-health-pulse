@@ -124,7 +124,9 @@ export function SmartRouteRecommender() {
   if (error || !data) {
     return (
       <div className="bg-surface border border-border rounded-2xl p-6 text-center">
-        <p className="text-dim text-[13px]">Unable to load running conditions. Please try again.</p>
+        <p className="text-dim text-[13px]">Unable to load running conditions.</p>
+        <button onClick={() => { setError(false); setLoading(true); fetch("/api/run-conditions").then(r => r.json()).then((d: ApiResponse) => { setData(d); setLoading(false); }).catch(() => { setError(true); setLoading(false); }); }}
+          className="mt-2 text-[12px] text-accent font-semibold hover:underline">Retry</button>
       </div>
     );
   }

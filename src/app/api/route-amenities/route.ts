@@ -88,7 +88,8 @@ async function fetchSubwayStations(lat: number, lng: number, radius: number): Pr
 
 async function fetchCitiBike(lat: number, lng: number, radius: number): Promise<Amenity[]> {
   try {
-    const res = await fetch(`/api/citibike?lat=${lat}&lng=${lng}&radius=${radius}`);
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
+    const res = await fetch(`${baseUrl}/api/citibike?lat=${lat}&lng=${lng}&radius=${radius}`);
     if (!res.ok) {
       // Direct GBFS call as fallback
       const infoRes = await fetch("https://gbfs.citibikenyc.com/gbfs/en/station_information.json");

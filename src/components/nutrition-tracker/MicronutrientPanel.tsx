@@ -45,7 +45,7 @@ const NUTRIENTS: NutrientDV[] = [
   { key: "folate", label: "Folate", unit: "mcg DFE", dv: 400 },
   { key: "calcium", label: "Calcium", unit: "mg", dv: 1300 },
   { key: "iron", label: "Iron", unit: "mg", dv: 18 },
-  { key: "potassium", label: "Potassium", unit: "mg", dv: 2600 },
+  { key: "potassium", label: "Potassium", unit: "mg", dv: 4700 },
   { key: "magnesium", label: "Magnesium", unit: "mg", dv: 420 },
   { key: "zinc", label: "Zinc", unit: "mg", dv: 11 },
   {

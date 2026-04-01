@@ -2,15 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { loadProfile, saveProfile } from "./BodyProfile";
-
-interface UserGoals {
-  dailyCalories: number;
-  proteinGoal: number;
-  carbGoal: number;
-  fatGoal: number;
-  fiberGoal: number;
-  waterGoalOz: number;
-}
+import type { UserGoals } from "./DailySummary";
 
 interface GoalSettingsProps {
   goals: UserGoals;

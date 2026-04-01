@@ -94,7 +94,7 @@ export default function WeeklyTrends() {
     let daysWithData = 0;
 
     for (const dateStr of days) {
-      const dayOfWeek = DAY_LABELS[new Date(dateStr).getDay()];
+      const dayOfWeek = DAY_LABELS[new Date(dateStr + "T12:00:00").getDay()];
       let dayTotal = 0;
 
       try {
@@ -102,17 +102,18 @@ export default function WeeklyTrends() {
           `pulsenyc_nutrition_${dateStr}`
         );
         if (raw) {
-          const dayData = JSON.parse(raw) as {
+          const parsed = JSON.parse(raw);
+          const dayData = (parsed.meals || parsed) as {
             breakfast: FoodEntry[];
             lunch: FoodEntry[];
             dinner: FoodEntry[];
             snacks: FoodEntry[];
           };
           const allEntries = [
-            ...dayData.breakfast,
-            ...dayData.lunch,
-            ...dayData.dinner,
-            ...dayData.snacks,
+            ...(dayData.breakfast || []),
+            ...(dayData.lunch || []),
+            ...(dayData.dinner || []),
+            ...(dayData.snacks || []),
           ];
           for (const entry of allEntries) {
             dayTotal += entry[metric] * entry.servings;

@@ -54,6 +54,7 @@ function loadDay(date: string): NutritionDay {
 function saveDay(day: NutritionDay) {
   if (typeof window === "undefined") return;
   localStorage.setItem(`pulsenyc_nutrition_${day.date}`, JSON.stringify(day));
+  window.dispatchEvent(new CustomEvent("pulsenyc-nutrition-change"));
 }
 
 function loadGoals(): UserGoals {

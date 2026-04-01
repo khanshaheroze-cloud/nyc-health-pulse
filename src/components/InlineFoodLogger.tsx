@@ -47,10 +47,10 @@ export default function InlineFoodLogger() {
       const goalsRaw = localStorage.getItem("pulsenyc_nutrition_goals");
       if (goalsRaw) {
         const goals = JSON.parse(goalsRaw);
-        if (goals.calories) setTargetCals(goals.calories);
+        if (goals.dailyCalories) setTargetCals(goals.dailyCalories);
       } else {
         // Also check body profile for calorie target
-        const profileRaw = localStorage.getItem("pulsenyc_nutrition_profile");
+        const profileRaw = localStorage.getItem("pulse_nutrition_profile");
         if (profileRaw) {
           const profile = JSON.parse(profileRaw);
           if (profile.tdee) setTargetCals(Math.round(profile.tdee));

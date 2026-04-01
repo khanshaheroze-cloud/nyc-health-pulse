@@ -848,29 +848,36 @@ export default function FoodSearchModal({
     }
   }, [localResults, apiResults, loadingApi, query, tab]);
 
+  // Escape key closes modal
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
   // Prevent body scroll when modal is open & handle mobile viewport
+  const scrollPosRef = useRef(0);
   useEffect(() => {
     if (open) {
+      scrollPosRef.current = window.scrollY;
       document.body.style.overflow = "hidden";
-      // Prevent iOS Safari bounce / address-bar-resize issues
       document.body.style.position = "fixed";
       document.body.style.width = "100%";
-      document.body.style.top = `-${window.scrollY}px`;
+      document.body.style.top = `-${scrollPosRef.current}px`;
     } else {
-      const scrollY = document.body.style.top;
       document.body.style.overflow = "";
       document.body.style.position = "";
       document.body.style.width = "";
       document.body.style.top = "";
-      if (scrollY) window.scrollTo(0, parseInt(scrollY, 10) * -1);
+      window.scrollTo(0, scrollPosRef.current);
     }
     return () => {
-      const scrollY = document.body.style.top;
       document.body.style.overflow = "";
       document.body.style.position = "";
       document.body.style.width = "";
       document.body.style.top = "";
-      if (scrollY) window.scrollTo(0, parseInt(scrollY, 10) * -1);
+      window.scrollTo(0, scrollPosRef.current);
     };
   }, [open]);
 

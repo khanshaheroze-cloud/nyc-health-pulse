@@ -216,22 +216,26 @@ export default function SmartRunRoutes() {
                   className="w-full text-[13px] px-3 py-2.5 rounded-xl bg-bg border border-border text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-hp-green/30 focus:border-hp-green/40"
                 />
                 {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-xl shadow-lg z-50 overflow-hidden">
-                    {suggestions.map((s, i) => (
-                      <button
-                        key={i}
-                        onClick={() => selectSuggestion(s)}
-                        className="w-full text-left px-3 py-2.5 text-[12px] text-text hover:bg-bg transition-colors border-b border-border/50 last:border-b-0"
-                      >
-                        {s.name}
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowSuggestions(false)} />
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-xl shadow-lg z-50 overflow-hidden">
+                      {suggestions.map((s, i) => (
+                        <button
+                          key={i}
+                          onClick={() => selectSuggestion(s)}
+                          className="w-full text-left px-3 py-2.5 text-[12px] text-text hover:bg-bg transition-colors border-b border-border/50 last:border-b-0"
+                        >
+                          {s.name}
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
               <button
                 onClick={useMyLocation}
                 disabled={locating}
+                aria-label="Use my current location"
                 className="shrink-0 px-3 py-2.5 rounded-xl bg-bg border border-border text-[12px] font-semibold text-text hover:bg-accent-bg hover:border-hp-green/30 transition-all disabled:opacity-50"
               >
                 {locating ? "..." : "My Location"}
@@ -255,7 +259,7 @@ export default function SmartRunRoutes() {
             onChange={(e) => setDistance(parseFloat(e.target.value))}
             className="w-full accent-[var(--color-hp-green)]" />
           <div className="flex justify-between text-[10px] text-muted mt-0.5">
-            <span>0.5 mi</span><span>5 mi</span><span>10 mi</span><span>15 mi</span>
+            <span>0.5 mi</span><span>15 mi</span>
           </div>
         </div>
 
@@ -297,7 +301,7 @@ export default function SmartRunRoutes() {
             <span className="text-[12px] font-semibold text-text">Prefer Parks & Waterfront</span>
             <span className="text-[10px] text-muted block mt-0.5">Routes through nearby green spaces</span>
           </div>
-          <button type="button" onClick={() => setPreferParks(!preferParks)}
+          <button type="button" role="switch" aria-checked={preferParks} aria-label="Prefer Parks & Waterfront" onClick={() => setPreferParks(!preferParks)}
             className={`relative w-11 h-6 rounded-full transition-colors ${preferParks ? "bg-[#4A7C59]" : "bg-slate-300"}`}>
             <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${preferParks ? "translate-x-5" : ""}`} />
           </button>
