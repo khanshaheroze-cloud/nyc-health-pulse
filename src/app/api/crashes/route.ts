@@ -44,10 +44,11 @@ export async function GET() {
 
     const trendUrl = `${BASE}?$select=date_extract_y(crash_date) as yr, date_extract_m(crash_date) as mo, count(*) as crashes, sum(number_of_persons_killed) as killed&$where=crash_date > '${fmt(twoYearsAgo)}'&$group=yr,mo&$order=yr,mo`;
 
+    const fetchOpts = { next: { revalidate }, signal: AbortSignal.timeout(10000) };
     const [boroughRes, factorsRes, trendRes] = await Promise.all([
-      fetch(boroughUrl, { next: { revalidate } }),
-      fetch(factorsUrl, { next: { revalidate } }),
-      fetch(trendUrl, { next: { revalidate } }),
+      fetch(boroughUrl, fetchOpts),
+      fetch(factorsUrl, fetchOpts),
+      fetch(trendUrl, fetchOpts),
     ]);
 
     if (!boroughRes.ok) throw new Error(`Borough API ${boroughRes.status}`);

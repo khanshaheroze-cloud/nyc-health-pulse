@@ -2,8 +2,18 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
+import mapboxgl from "mapbox-gl";
 import Map, { Source, Layer, Marker, NavigationControl } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
+
+// Ensure mapbox-gl CSS is loaded (fallback for bundler issues with dynamic imports)
+if (typeof document !== "undefined" && !document.getElementById("mapbox-gl-css")) {
+  const link = document.createElement("link");
+  link.id = "mapbox-gl-css";
+  link.rel = "stylesheet";
+  link.href = `https://api.mapbox.com/mapbox-gl-js/v${mapboxgl.version}/mapbox-gl.css`;
+  document.head.appendChild(link);
+}
 
 const RouteAmenities = dynamic(() => import("./RouteAmenities").then(m => ({ default: m.RouteAmenities })), { ssr: false });
 
@@ -56,7 +66,7 @@ export default function SmartRunRoutes() {
   const [selectedRoute, setSelectedRoute] = useState<GeneratedRoute | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [meta, setMeta] = useState<any>(null);
+  const [meta, setMeta] = useState<{ nearbyParks: number; nearbyWaterfront: number; candidatesGenerated: number; processingMs: number } | null>(null);
 
   const mapRef = useRef<any>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -119,6 +129,7 @@ export default function SmartRunRoutes() {
         setLocating(false);
         setLocationError(
           err.code === 1 ? "Location access denied. Search for an address instead."
+            : err.code === 3 ? "Location request timed out. Search for an address instead."
             : "Could not get location. Search for an address instead.",
         );
       },
@@ -270,7 +281,7 @@ export default function SmartRunRoutes() {
             </div>
             {startName && startLat !== null && (
               <p className="text-[10px] text-hp-green font-semibold mt-1.5">
-                {startName} ({startLat.toFixed(4)}, {startLng?.toFixed(4)})
+                {startName} ({startLat?.toFixed(4)}, {startLng?.toFixed(4)})
               </p>
             )}
             {locationError && <p className="text-[10px] text-hp-red mt-1">{locationError}</p>}

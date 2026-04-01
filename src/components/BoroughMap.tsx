@@ -11,7 +11,7 @@ interface Props {
 export function BoroughMap({ height = 400 }: Props) {
   return (
     <div style={{ height }} className="w-full rounded-xl overflow-hidden border border-border">
-      <BoroughMapImpl />
+      <BoroughMapImpl height={height} />
     </div>
   );
 }

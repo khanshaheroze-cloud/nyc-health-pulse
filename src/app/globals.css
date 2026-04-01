@@ -491,10 +491,17 @@
   opacity: 0;
   transform: translateY(16px);
   transition: opacity 0.5s ease, transform 0.5s ease;
+  /* Fallback: auto-reveal after 1.5s if JS fails to add .revealed */
+  animation: reveal-fallback 0.5s ease 1.5s forwards;
 }
 .reveal-on-scroll.revealed {
   opacity: 1;
   transform: translateY(0);
+  /* Cancel fallback animation once JS has revealed the element */
+  animation: none;
+}
+@keyframes reveal-fallback {
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Stagger siblings within a reveal group */

@@ -79,7 +79,7 @@ export function SmartRouteRecommender() {
     if (borough !== "All") routes = routes.filter((r) => r.borough === borough);
     if (difficulty !== "All") routes = routes.filter((r) => r.difficulty === difficulty);
     if (carFreeOnly) routes = routes.filter((r) => r.carFree);
-    if (raceRoutesOnly) routes = routes.filter((r) => (r as typeof r & { tag?: string }).tag === "race");
+    if (raceRoutesOnly) routes = routes.filter((r) => r.tag === "race");
     routes = routes.filter((r) => r.distanceMi <= maxDistance);
     if (sortBy === "distance-asc") routes = [...routes].sort((a, b) => a.distanceMi - b.distanceMi);
     else if (sortBy === "distance-desc") routes = [...routes].sort((a, b) => b.distanceMi - a.distanceMi);
@@ -259,7 +259,7 @@ export function SmartRouteRecommender() {
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-sage border border-border text-muted">{SURFACE_ICON[route.surface] ?? "🛣️"} {route.surface}</span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-sage border border-border text-muted">{DIFFICULTY_ICON[route.difficulty]} {route.difficulty}</span>
                     {route.carFree && <span className="text-[10px] px-2 py-0.5 rounded-full bg-hp-green/10 border border-hp-green/20 text-hp-green font-semibold">Car-Free</span>}
-                    {(route as typeof route & { tag?: string }).tag === "race" && <span className="text-[10px] px-2 py-0.5 rounded-full bg-hp-orange/10 border border-hp-orange/20 text-hp-orange font-semibold">🏅 NYRR Race</span>}
+                    {route.tag === "race" && <span className="text-[10px] px-2 py-0.5 rounded-full bg-hp-orange/10 border border-hp-orange/20 text-hp-orange font-semibold">🏅 NYRR Race</span>}
                   </div>
 
                   {/* Score breakdown mini */}

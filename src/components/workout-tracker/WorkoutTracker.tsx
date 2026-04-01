@@ -172,7 +172,7 @@ export function WorkoutTracker() {
     restInterval.current = setInterval(() => {
       setRestSeconds(prev => {
         if (prev <= 1) {
-          clearInterval(restInterval.current!);
+          if (restInterval.current) clearInterval(restInterval.current);
           setRestActive(false);
           if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate([200, 100, 200]);
           // Play audio beep when sound is enabled
@@ -1707,11 +1707,11 @@ function ExerciseLogCard({
   const handleAddSet = () => {
     const set: LoggedSet = {
       setNumber: loggedEx.sets.length + 1, type: setType,
-      weight: weight ? parseFloat(weight) : undefined,
-      reps: reps ? parseInt(reps) : undefined,
-      duration: duration ? parseInt(duration) : undefined,
-      rpe: rpe ? parseFloat(rpe) : undefined,
-      rir: rir ? parseInt(rir) : undefined,
+      weight: weight && !isNaN(parseFloat(weight)) ? parseFloat(weight) : undefined,
+      reps: reps && !isNaN(parseInt(reps)) ? parseInt(reps) : undefined,
+      duration: duration && !isNaN(parseInt(duration)) ? parseInt(duration) : undefined,
+      rpe: rpe && !isNaN(parseFloat(rpe)) ? parseFloat(rpe) : undefined,
+      rir: rir && !isNaN(parseInt(rir)) ? parseInt(rir) : undefined,
       isPersonalRecord: false, completedAt: new Date().toISOString(),
     };
     onLogSet(set);
@@ -2044,8 +2044,8 @@ function LoadDefaultPanel({ day, onSelect, onClose }: {
       <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto">
         {quicks.map(q => (
           <button key={q.id} onClick={() => onSelect(q.id)} className="text-left p-3 rounded-xl border border-border-light hover:border-accent hover:bg-accent/5 transition-colors">
-            <p className="text-[12px] font-semibold text-text">{q.days[0].emoji} {q.days[0].name}</p>
-            <p className="text-[10px] text-muted">{q.days[0].exercises.length} exercises</p>
+            <p className="text-[12px] font-semibold text-text">{q.days[0]?.emoji} {q.days[0]?.name}</p>
+            <p className="text-[10px] text-muted">{q.days[0]?.exercises.length ?? 0} exercises</p>
           </button>
         ))}
       </div>

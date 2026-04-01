@@ -27,7 +27,7 @@ export function ExploreGrid() {
           <Link
             key={f.href}
             href={f.href}
-            className="group flex items-start gap-3 rounded-2xl border border-border-light bg-surface p-4 hover:shadow-md hover:-translate-y-px transition-all"
+            className="group flex items-start gap-3 rounded-2xl border border-border-light bg-surface p-4 hover:shadow-md hover:-translate-y-px transition-all cursor-pointer"
           >
             {/* Emoji icon */}
             <div className="w-10 h-10 rounded-xl bg-accent-bg flex items-center justify-center text-lg shrink-0">
@@ -38,6 +38,9 @@ export function ExploreGrid() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-text group-hover:text-accent transition-colors leading-tight">
                 {f.title}
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="inline-block ml-1 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all">
+                  <path d="M4.5 2.5l3.5 3.5-3.5 3.5"/>
+                </svg>
               </p>
               <p className="text-xs text-muted mt-0.5 leading-snug">
                 {f.desc}

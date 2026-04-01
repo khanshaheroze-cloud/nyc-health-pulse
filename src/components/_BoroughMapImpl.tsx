@@ -78,7 +78,7 @@ export type MapMetric = "pm25" | "obesity" | "life_expectancy" | "asthma";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GeoJsonData = any;
 
-export default function BoroughMapImpl() {
+export default function BoroughMapImpl({ height = 400 }: { height?: number }) {
   const [metric, setMetric] = useState<MapMetric>("pm25");
   const [geoJson, setGeoJson] = useState<GeoJsonData>(null);
   const [error, setError] = useState(false);
@@ -129,6 +129,9 @@ export default function BoroughMapImpl() {
     );
   }
 
+  // Reserve ~36px for the metric tab row + gap
+  const mapHeight = height - 44;
+
   return (
     <div className="flex flex-col gap-2 h-full">
       {/* Metric tab row */}
@@ -150,12 +153,12 @@ export default function BoroughMapImpl() {
       </div>
 
       {/* Map */}
-      <div className="flex-1" style={{ minHeight: 0 }}>
+      <div style={{ height: mapHeight }}>
         <MapContainer
           center={[40.7128, -74.006]}
           zoom={10}
           scrollWheelZoom={false}
-          style={{ height: "100%", width: "100%", background: "#FAFAF7" }}
+          style={{ height: mapHeight, width: "100%", background: "#FAFAF7" }}
           className="rounded-lg"
         >
           <TileLayer

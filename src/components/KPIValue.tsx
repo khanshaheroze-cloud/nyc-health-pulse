@@ -33,20 +33,23 @@ export function KPIValue({
   const started = useRef(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // After hydration, reset to 0 and set up scroll-triggered count-up
+  // After hydration, set up scroll-triggered count-up animation
   useEffect(() => {
     setHydrated(true);
     const el = ref.current;
     if (!el || !isNumeric || numericPart === 0) return;
 
-    // Reset to 0 for animation
-    setDisplay(0);
+    // Reset ref for React strict mode double-mount
+    started.current = false;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !started.current) {
           started.current = true;
           observer.disconnect();
+
+          // Reset to 0 and animate up — only when element is in view
+          setDisplay(0);
 
           const duration = 1200;
           const start = performance.now();
@@ -70,8 +73,10 @@ export function KPIValue({
   }, [isNumeric, numericPart]);
 
   if (!isNumeric) {
+    // For long text values (e.g. "Cardiovascular"), scale down font to fit
+    const longText = value.length > 10;
     return (
-      <div className={className}>
+      <div className={`${className} ${longText ? "!text-[clamp(16px,4.5vw,24px)]" : ""} break-words`}>
         {value}
         {unit && <span className="text-[12px] sm:text-[14px] font-sans font-normal text-dim ml-1">{unit}</span>}
       </div>

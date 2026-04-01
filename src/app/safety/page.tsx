@@ -56,10 +56,11 @@ async function fetchCrashDataDirect(): Promise<CrashData> {
   const MONTH_LABELS = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   try {
+    const fetchOpts = { next: { revalidate: 86400 }, signal: AbortSignal.timeout(10000) };
     const [boroughRes, factorsRes, trendRes] = await Promise.all([
-      fetch(`${BASE}?$select=borough, count(*) as crashes, sum(number_of_persons_injured) as injured, sum(number_of_persons_killed) as killed, sum(number_of_pedestrians_injured) as ped_injured, sum(number_of_cyclist_injured) as cyclist_injured&$where=crash_date > '${fmt(twelveMonthsAgo)}' AND borough IS NOT NULL AND borough != ''&$group=borough&$order=crashes DESC`, { next: { revalidate: 86400 } }),
-      fetch(`${BASE}?$select=contributing_factor_vehicle_1 as factor, count(*) as cnt&$where=crash_date > '${fmt(twelveMonthsAgo)}' AND contributing_factor_vehicle_1 != 'Unspecified'&$group=contributing_factor_vehicle_1&$order=cnt DESC&$limit=8`, { next: { revalidate: 86400 } }),
-      fetch(`${BASE}?$select=date_extract_y(crash_date) as yr, date_extract_m(crash_date) as mo, count(*) as crashes, sum(number_of_persons_killed) as killed&$where=crash_date > '${fmt(twoYearsAgo)}'&$group=yr,mo&$order=yr,mo`, { next: { revalidate: 86400 } }),
+      fetch(`${BASE}?$select=borough, count(*) as crashes, sum(number_of_persons_injured) as injured, sum(number_of_persons_killed) as killed, sum(number_of_pedestrians_injured) as ped_injured, sum(number_of_cyclist_injured) as cyclist_injured&$where=crash_date > '${fmt(twelveMonthsAgo)}' AND borough IS NOT NULL AND borough != ''&$group=borough&$order=crashes DESC`, fetchOpts),
+      fetch(`${BASE}?$select=contributing_factor_vehicle_1 as factor, count(*) as cnt&$where=crash_date > '${fmt(twelveMonthsAgo)}' AND contributing_factor_vehicle_1 != 'Unspecified'&$group=contributing_factor_vehicle_1&$order=cnt DESC&$limit=8`, fetchOpts),
+      fetch(`${BASE}?$select=date_extract_y(crash_date) as yr, date_extract_m(crash_date) as mo, count(*) as crashes, sum(number_of_persons_killed) as killed&$where=crash_date > '${fmt(twoYearsAgo)}'&$group=yr,mo&$order=yr,mo`, fetchOpts),
     ]);
 
     const boroughRaw = boroughRes.ok ? await boroughRes.json() as { borough: string; crashes: string; injured: string; killed: string; ped_injured: string; cyclist_injured: string }[] : [];
