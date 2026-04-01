@@ -23,7 +23,7 @@ export function useScrollReveal<T extends HTMLElement = HTMLDivElement>(
           if (once) observer.unobserve(el);
         }
       },
-      { threshold }
+      { threshold, rootMargin: "0px 0px 300px 0px" }
     );
 
     observer.observe(el);

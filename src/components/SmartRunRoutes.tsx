@@ -304,7 +304,7 @@ export default function SmartRunRoutes() {
         </div>
 
         <p className="text-[10px] text-muted px-1">
-          Routes stay on your side of the water — no ferries or unnecessary bridge crossings.
+          Routes stay on your landmass — no ferries, bridges, or train paths. Just running.
         </p>
 
         {/* Generate Button */}

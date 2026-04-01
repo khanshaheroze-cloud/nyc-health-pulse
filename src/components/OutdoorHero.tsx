@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import type { Route } from "@/lib/routes";
+import { HomepageWorkoutWidget } from "@/components/workout-tracker/HomepageWorkoutWidget";
 
 /* ── Count-up hook ─────────────────────────────────────────────────────── */
 function useCountUp(target: number, duration = 1200) {
@@ -238,7 +239,7 @@ interface SearchResult {
   source: string;
 }
 
-function InlineFoodLogger() {
+function InlineFoodLogger({ expandRef }: { expandRef?: React.MutableRefObject<(() => void) | null> }) {
   const [expanded, setExpanded] = useState(false);
   const [dayLog, setDayLog] = useState<DayLog>(() => emptyDayLog(todayKey()));
   const [goal, setGoal] = useState(2000);
@@ -265,6 +266,17 @@ function InlineFoodLogger() {
     setDayLog(loadDayLog(todayKey()));
     setGoal(loadCalorieGoal());
   }, []);
+
+  // Expose expand function to parent via ref
+  useEffect(() => {
+    if (expandRef) {
+      expandRef.current = () => {
+        setExpanded(true);
+        setTimeout(() => inputRef.current?.focus(), 100);
+      };
+    }
+    return () => { if (expandRef) expandRef.current = null; };
+  }, [expandRef]);
 
   // Listen for external changes
   useEffect(() => {
@@ -320,13 +332,26 @@ function InlineFoodLogger() {
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    // Local fast search (150ms debounce), then API (350ms)
+    // Fast local search first (150ms), then USDA fallback if 0 results (350ms)
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await fetch(`/api/nutrition-tracker/search?q=${encodeURIComponent(q)}&local=1`);
         if (res.ok) {
           const data = await res.json();
-          setResults((data.results ?? data).slice(0, 5));
+          const items = (data.results ?? data).slice(0, 5);
+          if (items.length > 0) {
+            setResults(items);
+            setSearching(false);
+            return;
+          }
+        }
+        // No local results — fall back to full search (includes USDA)
+        if (q.length >= 3) {
+          const full = await fetch(`/api/nutrition-tracker/search?q=${encodeURIComponent(q)}`);
+          if (full.ok) {
+            const fullData = await full.json();
+            setResults((fullData.results ?? fullData).slice(0, 5));
+          }
         }
       } catch { /* ignore */ }
       setSearching(false);
@@ -403,7 +428,7 @@ function InlineFoodLogger() {
         className="w-full flex items-center gap-3 text-left group"
       >
         <span className="text-[11px] font-bold uppercase tracking-[1px] text-dim flex-shrink-0">
-          \uD83C\uDF7D FOOD LOG
+          {"🍽"} FOOD LOG
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -432,8 +457,8 @@ function InlineFoodLogger() {
 
       {/* Expanded panel */}
       <div
-        className="overflow-hidden transition-all duration-300 ease-in-out"
-        style={{ maxHeight: expanded ? "400px" : "0", opacity: expanded ? 1 : 0 }}
+        className="transition-all duration-300 ease-in-out"
+        style={{ maxHeight: expanded ? "700px" : "0", opacity: expanded ? 1 : 0, overflow: expanded ? "visible" : "hidden" }}
       >
         <div className="pt-3 space-y-3">
           {/* Meal period chips */}
@@ -471,36 +496,37 @@ function InlineFoodLogger() {
               </div>
             )}
 
-            {/* Results dropdown */}
-            {showResults && results.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-border shadow-lg z-50 overflow-hidden">
-                {results.map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => logFood(r)}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-hp-green/5 transition-colors border-b border-border/50 last:border-b-0"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium text-text truncate">{r.name}</p>
-                      <p className="text-[11px] text-muted">{r.servingSize}</p>
-                    </div>
-                    <span className="text-[12px] font-semibold text-text tabular-nums flex-shrink-0">
-                      {Math.round(r.calories)} cal
-                    </span>
-                    <span className="text-[10px] text-muted flex-shrink-0">
-                      {SOURCE_BADGES[r.source] ?? r.source}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {showResults && query.trim() && results.length === 0 && !searching && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-border shadow-lg z-50 px-3 py-2">
-                <p className="text-[12px] text-muted">No results found</p>
-              </div>
-            )}
           </div>
+
+          {/* Results list — inline (not absolute) so it grows the container */}
+          {showResults && results.length > 0 && (
+            <div className="mt-1 bg-white rounded-lg border border-border shadow-lg max-h-[240px] overflow-y-auto">
+              {results.slice(0, 5).map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => logFood(r)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-hp-green/5 transition-colors border-b border-border/50 last:border-b-0"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-text truncate">{r.name}</p>
+                    <p className="text-[11px] text-muted">{r.servingSize}</p>
+                  </div>
+                  <span className="text-[12px] font-semibold text-text tabular-nums flex-shrink-0">
+                    {Math.round(r.calories)} cal
+                  </span>
+                  <span className="text-[10px] text-muted flex-shrink-0">
+                    {SOURCE_BADGES[r.source] ?? r.source}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          {showResults && query.trim() && results.length === 0 && !searching && (
+            <div className="mt-1 bg-white rounded-lg border border-border shadow-lg px-3 py-2">
+              <p className="text-[12px] text-muted">No results found</p>
+            </div>
+          )}
 
           {/* Recent entries timeline */}
           {recentEntries.length > 0 && (
@@ -565,6 +591,7 @@ export function OutdoorHero({ aqi, aqiCategory, pollen, uvIndex, tempF, feelsLik
   const uvStyle = uvIndex != null ? uvLabel(uvIndex) : null;
   const aqiAnimated = useCountUp(aqi ?? 0);
   const [greeting, setGreeting] = useState("");
+  const foodLogExpandRef = useRef<(() => void) | null>(null);
 
   const aqiLevel = aqi != null ? (aqi <= 50 ? "good" : aqi <= 100 ? "moderate" : "unhealthy") : undefined;
 
@@ -753,12 +780,13 @@ export function OutdoorHero({ aqi, aqiCategory, pollen, uvIndex, tempF, feelsLik
 
           {/* Quick action buttons */}
           <div className="flex flex-col sm:flex-row gap-3 mt-4">
-            <Link
-              href="/nutrition-tracker"
+            <button
+              type="button"
+              onClick={() => foodLogExpandRef.current?.()}
               className="inline-flex items-center justify-center gap-2 px-5 h-10 rounded-full border-2 border-accent text-accent font-semibold text-[14px] hover:bg-accent hover:text-white transition-all btn-press"
             >
               <span>🍽</span> Log Food
-            </Link>
+            </button>
             <Link
               href="/run-routes"
               className="inline-flex items-center justify-center gap-2 px-5 h-10 rounded-full bg-accent text-white font-semibold text-[14px] hover:bg-accent/90 transition-all btn-press"
@@ -781,7 +809,10 @@ export function OutdoorHero({ aqi, aqiCategory, pollen, uvIndex, tempF, feelsLik
           )}
 
           {/* Inline food logger */}
-          <InlineFoodLogger />
+          <InlineFoodLogger expandRef={foodLogExpandRef} />
+
+          {/* Workout widget */}
+          <HomepageWorkoutWidget />
         </div>
       </div>
     </div>

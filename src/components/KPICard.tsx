@@ -87,7 +87,10 @@ export function KPICard({ label, value, unit, sub, badge, color, tag, tooltip, t
 
       <div className="flex items-center justify-between mb-2 gap-1">
         <div className="flex items-center gap-1 min-w-0">
-          <div className="text-[11px] font-semibold tracking-[0.8px] uppercase text-muted truncate">
+          <div
+            className="text-[11px] font-semibold tracking-[0.8px] uppercase text-muted line-clamp-2 leading-tight"
+            title={label}
+          >
             {label}
           </div>
           {tooltip && <TooltipIcon text={tooltip} />}
@@ -99,7 +102,7 @@ export function KPICard({ label, value, unit, sub, badge, color, tag, tooltip, t
         <KPIValue
           value={value}
           unit={unit}
-          className={`font-display font-bold text-[32px] leading-tight ${c.value}`}
+          className={`font-display font-bold text-[clamp(22px,6vw,32px)] leading-tight ${c.value}`}
         />
         {trend && (
           <span className={`text-[11px] font-semibold animate-trend-bounce ${TREND_STYLES[trend.direction].color}`}>

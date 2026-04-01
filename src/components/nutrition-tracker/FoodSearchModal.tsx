@@ -28,6 +28,7 @@ interface SearchResult {
   tip?: string;
   tags?: string[];
   micronutrients?: Record<string, number>;
+  score?: number;
 }
 
 const TAB_LABELS: Record<Tab, string> = {
@@ -645,10 +646,21 @@ export default function FoodSearchModal({
   const inputRef = useRef<HTMLInputElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
 
-  // Combined results: local first, then API
-  const results = [...localResults, ...apiResults.filter(a =>
-    !localResults.some(l => l.id === a.id)
-  )];
+  // Combined results: merge by score, dedup by id
+  const results = useMemo(() => {
+    const merged = [...localResults];
+    for (const a of apiResults) {
+      if (!merged.some(l => l.id === a.id)) merged.push(a);
+    }
+    // Sort by score (highest first), then by source priority as tiebreaker
+    const sourcePriority: Record<string, number> = { common: 3, nyc: 2, usda: 1, openfoodfacts: 0, custom: 0 };
+    merged.sort((a, b) => {
+      const scoreDiff = (b.score ?? 0) - (a.score ?? 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      return (sourcePriority[b.source] ?? 0) - (sourcePriority[a.source] ?? 0);
+    });
+    return merged;
+  }, [localResults, apiResults]);
 
   // Detect restaurant trigger from search query
   const detectedRestaurant = useMemo(() => detectRestaurantTrigger(query), [query]);

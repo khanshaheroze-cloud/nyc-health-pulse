@@ -106,43 +106,95 @@ function isInNYC(lat: number, lng: number): boolean {
 }
 
 // ============================================================
-// UTILITY: Landmass detection (water avoidance)
+// LANDMASS DETECTION — Prevents cross-water routing
+// NYC has 4 distinct landmasses. Running routes must stay
+// on the same landmass as the starting point.
+// Bounding boxes are carefully non-overlapping.
 // ============================================================
 
 type Landmass = "manhattan" | "brooklyn-queens" | "bronx" | "staten-island";
 
 function getLandmass(lat: number, lng: number): Landmass | null {
-  // Manhattan: narrow island
-  if (lng >= -74.02 && lng <= -73.93 && lat >= 40.70 && lat <= 40.88) return "manhattan";
-  // Bronx: north of Harlem River
-  if (lat >= 40.80 && lng >= -73.94 && lng <= -73.74) return "bronx";
-  // Staten Island: southwest
-  if (lat >= 40.49 && lat <= 40.65 && lng >= -74.26 && lng <= -74.05) return "staten-island";
-  // Brooklyn + Queens: western Long Island
-  if (lat >= 40.55 && lat <= 40.80 && lng >= -74.05 && lng <= -73.68) return "brooklyn-queens";
+  // Key reference points:
+  //   Manhattan: Empire State (40.7484, -73.9857), Times Sq (40.7580, -73.9855)
+  //   LIC Queens: (40.7447, -73.9484) — lng > -73.96
+  //   DUMBO Brooklyn: (40.7033, -73.9882)
+  //   Williamsburg: (40.7081, -73.9571)
+  //   FiDi: (40.7075, -74.0089), Battery Park: (40.7033, -74.0170)
+
+  // Staten Island — clearly separated by water
+  if (lat >= 40.49 && lat <= 40.66 && lng >= -74.26 && lng <= -74.04) {
+    return "staten-island";
+  }
+
+  // The Bronx — north of Harlem River
+  if (lat >= 40.80 && lat <= 40.92 && lng >= -73.94 && lng <= -73.74) {
+    return "bronx";
+  }
+
+  // Manhattan — the narrow island
+  // Piecewise east boundary following the East River:
+  //   - Below lat 40.71 (Lower Manhattan): east edge lng -73.975
+  //   - 40.71 to 40.75 (Midtown East/LIC boundary): east edge lng -73.965
+  //   - 40.75 to 40.80 (Upper East Side): east edge lng -73.94
+  // West edge ~-74.02 throughout
+  if (lng >= -74.02 && lat >= 40.70 && lat < 40.80) {
+    let eastEdge: number;
+    if (lat < 40.71) {
+      eastEdge = -73.975; // Lower Manhattan — east of this is DUMBO/Brooklyn
+    } else if (lat < 40.75) {
+      eastEdge = -73.965; // Midtown — east of this is LIC/Queens
+    } else {
+      eastEdge = -73.94;  // Upper East Side — wider island
+    }
+    if (lng <= eastEdge) {
+      return "manhattan";
+    }
+  }
+
+  // Upper Manhattan / Inwood (lat 40.80-40.88, west of Harlem River)
+  if (lat >= 40.80 && lat <= 40.88 && lng >= -73.97 && lng <= -73.91) {
+    return "manhattan";
+  }
+
+  // Brooklyn + Queens — everything else east of Manhattan in NYC bounds
+  if (lat >= 40.49 && lat <= 40.80 && lng >= -74.05 && lng <= -73.68) {
+    return "brooklyn-queens";
+  }
+
   return null;
 }
 
 function areSameLandmass(a: Landmass | null, b: Landmass | null): boolean {
-  if (a === null || b === null) return true;
+  if (a === null || b === null) return true; // Can't determine — allow it
   return a === b;
 }
 
-function hasWaterCrossing(coordinates: [number, number][]): boolean {
-  for (let i = 1; i < coordinates.length; i++) {
-    const [lng1, lat1] = coordinates[i - 1];
-    const [lng2, lat2] = coordinates[i];
-    const lm1 = getLandmass(lat1, lng1);
-    const lm2 = getLandmass(lat2, lng2);
-    if (lm1 && lm2 && lm1 !== lm2) {
-      const dist = haversineM(lat1, lng1, lat2, lng2);
-      if (dist > 800) {
-        console.log(`[run-routes/water-check] Route crosses water: ${lm1} → ${lm2}, gap ${Math.round(dist)}m`);
-        return true;
+/**
+ * Post-validate: scan all coordinates in a route geometry.
+ * Rejects routes with 3+ points on a different landmass (catches bridge crossings).
+ * Allows up to 2 stray points for GPS noise at boundary edges.
+ */
+function routeStaysOnLandmass(
+  coordinates: [number, number][],  // GeoJSON [lng, lat] pairs
+  startLandmass: Landmass,
+): { valid: boolean; violationCount: number; firstViolation?: string } {
+  let violationCount = 0;
+  let firstViolation: string | undefined;
+
+  for (let i = 0; i < coordinates.length; i++) {
+    const [lng, lat] = coordinates[i];
+    const pointLandmass = getLandmass(lat, lng);
+    if (pointLandmass === null) continue;
+    if (pointLandmass !== startLandmass) {
+      violationCount++;
+      if (!firstViolation) {
+        firstViolation = `Point ${i}: (${lat.toFixed(4)}, ${lng.toFixed(4)}) is on ${pointLandmass}, not ${startLandmass}`;
       }
     }
   }
-  return false;
+
+  return { valid: violationCount <= 2, violationCount, firstViolation };
 }
 
 // ============================================================
@@ -393,7 +445,7 @@ async function fetchRoute(
 
   // Attempt 1: Optimization API (best for loops)
   if (isLoop && allPoints.length >= 2 && allPoints.length <= MAX_MAPBOX_WAYPOINTS) {
-    const optUrl = `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordString}?roundtrip=true&source=first&destination=first&geometries=geojson&overview=full&steps=true&access_token=${MAPBOX_TOKEN}`;
+    const optUrl = `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordString}?roundtrip=true&source=first&destination=first&geometries=geojson&overview=full&steps=true&exclude=ferry&access_token=${MAPBOX_TOKEN}`;
     console.log(`[run-routes/mapbox/${label}] Trying Optimization API (${allPoints.length} pts)`);
     const optData = await fetchWithRetry(optUrl, `opt-${label}`);
     if (optData?.trips?.[0]) {
@@ -408,7 +460,7 @@ async function fetchRoute(
   // Attempt 2: Directions API
   let dirCoords = coordString;
   if (isLoop) dirCoords += `;${startLng},${startLat}`;
-  const dirUrl = `https://api.mapbox.com/directions/v5/mapbox/walking/${dirCoords}?geometries=geojson&overview=full&steps=true&access_token=${MAPBOX_TOKEN}`;
+  const dirUrl = `https://api.mapbox.com/directions/v5/mapbox/walking/${dirCoords}?geometries=geojson&overview=full&steps=true&exclude=ferry&access_token=${MAPBOX_TOKEN}`;
   console.log(`[run-routes/mapbox/${label}] Trying Directions API`);
   const dirData = await fetchWithRetry(dirUrl, `dir-${label}`);
   if (dirData?.routes?.[0]) {
@@ -422,7 +474,7 @@ async function fetchRoute(
   if (allPoints.length > 2) {
     console.warn(`[run-routes/mapbox/${label}] Trying simplified 2-point`);
     const simpleCoord = `${startLng},${startLat};${allPoints[1].lng},${allPoints[1].lat};${startLng},${startLat}`;
-    const simpleUrl = `https://api.mapbox.com/directions/v5/mapbox/walking/${simpleCoord}?geometries=geojson&overview=full&steps=true&access_token=${MAPBOX_TOKEN}`;
+    const simpleUrl = `https://api.mapbox.com/directions/v5/mapbox/walking/${simpleCoord}?geometries=geojson&overview=full&steps=true&exclude=ferry&access_token=${MAPBOX_TOKEN}`;
     const simpleData = await fetchWithRetry(simpleUrl, `simple-${label}`);
     if (simpleData?.routes?.[0]) {
       const route = simpleData.routes[0];
@@ -753,23 +805,39 @@ export async function POST(request: NextRequest) {
 
     // Fetch parks + waterfront
     const radiusMeters = Math.round(dist * 800);
-    const { parks, waterfront } = await fetchNearbyParksAndWaterfront(lat, lng, radiusMeters);
+    const { parks: rawParks, waterfront: rawWaterfront } = await fetchNearbyParksAndWaterfront(lat, lng, radiusMeters);
+
+    // ---- WATER AVOIDANCE LAYER 1: Filter parks/waterfront to same landmass ----
+    const startLandmass = getLandmass(lat, lng);
+    console.log(`[run-routes/water-check] Start landmass: ${startLandmass} (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+
+    const parks = startLandmass
+      ? rawParks.filter(p => areSameLandmass(startLandmass, getLandmass(p.lat, p.lng)))
+      : rawParks;
+    const waterfront = startLandmass
+      ? rawWaterfront.filter(w => areSameLandmass(startLandmass, getLandmass(w.lat, w.lng)))
+      : rawWaterfront;
+    console.log(`[run-routes/water-check] Parks: ${rawParks.length} → ${parks.length} | Waterfront: ${rawWaterfront.length} → ${waterfront.length} on same landmass`);
 
     // Generate candidates
     const candidates = generateCandidates(lat, lng, dist, routeType, parks, waterfront, preferParks);
 
-    // Water avoidance: filter waypoints to same landmass as start
-    const startLandmass = getLandmass(lat, lng);
-    console.log(`[run-routes/water-check] Start landmass: ${startLandmass}`);
-    for (const candidate of candidates) {
-      candidate.waypoints = candidate.waypoints.filter((wp) => {
-        const wpLandmass = getLandmass(wp.lat, wp.lng);
-        const same = areSameLandmass(startLandmass, wpLandmass);
-        if (!same) {
-          console.log(`[run-routes/water-check] Rejected waypoint on ${wpLandmass} (start is ${startLandmass}): ${wp.lat.toFixed(4)}, ${wp.lng.toFixed(4)}`);
+    // ---- WATER AVOIDANCE LAYER 2: Filter waypoints to same landmass ----
+    if (startLandmass) {
+      for (const candidate of candidates) {
+        const before = candidate.waypoints.length;
+        candidate.waypoints = candidate.waypoints.filter((wp) => {
+          const wpLandmass = getLandmass(wp.lat, wp.lng);
+          const same = areSameLandmass(startLandmass, wpLandmass);
+          if (!same) {
+            console.log(`[run-routes/water-check] Rejected waypoint on ${wpLandmass} (start is ${startLandmass}): ${wp.lat.toFixed(4)}, ${wp.lng.toFixed(4)} — "${candidate.label}"`);
+          }
+          return same;
+        });
+        if (candidate.waypoints.length < before) {
+          console.log(`[run-routes/water-check] "${candidate.label}": ${before} → ${candidate.waypoints.length} waypoints after landmass filter`);
         }
-        return same;
-      });
+      }
     }
     const validCandidates = candidates.filter((c) => c.waypoints.length > 0);
 
@@ -777,27 +845,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Could not plan routes. Try a different starting point." }, { status: 500 });
     }
 
-    // Fetch routes in parallel
-    const routeResults = (
+    // Fetch routes in parallel (Mapbox URLs already include exclude=ferry — Layer 3)
+    const allRouteResults = (
       await Promise.all(
         validCandidates.map((c) =>
           fetchCalibratedRoute(lat, lng, c, dist, routeType)
             .then((r) => (r ? { ...r, candidate: c } : null)),
         ),
       )
-    ).filter((r): r is NonNullable<typeof r> => {
-      if (!r) return false;
-      const coords: [number, number][] = r.geojson?.coordinates || [];
-      if (hasWaterCrossing(coords)) {
-        console.log(`[run-routes/water-check] Discarding route with water crossing: ${r.candidate.label}`);
-        return false;
-      }
-      return true;
-    });
+    ).filter((r): r is NonNullable<typeof r> => r !== null);
 
-    console.log(`[run-routes/generate] ${routeResults.length}/${candidates.length} candidates produced routes`);
+    // ---- WATER AVOIDANCE LAYER 4: Post-validate all route coordinates ----
+    let routeResults = allRouteResults;
+    if (startLandmass) {
+      routeResults = allRouteResults.filter(result => {
+        const coords: [number, number][] = result.geojson?.coordinates || [];
+        if (coords.length === 0) return true;
+        const check = routeStaysOnLandmass(coords, startLandmass);
+        if (!check.valid) {
+          console.log(`[run-routes/water-check] DISCARDING route "${result.candidate.label}" — ${check.violationCount} points on wrong landmass. First: ${check.firstViolation}`);
+          return false;
+        }
+        if (check.violationCount > 0) {
+          console.log(`[run-routes/water-check] Route "${result.candidate.label}" has ${check.violationCount} borderline points (allowed ≤2)`);
+        }
+        return true;
+      });
+      console.log(`[run-routes/water-check] Post-validation: ${allRouteResults.length} routes → ${routeResults.length} passed landmass check`);
+    }
+
+    console.log(`[run-routes/generate] ${routeResults.length}/${candidates.length} candidates produced valid routes`);
 
     if (routeResults.length === 0) {
+      console.error(`[run-routes/generate] ALL routes discarded (${allRouteResults.length} fetched, 0 passed water check). Start landmass: ${startLandmass}`);
       return NextResponse.json({ error: "Route generation failed. Please try again." }, { status: 500 });
     }
 

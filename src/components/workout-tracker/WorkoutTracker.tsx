@@ -66,10 +66,11 @@ function shortenName(name: string): string {
 }
 
 // ── Click-outside hook ──────────────────────────────────────
-function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
+function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void, enabled = true) {
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
   useEffect(() => {
+    if (!enabled) return;
     const listener = (e: MouseEvent | TouchEvent) => {
       if (!ref.current || ref.current.contains(e.target as Node)) return;
       handlerRef.current();
@@ -80,7 +81,7 @@ function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () =
       document.removeEventListener("mousedown", listener);
       document.removeEventListener("touchstart", listener);
     };
-  }, [ref]);
+  }, [ref, enabled]);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1256,7 +1257,7 @@ function DayEditorView({
   // For today-only edits, work on a local copy
   const [localExercises, setLocalExercises] = useState<PlannedExercise[]>(template?.exercises || []);
 
-  // Reset when day changes
+  // Reset all UI state when switching days
   useEffect(() => {
     setOpenMenuIdx(null);
     setEditingExIdx(null);
@@ -1266,7 +1267,15 @@ function DayEditorView({
     setShowLoadDefault(false);
     setLocalExercises(template?.exercises || []);
     setRenameValue(template?.name || "");
-  }, [day, template]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [day]);
+
+  // Sync local exercises when template exercises change (but don't reset editing state)
+  const templateExJson = JSON.stringify(template?.exercises || []);
+  useEffect(() => {
+    setLocalExercises(template?.exercises || []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateExJson]);
 
   const dayInfo = DAYS_META.find(d => d.key === day)!;
 
@@ -1546,22 +1555,29 @@ function ExerciseOverflowMenu({
   onMoveUp?: () => void;
   onMoveDown?: () => void;
 }) {
-  const menuRef = useRef<HTMLDivElement>(null);
-  useClickOutside(menuRef, onClose);
+  // Wrap handler to ensure menu closes and event doesn't leak
+  const act = (fn: () => void) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fn();
+  };
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative">
       <button onClick={(e) => { e.stopPropagation(); onToggle(); }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-sage text-muted text-[13px]">⋯</button>
       {isOpen && (
-        <div className="absolute right-0 top-9 z-50 bg-surface rounded-xl border border-border-light shadow-lg py-1 w-52">
-          <button onClick={onEdit} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">✏️ Edit Sets & Reps</button>
-          <button onClick={onReplace} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">🔄 Replace Exercise</button>
-          <button onClick={onAddNote} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">📝 Add Note</button>
-          <button onClick={onSetRest} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">⏱ Set Rest Time</button>
-          {onMoveUp && <button onClick={onMoveUp} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">⬆️ Move Up</button>}
-          {onMoveDown && <button onClick={onMoveDown} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">⬇️ Move Down</button>}
-          <button onClick={onRemove} className="w-full text-left px-3 py-2 text-[12px] text-hp-red hover:bg-surface-sage">🗑 Remove Exercise</button>
-        </div>
+        <>
+          {/* Backdrop catches outside clicks — no document listeners needed */}
+          <div className="fixed inset-0 z-40" onClick={act(onClose)} />
+          <div className="absolute right-0 top-9 z-50 bg-surface rounded-xl border border-border-light shadow-lg py-1 w-52">
+            <button onClick={act(onEdit)} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">✏️ Edit Sets & Reps</button>
+            <button onClick={act(onReplace)} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">🔄 Replace Exercise</button>
+            <button onClick={act(onAddNote)} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">📝 Add Note</button>
+            <button onClick={act(onSetRest)} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">⏱ Set Rest Time</button>
+            {onMoveUp && <button onClick={act(onMoveUp)} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">⬆️ Move Up</button>}
+            {onMoveDown && <button onClick={act(onMoveDown)} className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-sage">⬇️ Move Down</button>}
+            <button onClick={act(onRemove)} className="w-full text-left px-3 py-2 text-[12px] text-hp-red hover:bg-surface-sage">🗑 Remove Exercise</button>
+          </div>
+        </>
       )}
     </div>
   );

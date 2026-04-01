@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchNycDatabase, searchNycByTags } from "@/lib/nycFoodDatabase";
 import { searchCommonFoods, parseQueryQuantity, type CommonFood } from "@/lib/commonFoods";
+import { scoreSearchResult, applySourceBonus } from "@/lib/searchScoring";
 
 /* ── Types ────────────────────────────────────────────────────── */
 
@@ -43,6 +44,7 @@ interface SearchResult extends Partial<NutrientInfo> {
   fiber: number | null;
   servingSize: string | null;
   source: "nyc" | "usda" | "openfoodfacts" | "common";
+  score?: number;
 }
 
 /* ── USDA nutrient ID → key mapping ──────────────────────────── */
@@ -199,40 +201,9 @@ function mapOpenFoodFacts(product: OFFProduct): SearchResult | null {
   };
 }
 
-/* ── NYC trigger words ───────────────────────────────────────── */
-
-const NYC_TRIGGERS = [
-  "bodega", "deli", "halal", "cart", "food cart", "street",
-  "sweetgreen", "dig", "chopt", "chopt salad", "just salad", "cava", "panera",
-  "chipotle", "shake shack", "shakeshack", "five guys", "wingstop", "popeyes",
-  "chick-fil-a", "chickfila", "mcdonalds", "mcdonald's", "wendys",
-  "burger king", "subway", "jersey mikes", "jersey mike's",
-  "pret", "levain", "insomnia", "crumbl",
-  "starbucks", "starbucks latte", "starbucks coffee", "frappuccino", "frapp",
-  "dunkin", "dunkin donuts", "dunkin'", "dunkin donut",
-  "van leeuwen", "milk bar", "katz", "katz's", "russ and daughters",
-  "gray's papaya", "grays papaya", "halal guys", "halal cart", "grimaldi's",
-  "los tacos", "bonchon", "mamoun's", "mamouns", "xi'an",
-  "trader joes", "trader joe's", "whole foods",
-  "bacon egg and cheese", "bacon egg cheese", "bec",
-  "chicken over rice", "lamb over rice", "combo over rice",
-  "chopped cheese", "dollar pizza", "dollar slice",
-  "street meat", "street cart", "dirty water dog", "knish",
-  "shackburger", "shack burger",
-  "black and white cookie", "rainbow cookie",
-  "egg cream", "bodega sandwich", "hero sandwich",
-  "pizza", "pizza slice", "cheese slice", "pepperoni slice",
-  "sicilian", "margherita", "grandma slice", "square slice",
-];
-
-function shouldSearchNYC(query: string): boolean {
-  const q = query.toLowerCase().trim();
-  return NYC_TRIGGERS.some((trigger) => q.includes(trigger));
-}
-
 /* ── Common food mapper ──────────────────────────────────────── */
 
-function mapCommonFood(food: CommonFood): SearchResult {
+function mapCommonFood(food: CommonFood & { score?: number }): SearchResult {
   return {
     id: `common_${food.id}`,
     name: food.name,
@@ -244,22 +215,39 @@ function mapCommonFood(food: CommonFood): SearchResult {
     fiber: food.fiber,
     servingSize: food.servingLabel,
     source: "common" as const,
+    score: applySourceBonus(food.score ?? 0, "common"),
   };
 }
 
-/* ── Deduplication ────────────────────────────────────────────── */
+/** Filter out results with no nutritional data (bad data from APIs) */
+function filterZeroCalorieJunk(results: SearchResult[]): SearchResult[] {
+  return results.filter(r =>
+    (r.calories != null && r.calories > 0) ||
+    (r.protein != null && r.protein > 0) ||
+    (r.carbs != null && r.carbs > 0) ||
+    (r.fat != null && r.fat > 0)
+  );
+}
+
+/* ── Score-aware deduplication ───────────────────────────────── */
 
 function dedup(results: SearchResult[]): SearchResult[] {
-  const seen = new Set<string>();
-  const out: SearchResult[] = [];
+  const seen = new Map<string, SearchResult>();
   for (const r of results) {
-    const key = `${r.name.toLowerCase().replace(/[^a-z0-9]/g, "")}|${r.source}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      out.push(r);
+    // Normalize: lowercase, strip parenthetical, remove punctuation
+    const normalized = r.name
+      .toLowerCase()
+      .replace(/\(.*?\)/g, "")
+      .replace(/[^a-z0-9\s]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const existing = seen.get(normalized);
+    if (!existing || (r.score ?? 0) > (existing.score ?? 0)) {
+      seen.set(normalized, r);
     }
   }
-  return out;
+  return Array.from(seen.values());
 }
 
 /* ── GET handler ──────────────────────────────────────────────── */
@@ -267,9 +255,7 @@ function dedup(results: SearchResult[]): SearchResult[] {
 export async function GET(req: NextRequest) {
   const rawQuery = req.nextUrl.searchParams.get("q")?.trim();
   const categoryFilter = req.nextUrl.searchParams.get("category")?.trim() || undefined;
-  // "local" param: return only common foods (for client-side instant results)
   const localOnly = req.nextUrl.searchParams.get("local") === "1";
-  // "source" param: fetch only a specific API source ("usda" or "off")
   const sourceOnly = req.nextUrl.searchParams.get("source")?.trim() || undefined;
 
   // Tag-based NYC favorites search (no q required)
@@ -304,52 +290,15 @@ export async function GET(req: NextRequest) {
     const { cleanQuery, quantity, grams, oz } = parseQueryQuantity(rawQuery);
     const query = cleanQuery || rawQuery;
 
-    // TIER 1: Common foods (instant, always searched first)
+    // TIER 1: Common foods (instant, scored by relevance)
     const commonMatches = searchCommonFoods(query, categoryFilter);
     const commonResults: SearchResult[] = commonMatches.map(mapCommonFood);
 
-    // If local-only mode, return immediately with just common foods
+    // If local-only mode, also include NYC results (both are instant in-memory)
     if (localOnly) {
-      return NextResponse.json({
-        query: rawQuery,
-        cleanQuery: query,
-        count: commonResults.length,
-        results: commonResults,
-        parsedQuantity: quantity || grams || oz ? { quantity, grams, oz } : undefined,
-        tier: "local",
-      });
-    }
-
-    // If source-only mode, fetch just that one API source
-    if (sourceOnly === "usda") {
-      const usdaResults = await fetchUsda(query);
-      const all = dedup([...commonResults, ...usdaResults]);
-      return NextResponse.json({
-        query: rawQuery,
-        cleanQuery: query,
-        count: all.length,
-        results: all.slice(0, 25),
-        parsedQuantity: quantity || grams || oz ? { quantity, grams, oz } : undefined,
-        tier: "usda",
-      });
-    }
-    if (sourceOnly === "off") {
-      const offResults = await fetchOpenFoodFacts(query);
-      return NextResponse.json({
-        query: rawQuery,
-        cleanQuery: query,
-        count: offResults.length,
-        results: offResults.slice(0, 15),
-        parsedQuantity: quantity || grams || oz ? { quantity, grams, oz } : undefined,
-        tier: "off",
-      });
-    }
-
-    // TIER 2: NYC database (only if query triggers NYC-specific search)
-    let nycResults: SearchResult[] = [];
-    if (shouldSearchNYC(query)) {
+      // Always search NYC database (instant, no API call)
       const nycMatches = searchNycDatabase(query);
-      nycResults = nycMatches.map((item) => ({
+      const nycResults: SearchResult[] = nycMatches.map((item) => ({
         id: item.id,
         name: item.name,
         brand: item.chain ?? undefined,
@@ -363,17 +312,110 @@ export async function GET(req: NextRequest) {
         sugar: item.sugar ?? null,
         servingSize: item.servingSize,
         source: "nyc" as const,
-      }));
+        score: applySourceBonus(scoreSearchResult(query, item.name, item.tags || []), "nyc"),
+      })).filter(r => r.score > 0);
+
+      // Merge common + NYC by score, filter zero-calorie junk
+      const all = filterZeroCalorieJunk(dedup([...commonResults, ...nycResults]));
+      all.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+
+      return NextResponse.json({
+        query: rawQuery,
+        cleanQuery: query,
+        count: all.length,
+        results: all.slice(0, 15),
+        parsedQuantity: quantity || grams || oz ? { quantity, grams, oz } : undefined,
+        tier: "local",
+      });
     }
 
-    // TIER 3 + 4: USDA and Open Food Facts — fetched in PARALLEL
+    // If source-only mode, fetch just that one API source and re-score
+    if (sourceOnly === "usda") {
+      const usdaResults = await fetchUsda(query);
+      // Re-score USDA results for relevance with source bonus
+      const scoredUsda = usdaResults.map(r => ({
+        ...r,
+        score: applySourceBonus(scoreSearchResult(query, r.name, []), "usda"),
+      }));
+      const all = filterZeroCalorieJunk(dedup([...commonResults, ...scoredUsda]));
+      all.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+      return NextResponse.json({
+        query: rawQuery,
+        cleanQuery: query,
+        count: all.length,
+        results: all.slice(0, 25),
+        parsedQuantity: quantity || grams || oz ? { quantity, grams, oz } : undefined,
+        tier: "usda",
+      });
+    }
+    if (sourceOnly === "off") {
+      const offResults = await fetchOpenFoodFacts(query);
+      const scoredOff = filterZeroCalorieJunk(offResults
+        .map(r => ({
+          ...r,
+          score: applySourceBonus(scoreSearchResult(query, r.name, []), "openfoodfacts"),
+        }))
+        .filter(r => r.score > 0));
+      scoredOff.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+      return NextResponse.json({
+        query: rawQuery,
+        cleanQuery: query,
+        count: scoredOff.length,
+        results: scoredOff.slice(0, 15),
+        parsedQuantity: quantity || grams || oz ? { quantity, grams, oz } : undefined,
+        tier: "off",
+      });
+    }
+
+    // FULL SEARCH: Common + NYC + USDA + OFF — all scored and merged
+
+    // NYC database (always searched now — instant, no API call)
+    const nycMatches = searchNycDatabase(query);
+    const nycResults: SearchResult[] = nycMatches.map((item) => ({
+      id: item.id,
+      name: item.name,
+      brand: item.chain ?? undefined,
+      calories: item.calories,
+      protein: item.protein,
+      carbs: item.carbs,
+      fat: item.fat,
+      fiber: item.fiber,
+      sodium: item.sodium ?? null,
+      saturatedFat: item.saturatedFat ?? null,
+      sugar: item.sugar ?? null,
+      servingSize: item.servingSize,
+      source: "nyc" as const,
+      score: applySourceBonus(scoreSearchResult(query, item.name, item.tags || []), "nyc"),
+    })).filter(r => r.score > 0);
+
+    // USDA + OFF in parallel
     const [usdaResults, offResults] = await Promise.all([
       fetchUsda(query),
       fetchOpenFoodFacts(query),
     ]);
 
-    // Merge: Common first, then NYC, then USDA, then OFF
-    const all = dedup([...commonResults, ...nycResults, ...usdaResults, ...offResults]);
+    // Re-score API results with source bonuses and filter out 0-calorie junk data
+    const scoredUsda = usdaResults.map(r => ({
+      ...r,
+      score: applySourceBonus(scoreSearchResult(query, r.name, []), "usda"),
+    })).filter(r => r.score > 0);
+
+    const scoredOff = offResults.map(r => ({
+      ...r,
+      score: applySourceBonus(scoreSearchResult(query, r.name, []), "openfoodfacts"),
+    })).filter(r => r.score > 0);
+
+    // Merge ALL results by score, dedup by id then name, filter zero-calorie junk
+    const merged = [...commonResults, ...nycResults, ...scoredUsda, ...scoredOff];
+    // ID-based dedup first
+    const seenIds = new Set<string>();
+    const idDeduped = merged.filter(r => {
+      if (seenIds.has(r.id)) return false;
+      seenIds.add(r.id);
+      return true;
+    });
+    const all = filterZeroCalorieJunk(dedup(idDeduped));
+    all.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
     const results = all.slice(0, 25);
 
     return NextResponse.json({
