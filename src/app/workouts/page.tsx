@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { WorkoutTracker } from "@/components/workout-tracker/WorkoutTracker";
+import { WorkoutErrorBoundary } from "@/components/workout-tracker/WorkoutErrorBoundary";
 
 export const metadata: Metadata = {
   title: "Workouts — Pulse NYC",
@@ -14,7 +15,9 @@ export default function WorkoutsPage() {
         <span className="text-xl">🏋️</span>
         <h1 className="font-display text-2xl text-text font-bold">Workouts</h1>
       </div>
-      <WorkoutTracker />
+      <WorkoutErrorBoundary>
+        <WorkoutTracker />
+      </WorkoutErrorBoundary>
     </section>
   );
 }

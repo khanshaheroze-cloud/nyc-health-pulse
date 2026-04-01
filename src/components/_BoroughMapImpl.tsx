@@ -133,7 +133,7 @@ export default function BoroughMapImpl({ height = 400 }: { height?: number }) {
   const mapHeight = height - 44;
 
   return (
-    <div className="flex flex-col gap-2 h-full">
+    <div className="flex flex-col gap-2">
       {/* Metric tab row */}
       <div className="flex gap-1.5 flex-wrap">
         {METRIC_TABS.map((tab) => (

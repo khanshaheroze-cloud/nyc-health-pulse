@@ -755,8 +755,8 @@ export function WorkoutTracker() {
                   if (!s) return null;
                   return (
                     <button key={id} onClick={() => quickStart(id)} className="text-left p-3 rounded-xl border border-border-light hover:border-accent hover:bg-accent/5 transition-colors">
-                      <p className="text-[12px] font-semibold text-text truncate">{s.days[0].emoji} {s.days[0].name}</p>
-                      <p className="text-[10px] text-muted">{s.days[0].exercises.length} exercises</p>
+                      <p className="text-[12px] font-semibold text-text truncate">{s.days[0]?.emoji} {s.days[0]?.name}</p>
+                      <p className="text-[10px] text-muted">{s.days[0]?.exercises.length ?? 0} exercises</p>
                     </button>
                   );
                 })}
@@ -943,7 +943,7 @@ function TodayWorkoutCard({
                 return (
                   <button key={id} onClick={() => { onAddOneTimeWorkout(id); setShowOneTimeMenu(false); }}
                     className="text-left p-2 rounded-lg border border-border-light hover:border-accent hover:bg-accent/5 text-[11px] font-medium text-text transition-colors">
-                    {s.days[0].emoji} {s.days[0].name}
+                    {s.days[0]?.emoji} {s.days[0]?.name}
                   </button>
                 );
               })}
@@ -1164,7 +1164,7 @@ function RoutineSetupFlow({
                         return (
                           <button key={id} onClick={() => { onAssignDefault(d.key, id); setBuildDayMenu(null); }}
                             className="p-2 rounded-lg border border-border-light hover:border-accent hover:bg-accent/5 text-[10px] font-medium text-text transition-colors text-center">
-                            {s.days[0].emoji} {s.days[0].name.replace("Quick ", "")}
+                            {s.days[0]?.emoji} {(s.days[0]?.name ?? "").replace("Quick ", "")}
                           </button>
                         );
                       })}
