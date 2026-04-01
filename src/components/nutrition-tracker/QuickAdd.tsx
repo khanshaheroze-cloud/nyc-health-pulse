@@ -1,22 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
-interface FoodEntry {
-  id: string;
-  name: string;
-  source: "nyc" | "usda" | "openfoodfacts" | "custom" | "quick";
-  servings: number;
-  servingSize: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber: number;
-  micronutrients?: Record<string, number>;
-  timestamp: number;
-  nycBadge?: boolean;
-}
+import type { FoodEntry } from "./DailySummary";
 
 interface QuickAddProps {
   meal: "breakfast" | "lunch" | "dinner" | "snacks";

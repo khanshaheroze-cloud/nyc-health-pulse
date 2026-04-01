@@ -15,6 +15,13 @@ interface RouteAmenitiesProps {
   radius?: number;
 }
 
+const COLOR_MAP: Record<string, { bg: string; border: string }> = {
+  "hp-blue":   { bg: "bg-hp-blue/8",   border: "border-hp-blue/20" },
+  "hp-purple": { bg: "bg-hp-purple/8", border: "border-hp-purple/20" },
+  "hp-orange": { bg: "bg-hp-orange/8", border: "border-hp-orange/20" },
+  "hp-green":  { bg: "bg-hp-green/8",  border: "border-hp-green/20" },
+};
+
 const AMENITY_TYPES = [
   { key: "water", icon: "🚰", label: "Water Fountains", color: "hp-blue" },
   { key: "restrooms", icon: "🚻", label: "Restrooms", color: "hp-purple" },
@@ -77,7 +84,7 @@ export function RouteAmenities({ lat, lng, radius = 500 }: RouteAmenitiesProps) 
               key={key}
               className={`rounded-xl p-3 text-center border transition-colors ${
                 count > 0
-                  ? `bg-${color}/8 border-${color}/20`
+                  ? `${COLOR_MAP[color]?.bg ?? ""} ${COLOR_MAP[color]?.border ?? ""}`
                   : "bg-surface-sage border-border opacity-50"
               }`}
             >

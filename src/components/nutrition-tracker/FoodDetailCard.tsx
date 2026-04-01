@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import type { FoodEntry } from "./DailySummary";
 
 /* ── Types ────────────────────────────────────────────────── */
@@ -115,8 +115,7 @@ function MacroCircle({
         </span>
       </div>
       <span className="text-[10px] text-muted font-medium">{label}</span>
-      {!large && <span className="text-[10px] text-muted -mt-1">{unit}</span>}
-      {large && <span className="text-[10px] text-muted -mt-1">{unit}</span>}
+      <span className="text-[10px] text-muted -mt-1">{unit}</span>
     </div>
   );
 }
@@ -311,6 +310,11 @@ function QuantitySelector({
               {" "}(nutrition scaled from per-serving data)
             </p>
           )}
+          {!servingGrams && (
+            <p className="text-[10px] text-hp-orange mt-1">
+              Weight estimate based on 100g serving — may not be exact for this item.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -387,6 +391,17 @@ export default function FoodDetailCard({
       return false;
     }
   });
+
+  // Re-check saved state when food.id changes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const existing = JSON.parse(localStorage.getItem("pulsenyc_saved_foods") || "[]") as FoodEntry[];
+      setSaved(existing.some((e) => e.id === food.id));
+    } catch {
+      setSaved(false);
+    }
+  }, [food.id]);
 
   // Active macros (variant or base)
   const activeMacros = useMemo(() => {

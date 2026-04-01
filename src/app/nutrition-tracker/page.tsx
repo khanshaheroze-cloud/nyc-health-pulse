@@ -133,13 +133,23 @@ export default function NutritionTrackerPage() {
   }, [searchMeal]);
 
   const removeEntry = useCallback((meal: MealKey, index: number) => {
-    setDay((prev) => ({
-      ...prev,
-      meals: {
-        ...prev.meals,
-        [meal]: prev.meals[meal].filter((_, i) => i !== index),
-      },
-    }));
+    setDay((prev) => {
+      const entry = prev.meals[meal][index];
+      // Clean up associated MealBuilder details from localStorage
+      if (entry) {
+        const key = entry.id || String(entry.timestamp);
+        try {
+          localStorage.removeItem(`pulsenyc_builder_details_${key}`);
+        } catch { /* ignore */ }
+      }
+      return {
+        ...prev,
+        meals: {
+          ...prev.meals,
+          [meal]: prev.meals[meal].filter((_, i) => i !== index),
+        },
+      };
+    });
   }, []);
 
   const handleEditBuilder = useCallback((entry: FoodEntry, index: number, meal: MealKey) => {

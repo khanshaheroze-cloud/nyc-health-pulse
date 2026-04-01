@@ -233,16 +233,29 @@ function CopyYesterdayButton({
   onCopy: (meals: MealsMap) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [noData, setNoData] = useState(false);
 
   const handleCopy = useCallback(() => {
     if (typeof window === "undefined") return;
     const yestKey = shiftDate(currentDate, -1);
     const raw = localStorage.getItem(`pulsenyc_nutrition_${yestKey}`);
-    if (!raw) return;
+    if (!raw) {
+      setNoData(true);
+      setTimeout(() => setNoData(false), 2500);
+      return;
+    }
     try {
       const parsed = JSON.parse(raw);
       // Support both { meals: MealsMap } (NutritionDay) and direct MealsMap
       const mealsData = (parsed.meals ?? parsed) as MealsMap;
+      const hasEntries = Object.values(mealsData).some(
+        (arr) => Array.isArray(arr) && arr.length > 0,
+      );
+      if (!hasEntries) {
+        setNoData(true);
+        setTimeout(() => setNoData(false), 2500);
+        return;
+      }
       onCopy(mealsData);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -263,6 +276,8 @@ function CopyYesterdayButton({
           </svg>
           Copied!
         </>
+      ) : noData ? (
+        <span className="text-hp-orange text-xs">No meals logged yesterday</span>
       ) : (
         <>
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

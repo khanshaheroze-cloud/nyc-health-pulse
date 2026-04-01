@@ -171,6 +171,9 @@ export default function GoalSettings({
     });
   }
 
+  const bodyFieldsValid =
+    Number(age) > 0 && Number(weightLbs) > 0 && Number(heightFt) > 0;
+
   const inputCls =
     "w-full rounded-xl border border-border bg-[#FAFAF7] px-3 py-2 text-text text-sm " +
     "placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30 " +
@@ -487,12 +490,18 @@ export default function GoalSettings({
           </section>
 
           {/* Save */}
+          {!bodyFieldsValid && (
+            <p className="text-xs text-hp-orange">
+              Please fill in age, weight, and height to calculate your goals.
+            </p>
+          )}
           <div className="flex gap-3 pt-2 pb-6">
             <button
               onClick={handleSave}
               disabled={
-                macroSplit === "custom" &&
-                customP + customC + customF !== 100
+                !bodyFieldsValid ||
+                (macroSplit === "custom" &&
+                customP + customC + customF !== 100)
               }
               className="flex-1 bg-[#4A7C59] text-white font-medium rounded-xl py-3 px-4
                          hover:bg-[#3a6347] active:scale-[0.98] transition-all text-sm

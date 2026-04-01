@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import Map, { Source, Layer, Marker, NavigationControl } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
+
+const RouteAmenities = dynamic(() => import("./RouteAmenities").then(m => ({ default: m.RouteAmenities })), { ssr: false });
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
 interface GeneratedRoute {
   id: string;
   rank: number;
-  geojson: any;
+  geojson: { type: "LineString"; coordinates: [number, number][] } | null;
   distance: number;
   estimatedMinutes: number;
   elevationGain?: number;
@@ -38,6 +41,7 @@ export default function SmartRunRoutes() {
   const [startQuery, setStartQuery] = useState("");
   const [suggestions, setSuggestions] = useState<{ name: string; lat: number; lng: number }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedIdx, setHighlightedIdx] = useState(-1);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -66,13 +70,13 @@ export default function SmartRunRoutes() {
       );
       if (!res.ok) return;
       const data = await res.json();
-      setSuggestions(
-        (data.features ?? []).map((f: any) => ({
-          name: f.place_name,
-          lat: f.center[1],
-          lng: f.center[0],
-        })),
-      );
+      const newSuggestions = (data.features ?? []).map((f: any) => ({
+        name: f.place_name,
+        lat: f.center[1],
+        lng: f.center[0],
+      }));
+      setSuggestions(newSuggestions);
+      setHighlightedIdx(-1);
       setShowSuggestions(true);
     } catch { /* ignore */ }
   }, []);
@@ -211,19 +215,42 @@ export default function SmartRunRoutes() {
                 <input
                   type="text"
                   value={startQuery}
-                  onChange={(e) => { setStartQuery(e.target.value); setStartLat(null); setStartLng(null); }}
+                  onChange={(e) => { const v = e.target.value; setStartQuery(v); if (v !== startName) { setStartLat(null); setStartLng(null); } }}
+                  onKeyDown={(e) => {
+                    if (!showSuggestions || suggestions.length === 0) return;
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setHighlightedIdx((prev) => (prev + 1) % suggestions.length);
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setHighlightedIdx((prev) => (prev <= 0 ? suggestions.length - 1 : prev - 1));
+                    } else if (e.key === "Enter" && highlightedIdx >= 0) {
+                      e.preventDefault();
+                      selectSuggestion(suggestions[highlightedIdx]);
+                    } else if (e.key === "Escape") {
+                      setShowSuggestions(false);
+                      setHighlightedIdx(-1);
+                    }
+                  }}
                   placeholder="Search NYC address or landmark..."
                   className="w-full text-[13px] px-3 py-2.5 rounded-xl bg-bg border border-border text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-hp-green/30 focus:border-hp-green/40"
+                  role="combobox"
+                  aria-expanded={showSuggestions && suggestions.length > 0}
+                  aria-controls="start-suggestions"
+                  aria-activedescendant={highlightedIdx >= 0 ? `suggestion-${highlightedIdx}` : undefined}
                 />
                 {showSuggestions && suggestions.length > 0 && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowSuggestions(false)} />
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-xl shadow-lg z-50 overflow-hidden">
+                    <div id="start-suggestions" role="listbox" className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-xl shadow-lg z-50 overflow-hidden">
                       {suggestions.map((s, i) => (
                         <button
                           key={i}
+                          id={`suggestion-${i}`}
+                          role="option"
+                          aria-selected={highlightedIdx === i}
                           onClick={() => selectSuggestion(s)}
-                          className="w-full text-left px-3 py-2.5 text-[12px] text-text hover:bg-bg transition-colors border-b border-border/50 last:border-b-0"
+                          className={`w-full text-left px-3 py-2.5 text-[12px] text-text transition-colors border-b border-border/50 last:border-b-0 ${highlightedIdx === i ? "bg-bg" : "hover:bg-bg"}`}
                         >
                           {s.name}
                         </button>
@@ -352,8 +379,8 @@ export default function SmartRunRoutes() {
                   <div className="w-4 h-4 bg-hp-green rounded-full border-2 border-white shadow-lg" />
                 </Marker>
               )}
-              {routes.map((route) => (
-                <Source key={route.id} id={`route-${route.id}`} type="geojson" data={{ type: "Feature", geometry: route.geojson, properties: {} }}>
+              {routes.filter((route) => route.geojson !== null).map((route) => (
+                <Source key={route.id} id={`route-${route.id}`} type="geojson" data={{ type: "Feature", geometry: route.geojson!, properties: {} }}>
                   <Layer
                     id={`line-${route.id}`}
                     type="line"
@@ -430,6 +457,11 @@ export default function SmartRunRoutes() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Nearby Amenities */}
+        {selectedRoute && startLat !== null && startLng !== null && (
+          <RouteAmenities lat={startLat} lng={startLng} />
         )}
 
         {/* Export to Maps */}

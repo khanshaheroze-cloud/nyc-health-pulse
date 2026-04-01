@@ -159,6 +159,10 @@ export function WorkoutTracker() {
   const persistPrs = useCallback((p: PersonalRecord[]) => { setPrs(p); saveToStorage(STORAGE_KEYS.prs, p); }, []);
   const persistActive = useCallback((w: WorkoutSession | null) => { setActiveWorkout(w); saveToStorage(STORAGE_KEYS.activeWorkout, w); }, []);
 
+  // ── Settings ref for use in timer callbacks ────────────────
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+
   // ── Rest timer logic ──────────────────────────────────────
   const startRest = useCallback((seconds: number) => {
     if (restInterval.current) clearInterval(restInterval.current);
@@ -171,6 +175,17 @@ export function WorkoutTracker() {
           clearInterval(restInterval.current!);
           setRestActive(false);
           if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate([200, 100, 200]);
+          // Play audio beep when sound is enabled
+          if (settingsRef.current.soundEnabled) {
+            try {
+              const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+              const osc = ctx.createOscillator();
+              osc.frequency.value = 880;
+              osc.connect(ctx.destination);
+              osc.start();
+              osc.stop(ctx.currentTime + 0.2);
+            } catch { /* audio not available */ }
+          }
           return 0;
         }
         return prev - 1;
@@ -238,6 +253,8 @@ export function WorkoutTracker() {
   // ── Complete workout ──────────────────────────────────────
   const completeWorkout = useCallback(() => {
     if (!activeWorkout) return;
+    const totalSets = activeWorkout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
+    if (totalSets === 0 && !confirm("You haven't logged any sets. Finish anyway?")) return;
     const completed: WorkoutSession = {
       ...activeWorkout,
       completedAt: new Date().toISOString(),
@@ -344,7 +361,11 @@ export function WorkoutTracker() {
     const schedules: Record<number, number[]> = { 1: [0], 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4], 5: [0, 1, 2, 3, 4], 6: [0, 1, 2, 3, 4, 5] };
     const sched = schedules[split.daysPerWeek] || schedules[3];
     sched.forEach((dayIdx, i) => { if (i < newTemplates.length) newWeek[dayKeys[dayIdx]] = newTemplates[i].id; });
-    persistTemplates([...templates, ...newTemplates]);
+    // Collect all template IDs referenced by the new week plan
+    const referencedIds = new Set(dayKeys.map(k => newWeek[k]).filter(Boolean) as string[]);
+    // Keep only templates still referenced + the new ones
+    const cleanedTemplates = templates.filter(t => referencedIds.has(t.id));
+    persistTemplates([...cleanedTemplates, ...newTemplates]);
     persistWeek(newWeek);
   }, [templates, persistTemplates, persistWeek]);
 
@@ -1251,7 +1272,7 @@ function RoutineSetupFlow({
           if (confirm("Clear all workouts from your week?")) {
             onUpdateWeek({ monday: null, tuesday: null, wednesday: null, thursday: null, friday: null, saturday: null, sunday: null });
           }
-        }} className="py-2.5 px-4 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-hp-red hover:text-hp-red transition-colors">📊</button>
+        }} className="py-2.5 px-4 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-hp-red hover:text-hp-red transition-colors">🗑</button>
       </div>
     </div>
   );
@@ -1566,7 +1587,7 @@ function DayEditorView({
       {!isTodayOnlyEdit && (
         <div className="bg-surface rounded-xl border border-border-light p-3">
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">Day Options</p>
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="flex flex-col gap-1.5">
             {template && (
               <button onClick={() => {
                 onUpdateWeek({ ...weekPlan, [day]: null });
@@ -1667,7 +1688,14 @@ function ExerciseLogCard({
     }
   }, [loggedEx.sets.length, loggedEx.exerciseId, previousSets, targetWeight, targetReps]);
 
-  if (!exercise) return null;
+  if (!exercise) return (
+    <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-[13px] font-semibold text-muted">⚠️ Unknown exercise: {loggedEx.exerciseId}</p>
+        <button onClick={onRemoveExercise} className="text-[11px] text-hp-red hover:underline">Remove</button>
+      </div>
+    </div>
+  );
 
   const isWeightReps = ["weight-reps", "weight-reps-each", "bodyweight-reps"].includes(exercise.tracking);
   const isTimed = exercise.tracking === "duration" || exercise.tracking === "weight-duration";
@@ -1744,7 +1772,7 @@ function ExerciseLogCard({
 
         {/* Input row */}
         <div className="grid gap-2 items-center py-2" style={{ gridTemplateColumns: "32px 1fr 1fr 1fr 36px" }}>
-          <button onClick={() => setSetType(t => t === "working" ? "warmup" : "working")}
+          <button onClick={() => setSetType(t => t === "working" ? "warmup" : t === "warmup" ? "dropset" : "working")}
             className={`text-[10px] font-bold rounded px-1 py-0.5 ${setType === "warmup" ? "bg-hp-yellow/20 text-hp-yellow" : setType === "dropset" ? "bg-hp-orange/20 text-hp-orange" : "text-muted"}`}
             title={setType === "warmup" ? "Warm-up set" : setType === "dropset" ? "Drop set" : "Working set"}>
             {setType === "warmup" ? "W" : setType === "dropset" ? "D" : loggedEx.sets.filter(s => s.type !== "warmup" && s.type !== "dropset").length + 1}

@@ -2,24 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-
-interface FoodEntry {
-  id: string;
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  timestamp: number;
-  servings?: number;
-}
-
-interface MealsMap {
-  breakfast: FoodEntry[];
-  lunch: FoodEntry[];
-  dinner: FoodEntry[];
-  snacks: FoodEntry[];
-}
+import type { FoodEntry, MealsMap } from "./nutrition-tracker/DailySummary";
 
 const MEAL_EMOJI: Record<string, string> = {
   breakfast: "\u2600",

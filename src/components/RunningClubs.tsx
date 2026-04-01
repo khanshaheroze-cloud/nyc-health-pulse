@@ -142,8 +142,8 @@ const CLUBS: RunningClub[] = [
   },
 ];
 
-type BoroughFilter = "All" | "Manhattan" | "Brooklyn" | "Queens" | "Bronx";
-const BOROUGH_FILTERS: BoroughFilter[] = ["All", "Manhattan", "Brooklyn", "Queens", "Bronx"];
+type BoroughFilter = "All" | "Manhattan" | "Brooklyn" | "Queens" | "Bronx" | "Staten Island";
+const BOROUGH_FILTERS: BoroughFilter[] = ["All", "Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"];
 
 export function RunningClubs() {
   const [borough, setBorough] = useState<BoroughFilter>("All");

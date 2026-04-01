@@ -1,20 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { FoodEntry } from "./DailySummary";
 
-interface SavedFood {
-  id: string;
-  name: string;
-  source: "nyc" | "usda" | "openfoodfacts" | "custom" | "quick";
-  servings: number;
-  servingSize: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber: number;
-  micronutrients?: Record<string, number>;
-}
+type SavedFood = Omit<FoodEntry, "timestamp" | "nycBadge" | "builderSource">;
 
 interface SavedFoodsProps {
   onSelect: (food: SavedFood) => void;

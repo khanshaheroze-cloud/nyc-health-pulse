@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { scoreGeneratedRoute } from "@/lib/runScoring";
 
 export const dynamic = "force-dynamic";
 
@@ -206,8 +207,7 @@ async function fetchWithRetry(url: string, tag: string, retries = MAX_RETRIES): 
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
       if (!res.ok) {
-        const body = await res.text().catch(() => "(no body)");
-        console.error(`[run-routes/${tag}] HTTP ${res.status} (attempt ${attempt + 1}): ${body.substring(0, 200)}`);
+        await res.text().catch(() => {});
         if (attempt === retries) return null;
         continue;
       }
@@ -308,7 +308,6 @@ async function fetchNearbyParksAndWaterfront(
     .filter((w: ParkPoint | null): w is ParkPoint => w !== null && w.dist > 100)
     .sort((a: ParkPoint, b: ParkPoint) => a.dist - b.dist);
 
-  console.log(`[run-routes/parks] Found ${parks.length} parks, ${waterfront.length} waterfront within ${radius}m`);
   return { parks, waterfront };
 }
 
@@ -415,7 +414,6 @@ function generateCandidates(
     }
   }
 
-  console.log(`[run-routes/candidates] Generated ${candidates.length}: ${candidates.map((c) => c.label).join(", ")}`);
   return candidates;
 }
 
@@ -434,7 +432,6 @@ async function fetchRoute(
   // Validate every coordinate
   for (const pt of allPoints) {
     if (!isValidCoord(pt.lat, pt.lng) || pt.lat < 40 || pt.lat > 41 || pt.lng > -73 || pt.lng < -75) {
-      console.error(`[run-routes/mapbox/${label}] Bad coord: ${pt.lat},${pt.lng}`);
       return null;
     }
   }
@@ -446,45 +443,37 @@ async function fetchRoute(
   // Attempt 1: Optimization API (best for loops)
   if (isLoop && allPoints.length >= 2 && allPoints.length <= MAX_MAPBOX_WAYPOINTS) {
     const optUrl = `https://api.mapbox.com/optimized-trips/v1/mapbox/walking/${coordString}?roundtrip=true&source=first&destination=first&geometries=geojson&overview=full&steps=true&exclude=ferry&access_token=${MAPBOX_TOKEN}`;
-    console.log(`[run-routes/mapbox/${label}] Trying Optimization API (${allPoints.length} pts)`);
     const optData = await fetchWithRetry(optUrl, `opt-${label}`);
     if (optData?.trips?.[0]) {
       const trip = optData.trips[0];
       const distMi = (trip.distance || 0) / 1609.34;
-      console.log(`[run-routes/mapbox/${label}] Optimization OK: ${distMi.toFixed(2)}mi`);
       return { geojson: trip.geometry, distanceMi: distMi, durationSec: trip.duration || 0, legs: trip.legs || [] };
     }
-    console.warn(`[run-routes/mapbox/${label}] Optimization failed, trying Directions`);
   }
 
   // Attempt 2: Directions API
   let dirCoords = coordString;
   if (isLoop) dirCoords += `;${startLng},${startLat}`;
   const dirUrl = `https://api.mapbox.com/directions/v5/mapbox/walking/${dirCoords}?geometries=geojson&overview=full&steps=true&exclude=ferry&access_token=${MAPBOX_TOKEN}`;
-  console.log(`[run-routes/mapbox/${label}] Trying Directions API`);
   const dirData = await fetchWithRetry(dirUrl, `dir-${label}`);
   if (dirData?.routes?.[0]) {
     const route = dirData.routes[0];
     const distMi = (route.distance || 0) / 1609.34;
-    console.log(`[run-routes/mapbox/${label}] Directions OK: ${distMi.toFixed(2)}mi`);
     return { geojson: route.geometry, distanceMi: distMi, durationSec: route.duration || 0, legs: route.legs || [] };
   }
 
   // Attempt 3: Simplified 2-point
   if (allPoints.length > 2) {
-    console.warn(`[run-routes/mapbox/${label}] Trying simplified 2-point`);
     const simpleCoord = `${startLng},${startLat};${allPoints[1].lng},${allPoints[1].lat};${startLng},${startLat}`;
     const simpleUrl = `https://api.mapbox.com/directions/v5/mapbox/walking/${simpleCoord}?geometries=geojson&overview=full&steps=true&exclude=ferry&access_token=${MAPBOX_TOKEN}`;
     const simpleData = await fetchWithRetry(simpleUrl, `simple-${label}`);
     if (simpleData?.routes?.[0]) {
       const route = simpleData.routes[0];
       const distMi = (route.distance || 0) / 1609.34;
-      console.log(`[run-routes/mapbox/${label}] Simplified OK: ${distMi.toFixed(2)}mi`);
       return { geojson: route.geometry, distanceMi: distMi, durationSec: route.duration || 0, legs: route.legs || [] };
     }
   }
 
-  console.error(`[run-routes/mapbox/${label}] All attempts failed`);
   return null;
 }
 
@@ -512,8 +501,6 @@ async function fetchCalibratedRoute(
     }
 
     const scaleFactor = 1 / ratio;
-    console.log(`[run-routes/calibrate/${candidate.label}] Got ${result.distanceMi.toFixed(2)}mi, target ${targetMiles}mi, scale ${scaleFactor.toFixed(2)}`);
-
     currentWaypoints = currentWaypoints.map((wp) => {
       const bearing = bearingBetween(startLat, startLng, wp.lat, wp.lng);
       const currentDist = haversineM(startLat, startLng, wp.lat, wp.lng);
@@ -575,7 +562,6 @@ async function scoreSafety(routeCoords: [number, number][], distMi: number): Pro
   const crashes = parseInt(data?.[0]?.cnt ?? "0", 10);
   const perMile = distMi > 0 ? crashes / distMi : crashes;
   const pts = Math.round(Math.max(0, Math.min(25, 25 * (1 - Math.min(perMile / 300, 1)))));
-  console.log(`[run-routes/safety] ${crashes} crashes (${Math.round(perMile)}/mi) → ${pts}/25`);
   return pts;
 }
 
@@ -648,7 +634,6 @@ function scoreScenery(
   const parkPct = Math.round((parkHits / total) * 100);
   const waterPct = Math.round((waterHits / total) * 100);
   const score = Math.min(Math.round(15 * (parkHits / total)) + Math.round(10 * (waterHits / total)), 25);
-  console.log(`[run-routes/scenery] ${parkPct}% park, ${waterPct}% water → ${score}/25`);
   return { score, parkPercent: parkPct, waterPercent: waterPct };
 }
 
@@ -690,7 +675,6 @@ async function scoreTerrain(routeCoords: [number, number][], difficulty: string)
     score = gain <= 20 ? 20 : gain <= 80 ? 25 : gain <= 200 ? 20 : 15;
   }
 
-  console.log(`[run-routes/terrain] Gain: ${Math.round(gain)}ft → ${score}/25`);
   return { score, elevGain: Math.round(gain) };
 }
 
@@ -774,7 +758,6 @@ function generateRouteSummary(
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  console.log("[run-routes/generate] === New request ===");
 
   try {
     const body = await request.json() as GenerateRequest;
@@ -786,8 +769,7 @@ export async function POST(request: NextRequest) {
     const routeType = body.routeType === "out-back" ? "out-and-back" : (body.routeType || "loop");
     const difficulty = body.difficulty || "moderate";
     const preferParks = body.preferParks !== false;
-
-    console.log(`[run-routes/generate] lat=${lat}, lng=${lng}, dist=${dist}mi, type=${routeType}, parks=${preferParks}`);
+    const optimizeFor = body.optimizeFor ?? [];
 
     if (!lat || !lng || !isValidCoord(lat, lng)) {
       return NextResponse.json({ error: "Invalid coordinates." }, { status: 400 });
@@ -799,7 +781,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Distance must be 0.5–26.2 miles." }, { status: 400 });
     }
     if (!MAPBOX_TOKEN) {
-      console.error("[run-routes/generate] MAPBOX_TOKEN missing!");
       return NextResponse.json({ error: "Route service temporarily unavailable." }, { status: 503 });
     }
 
@@ -809,7 +790,6 @@ export async function POST(request: NextRequest) {
 
     // ---- WATER AVOIDANCE LAYER 1: Filter parks/waterfront to same landmass ----
     const startLandmass = getLandmass(lat, lng);
-    console.log(`[run-routes/water-check] Start landmass: ${startLandmass} (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
 
     const parks = startLandmass
       ? rawParks.filter(p => areSameLandmass(startLandmass, getLandmass(p.lat, p.lng)))
@@ -817,26 +797,16 @@ export async function POST(request: NextRequest) {
     const waterfront = startLandmass
       ? rawWaterfront.filter(w => areSameLandmass(startLandmass, getLandmass(w.lat, w.lng)))
       : rawWaterfront;
-    console.log(`[run-routes/water-check] Parks: ${rawParks.length} → ${parks.length} | Waterfront: ${rawWaterfront.length} → ${waterfront.length} on same landmass`);
-
     // Generate candidates
     const candidates = generateCandidates(lat, lng, dist, routeType, parks, waterfront, preferParks);
 
     // ---- WATER AVOIDANCE LAYER 2: Filter waypoints to same landmass ----
     if (startLandmass) {
       for (const candidate of candidates) {
-        const before = candidate.waypoints.length;
         candidate.waypoints = candidate.waypoints.filter((wp) => {
           const wpLandmass = getLandmass(wp.lat, wp.lng);
-          const same = areSameLandmass(startLandmass, wpLandmass);
-          if (!same) {
-            console.log(`[run-routes/water-check] Rejected waypoint on ${wpLandmass} (start is ${startLandmass}): ${wp.lat.toFixed(4)}, ${wp.lng.toFixed(4)} — "${candidate.label}"`);
-          }
-          return same;
+          return areSameLandmass(startLandmass, wpLandmass);
         });
-        if (candidate.waypoints.length < before) {
-          console.log(`[run-routes/water-check] "${candidate.label}": ${before} → ${candidate.waypoints.length} waypoints after landmass filter`);
-        }
       }
     }
     const validCandidates = candidates.filter((c) => c.waypoints.length > 0);
@@ -862,22 +832,12 @@ export async function POST(request: NextRequest) {
         const coords: [number, number][] = result.geojson?.coordinates || [];
         if (coords.length === 0) return true;
         const check = routeStaysOnLandmass(coords, startLandmass);
-        if (!check.valid) {
-          console.log(`[run-routes/water-check] DISCARDING route "${result.candidate.label}" — ${check.violationCount} points on wrong landmass. First: ${check.firstViolation}`);
-          return false;
-        }
-        if (check.violationCount > 0) {
-          console.log(`[run-routes/water-check] Route "${result.candidate.label}" has ${check.violationCount} borderline points (allowed ≤2)`);
-        }
+        if (!check.valid) return false;
         return true;
       });
-      console.log(`[run-routes/water-check] Post-validation: ${allRouteResults.length} routes → ${routeResults.length} passed landmass check`);
     }
 
-    console.log(`[run-routes/generate] ${routeResults.length}/${candidates.length} candidates produced valid routes`);
-
     if (routeResults.length === 0) {
-      console.error(`[run-routes/generate] ALL routes discarded (${allRouteResults.length} fetched, 0 passed water check). Start landmass: ${startLandmass}`);
       return NextResponse.json({ error: "Route generation failed. Please try again." }, { status: 500 });
     }
 
@@ -904,8 +864,8 @@ export async function POST(request: NextRequest) {
         const distError = Math.abs(result.distanceMi - dist) / dist;
         // 0% error = 0 penalty, 10% = -5, 20% = -10, 30% = -15, 40%+ = -20
         const distPenalty = Math.round(Math.min(distError * 50, 20));
-        const rawScore = breakdown.airQuality + breakdown.safety + breakdown.scenery + breakdown.terrain;
-        const runScore = Math.max(0, rawScore - distPenalty);
+        const weightedScore = scoreGeneratedRoute(breakdown, optimizeFor);
+        const runScore = Math.max(0, weightedScore - distPenalty);
 
         const directions = parseDirections(result.legs);
         const exportUrls = buildExportUrls(lat, lng, result.candidate.waypoints, routeType);
@@ -935,7 +895,6 @@ export async function POST(request: NextRequest) {
     const topRoutes = scored.slice(0, 3);
 
     const elapsed = Date.now() - startTime;
-    console.log(`[run-routes/generate] Returning ${topRoutes.length} routes. Best: ${topRoutes[0]?.runScore}/100 (${topRoutes[0]?.candidateLabel}). ${elapsed}ms`);
 
     return NextResponse.json({
       routes: topRoutes.map((r, i) => ({

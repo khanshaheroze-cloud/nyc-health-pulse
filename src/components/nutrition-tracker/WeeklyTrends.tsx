@@ -11,31 +11,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-
-interface FoodEntry {
-  id: string;
-  name: string;
-  source: "nyc" | "usda" | "openfoodfacts" | "custom" | "quick";
-  servings: number;
-  servingSize: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber: number;
-  micronutrients?: Record<string, number>;
-  timestamp: number;
-  nycBadge?: boolean;
-}
-
-interface UserGoals {
-  dailyCalories: number;
-  proteinGoal: number;
-  carbGoal: number;
-  fatGoal: number;
-  fiberGoal: number;
-  waterGoalOz: number;
-}
+import type { FoodEntry, UserGoals } from "./DailySummary";
 
 type Metric = "calories" | "protein" | "carbs" | "fat" | "fiber";
 
