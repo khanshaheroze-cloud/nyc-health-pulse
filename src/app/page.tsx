@@ -5,7 +5,9 @@ import { NutritionWidget } from "@/components/overview/NutritionWidget";
 import { EatSmartNearby } from "@/components/overview/EatSmartNearby";
 import { NeighborhoodBar } from "@/components/overview/NeighborhoodBar";
 import { HealthStatusChips } from "@/components/overview/HealthStatusChips";
+import { OverviewBoroughCharts } from "@/components/overview/OverviewBoroughCharts";
 import { AlertBanner } from "@/components/AlertBanner";
+import { chronicOutcomes as staticOutcomes } from "@/lib/data";
 import {
   fetchCovidByBorough,
   fetchRodentByBorough,
@@ -15,10 +17,11 @@ import {
   fetchAirNowAQI,
   fetchPollenForecast,
   fetchWeatherUV,
+  fetchCdcPlacesByBorough,
 } from "@/lib/liveData";
 
 export default async function OverviewPage() {
-  const [covidBorough, rodentData, critViolations, waterQuality, citywideAir, airNow, pollen, weather] = await Promise.all([
+  const [covidBorough, rodentData, critViolations, waterQuality, citywideAir, airNow, pollen, weather, cdcPlaces] = await Promise.all([
     fetchCovidByBorough(),
     fetchRodentByBorough(),
     fetchCriticalViolationsCount(),
@@ -27,6 +30,7 @@ export default async function OverviewPage() {
     fetchAirNowAQI(),
     fetchPollenForecast(),
     fetchWeatherUV(),
+    fetchCdcPlacesByBorough(),
   ]);
 
   const totalHosp = covidBorough?.reduce((s, d) => s + d.hosp, 0) || 1763;
@@ -44,6 +48,26 @@ export default async function OverviewPage() {
   const waterSafePct = waterQuality
     ? ((1 - waterQuality.coliformDetected / waterQuality.totalSamples) * 100).toFixed(1)
     : "99.9";
+
+  // Build chart data — prefer live CDC PLACES, fall back to static
+  const chronicOutcomes = cdcPlaces
+    ? [
+        { measure: "Obesity", ...Object.fromEntries(cdcPlaces.map(b => [b.borough, b.obesity ?? 0])) },
+        { measure: "Diabetes", ...Object.fromEntries(cdcPlaces.map(b => [b.borough, b.diabetes ?? 0])) },
+        { measure: "Depression", ...Object.fromEntries(cdcPlaces.map(b => [b.borough, b.depression ?? 0])) },
+        { measure: "High BP", ...Object.fromEntries(cdcPlaces.map(b => [b.borough, b.highBP ?? 0])) },
+      ]
+    : staticOutcomes;
+
+  const inactivityData = cdcPlaces
+    ? cdcPlaces.map(b => ({ borough: b.borough, pct: b.inactivity ?? 0 }))
+    : [
+        { borough: "Bronx", pct: 34.7 },
+        { borough: "Brooklyn", pct: 28.9 },
+        { borough: "Manhattan", pct: 22.1 },
+        { borough: "Queens", pct: 28.6 },
+        { borough: "Staten Is.", pct: 29.4 },
+      ];
 
   return (
     <div className="stagger-children">
@@ -81,12 +105,17 @@ export default async function OverviewPage() {
         <EatSmartNearby />
       </div>
 
-      {/* 5. Neighborhood stat bar */}
+      {/* 5. Borough health charts — chronic disease + inactivity */}
+      <div className="mt-5">
+        <OverviewBoroughCharts chronicOutcomes={chronicOutcomes} inactivityData={inactivityData} />
+      </div>
+
+      {/* 6. Neighborhood stat bar */}
       <div className="mt-5">
         <NeighborhoodBar />
       </div>
 
-      {/* 6. Health Status chips */}
+      {/* 7. Health Status chips */}
       <div className="mt-5">
         <HealthStatusChips
           airLabel={airLabel}

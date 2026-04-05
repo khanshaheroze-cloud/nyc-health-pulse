@@ -15,26 +15,22 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Overview" },
-  { href: "/neighborhood", label: "Neighborhoods" },
   { href: "/air-quality", label: "Air Quality" },
-  { href: "/workouts", label: "Fitness", dropdown: "fitness" },
-  { href: "/eat-smart", label: "Food & Nutrition", dropdown: "food" },
-  { href: "/building-health", label: "Building Safety" },
-  { href: "/health-data", label: "Health Data", dropdown: "health" },
-  { href: "/find-care", label: "Find Care" },
-];
-
-const FITNESS_ITEMS = [
   { href: "/workouts", label: "Workouts" },
-  { href: "/run-routes", label: "Run Routes" },
   { href: "/nutrition-tracker", label: "Nutrition Tracker" },
+  { href: "/eat-smart", label: "Eat Out Smart", dropdown: "eatout" },
+  { href: "/neighborhood", label: "Neighborhoods" },
+  { href: "/find-care", label: "Find Care" },
+  { href: "/building-health", label: "Building Safety" },
+  { href: "/health-data", label: "NYC PH Data", dropdown: "health" },
+  { href: "/run-routes", label: "Run Routes", dropdown: "more" },
 ];
 
-const FOOD_ITEMS = [
+const EATOUT_ITEMS = [
   { href: "/eat-smart", label: "Eat Smart" },
   { href: "/restaurants", label: "Restaurant Guide" },
-  { href: "/food-safety", label: "Food Safety" },
   { href: "/grocery", label: "Grocery Prices" },
+  { href: "/food-safety", label: "Food Safety" },
   { href: "/nutrition", label: "Nutrition Data" },
 ];
 
@@ -48,6 +44,12 @@ const HEALTH_ITEMS = [
   { href: "/environment", label: "Environment" },
   { href: "/wellness", label: "Wellness" },
   { href: "/safety", label: "Street Safety" },
+];
+
+const MORE_ITEMS = [
+  { href: "/run-routes", label: "Run Route Creator" },
+  { href: "/sources", label: "Data Sources" },
+  { href: "/changelog", label: "Changelog" },
 ];
 
 /* ── Chevron icon ─────────────────────────────────────────── */
@@ -72,8 +74,14 @@ function MobileOverlay({
   onClose: () => void;
 }) {
   const isHealthActive = HEALTH_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
-  const isFoodActive = FOOD_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
-  const isFitnessActive = FITNESS_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
+  const isEatOutActive = EATOUT_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
+  const isMoreActive = MORE_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
+
+  const getDropdownItems = (key: string) =>
+    key === "eatout" ? EATOUT_ITEMS : key === "health" ? HEALTH_ITEMS : key === "more" ? MORE_ITEMS : [];
+
+  const isDropdownActive = (key: string) =>
+    key === "eatout" ? isEatOutActive : key === "health" ? isHealthActive : key === "more" ? isMoreActive : false;
 
   return createPortal(
     <>
@@ -156,10 +164,10 @@ function MobileOverlay({
           {NAV_ITEMS.map((item) => {
             const isDropdown = !!item.dropdown;
             const isActive = isDropdown
-              ? (item.dropdown === "fitness" ? isFitnessActive : item.dropdown === "food" ? isFoodActive : isHealthActive)
+              ? isDropdownActive(item.dropdown!)
               : (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));
             const isAccordionOpen = mobileAccordion === item.dropdown;
-            const dropdownItems = item.dropdown === "fitness" ? FITNESS_ITEMS : item.dropdown === "food" ? FOOD_ITEMS : item.dropdown === "health" ? HEALTH_ITEMS : [];
+            const dropdownItems = isDropdown ? getDropdownItems(item.dropdown!) : [];
 
             if (isDropdown) {
               return (
@@ -250,8 +258,14 @@ export function Nav() {
   const navRef = useRef<HTMLDivElement>(null);
 
   const isHealthActive = HEALTH_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
-  const isFoodActive = FOOD_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
-  const isFitnessActive = FITNESS_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
+  const isEatOutActive = EATOUT_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
+  const isMoreActive = MORE_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
+
+  const getDropdownItems = (key: string) =>
+    key === "eatout" ? EATOUT_ITEMS : key === "health" ? HEALTH_ITEMS : key === "more" ? MORE_ITEMS : [];
+
+  const isDropdownActiveDesktop = (key: string) =>
+    key === "eatout" ? isEatOutActive : key === "health" ? isHealthActive : key === "more" ? isMoreActive : false;
 
   // Mounted guard for portal
   useEffect(() => { setMounted(true); }, []);
@@ -302,10 +316,10 @@ export function Nav() {
         {NAV_ITEMS.map((item) => {
           const isDropdown = !!item.dropdown;
           const isActive = isDropdown
-            ? (item.dropdown === "fitness" ? isFitnessActive : item.dropdown === "food" ? isFoodActive : isHealthActive)
+            ? isDropdownActiveDesktop(item.dropdown!)
             : (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));
           const isOpen = openDropdown === item.dropdown;
-          const dropdownItems = item.dropdown === "fitness" ? FITNESS_ITEMS : item.dropdown === "food" ? FOOD_ITEMS : item.dropdown === "health" ? HEALTH_ITEMS : [];
+          const dropdownItems = isDropdown ? getDropdownItems(item.dropdown!) : [];
 
           if (isDropdown) {
             return (
