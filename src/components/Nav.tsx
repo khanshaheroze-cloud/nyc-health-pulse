@@ -17,17 +17,21 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Overview" },
   { href: "/neighborhood", label: "Neighborhoods" },
   { href: "/air-quality", label: "Air Quality" },
-  { href: "/workouts", label: "Workouts" },
-  { href: "/run-routes", label: "Run Routes" },
+  { href: "/workouts", label: "Fitness", dropdown: "fitness" },
   { href: "/eat-smart", label: "Food & Nutrition", dropdown: "food" },
   { href: "/building-health", label: "Building Safety" },
   { href: "/health-data", label: "Health Data", dropdown: "health" },
   { href: "/find-care", label: "Find Care" },
 ];
 
+const FITNESS_ITEMS = [
+  { href: "/workouts", label: "Workouts" },
+  { href: "/run-routes", label: "Run Routes" },
+  { href: "/nutrition-tracker", label: "Nutrition Tracker" },
+];
+
 const FOOD_ITEMS = [
   { href: "/eat-smart", label: "Eat Smart" },
-  { href: "/nutrition-tracker", label: "Nutrition Tracker" },
   { href: "/restaurants", label: "Restaurant Guide" },
   { href: "/food-safety", label: "Food Safety" },
   { href: "/grocery", label: "Grocery Prices" },
@@ -69,6 +73,7 @@ function MobileOverlay({
 }) {
   const isHealthActive = HEALTH_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
   const isFoodActive = FOOD_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
+  const isFitnessActive = FITNESS_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
 
   return createPortal(
     <>
@@ -151,10 +156,10 @@ function MobileOverlay({
           {NAV_ITEMS.map((item) => {
             const isDropdown = !!item.dropdown;
             const isActive = isDropdown
-              ? (item.dropdown === "food" ? isFoodActive : isHealthActive)
+              ? (item.dropdown === "fitness" ? isFitnessActive : item.dropdown === "food" ? isFoodActive : isHealthActive)
               : (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));
             const isAccordionOpen = mobileAccordion === item.dropdown;
-            const dropdownItems = item.dropdown === "food" ? FOOD_ITEMS : item.dropdown === "health" ? HEALTH_ITEMS : [];
+            const dropdownItems = item.dropdown === "fitness" ? FITNESS_ITEMS : item.dropdown === "food" ? FOOD_ITEMS : item.dropdown === "health" ? HEALTH_ITEMS : [];
 
             if (isDropdown) {
               return (
@@ -246,6 +251,7 @@ export function Nav() {
 
   const isHealthActive = HEALTH_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
   const isFoodActive = FOOD_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
+  const isFitnessActive = FITNESS_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
 
   // Mounted guard for portal
   useEffect(() => { setMounted(true); }, []);
@@ -296,10 +302,10 @@ export function Nav() {
         {NAV_ITEMS.map((item) => {
           const isDropdown = !!item.dropdown;
           const isActive = isDropdown
-            ? (item.dropdown === "food" ? isFoodActive : isHealthActive)
+            ? (item.dropdown === "fitness" ? isFitnessActive : item.dropdown === "food" ? isFoodActive : isHealthActive)
             : (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));
           const isOpen = openDropdown === item.dropdown;
-          const dropdownItems = item.dropdown === "food" ? FOOD_ITEMS : item.dropdown === "health" ? HEALTH_ITEMS : [];
+          const dropdownItems = item.dropdown === "fitness" ? FITNESS_ITEMS : item.dropdown === "food" ? FOOD_ITEMS : item.dropdown === "health" ? HEALTH_ITEMS : [];
 
           if (isDropdown) {
             return (

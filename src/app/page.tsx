@@ -1,14 +1,11 @@
-import { HealthNewsFeed } from "@/components/HealthNewsFeed";
-import { EmailSignup } from "@/components/EmailSignup";
-import { WeeklyChanges } from "@/components/WeeklyChanges";
 import { DailyHealthCheck } from "@/components/DailyHealthCheck";
+import { HeroBanner } from "@/components/overview/HeroBanner";
+import { WorkoutWidget } from "@/components/overview/WorkoutWidget";
+import { NutritionWidget } from "@/components/overview/NutritionWidget";
+import { EatSmartNearby } from "@/components/overview/EatSmartNearby";
+import { NeighborhoodBar } from "@/components/overview/NeighborhoodBar";
+import { HealthStatusChips } from "@/components/overview/HealthStatusChips";
 import { AlertBanner } from "@/components/AlertBanner";
-import { OutdoorHero } from "@/components/OutdoorHero";
-import { MyNeighborhood } from "@/components/MyNeighborhood";
-import { ExploreGrid } from "@/components/ExploreGrid";
-import { FeaturedInsights } from "@/components/FeaturedInsights";
-import { ScrollReveal } from "@/components/ScrollReveal";
-import { ROUTES } from "@/lib/routes";
 import {
   fetchCovidByBorough,
   fetchRodentByBorough,
@@ -16,20 +13,18 @@ import {
   fetchWaterQuality,
   fetchCitywideAirQuality,
   fetchAirNowAQI,
-  fetchBeachWater,
   fetchPollenForecast,
   fetchWeatherUV,
 } from "@/lib/liveData";
 
 export default async function OverviewPage() {
-  const [covidBorough, rodentData, critViolations, waterQuality, citywideAir, airNow, beachWater, pollen, weather] = await Promise.all([
+  const [covidBorough, rodentData, critViolations, waterQuality, citywideAir, airNow, pollen, weather] = await Promise.all([
     fetchCovidByBorough(),
     fetchRodentByBorough(),
     fetchCriticalViolationsCount(),
     fetchWaterQuality(),
     fetchCitywideAirQuality(),
     fetchAirNowAQI(),
-    fetchBeachWater(),
     fetchPollenForecast(),
     fetchWeatherUV(),
   ]);
@@ -50,12 +45,9 @@ export default async function OverviewPage() {
     ? ((1 - waterQuality.coliformDetected / waterQuality.totalSamples) * 100).toFixed(1)
     : "99.9";
 
-  // Suggested route
-  const suggestedRoute = ROUTES.find(r => r.carFree && r.difficulty === "Easy") ?? ROUTES[0];
-
   return (
     <div className="stagger-children">
-      {/* 1. TODAY IN NYC ticker */}
+      {/* 1. TODAY IN NYC ticker — keep as-is */}
       <DailyHealthCheck
         airLabel={airLabel}
         airAqi={airNow?.aqi ?? null}
@@ -65,60 +57,48 @@ export default async function OverviewPage() {
         waterSafePct={waterSafePct}
       />
 
-      {/* 2. Neighborhood banner (search + personalization) */}
-      <MyNeighborhood />
-
-      {/* 3. HERO — outdoor conditions + inline food logger */}
-      <OutdoorHero
-        aqi={airNow?.aqi ?? null}
-        aqiCategory={airNow?.category ?? airLabel}
-        pollen={pollen ? { level: pollen.level, topAllergens: pollen.topAllergens } : null}
-        uvIndex={weather?.uvIndex ?? null}
-        tempF={weather?.tempF ?? null}
-        feelsLikeF={weather?.feelsLikeF ?? null}
-        weatherLabel={weather?.weatherLabel ?? null}
-        humidity={weather?.humidity ?? null}
-        windMph={weather?.windMph ?? null}
-        suggestedRoute={suggestedRoute}
-      />
+      {/* 2. Simplified hero — greeting + AQI mini-ring + weather */}
+      <div className="mt-5">
+        <HeroBanner
+          aqi={airNow?.aqi ?? null}
+          aqiCategory={airNow?.category ?? airLabel}
+          tempF={weather?.tempF ?? null}
+          weatherLabel={weather?.weatherLabel ?? null}
+        />
+      </div>
 
       {/* Emergency alert banner */}
       <AlertBanner aqi={airNow?.aqi ?? null} />
 
-      {/* 4. Explore Pulse NYC grid */}
-      <ScrollReveal>
-        <div className="mb-6">
-          <ExploreGrid />
-        </div>
-      </ScrollReveal>
+      {/* 3. Workout + Nutrition — side by side on desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+        <WorkoutWidget />
+        <NutritionWidget />
+      </div>
 
-      {/* 5. What's Happening — compact list */}
-      <ScrollReveal>
-        <div className="mb-6">
-          <WeeklyChanges />
-        </div>
-      </ScrollReveal>
+      {/* 4. Eat Smart — mini map + top picks */}
+      <div className="mt-5">
+        <EatSmartNearby />
+      </div>
 
-      {/* 6. NYC Health News + Featured Insights */}
-      <ScrollReveal>
-        <div className="flex items-center gap-3 mb-3">
-          <h2 className="text-[11px] font-bold tracking-[2px] uppercase text-muted whitespace-nowrap">NYC Health News</h2>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-        <FeaturedInsights />
-        <div className="mt-4 mb-8">
-          <HealthNewsFeed />
-        </div>
-      </ScrollReveal>
+      {/* 5. Neighborhood stat bar */}
+      <div className="mt-5">
+        <NeighborhoodBar />
+      </div>
 
-      {/* 7. Stay Connected — single newsletter CTA */}
-      <ScrollReveal>
-        <div className="flex items-center gap-3 mb-3">
-          <h2 className="text-[11px] font-bold tracking-[2px] uppercase text-muted whitespace-nowrap">Stay Connected</h2>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-        <EmailSignup />
-      </ScrollReveal>
+      {/* 6. Health Status chips */}
+      <div className="mt-5">
+        <HealthStatusChips
+          airLabel={airLabel}
+          airAqi={airNow?.aqi ?? null}
+          covidLabel={covidLabel}
+          totalHosp={totalHosp}
+          iliRate={3.84}
+          waterSafePct={waterSafePct}
+          pollenLevel={pollen?.level ?? null}
+          rodentActive={activeRate}
+        />
+      </div>
     </div>
   );
 }

@@ -63,10 +63,10 @@ export default async function CovidPage() {
     >
       <ScrollReveal>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
-        <KPICard label="Cases (90d)"      value={totalCases.toLocaleString()} sub="All boroughs" color="blue" tag={covidTag} />
-        <KPICard label="Hospitalizations" value={totalHosp.toLocaleString()}  sub={`${totalCases > 0 ? ((totalHosp/totalCases)*100).toFixed(1) : "9.8"}% of cases`} color="orange" tag={covidTag} />
-        <KPICard label="Deaths (3mo)"     value={totalDeaths.toLocaleString()} sub="Recent 3 months" color="red" tag={covidTag} />
-        <KPICard label="Highest Borough"  value={topBorough?.borough ?? "Queens"} sub={`${topBorough?.cases.toLocaleString() ?? "—"} cases`} color="purple" tag={covidTag} />
+        <KPICard label="Cases (90d)"      value={totalCases.toLocaleString("en-US")} sub="All boroughs" color="blue" tag={covidTag} />
+        <KPICard label="Hospitalizations" value={totalHosp.toLocaleString("en-US")}  sub={`${totalCases > 0 ? ((totalHosp/totalCases)*100).toFixed(1) : "9.8"}% of cases`} color="orange" tag={covidTag} />
+        <KPICard label="Deaths (3mo)"     value={totalDeaths.toLocaleString("en-US")} sub="Recent 3 months" color="red" tag={covidTag} />
+        <KPICard label="Highest Borough"  value={topBorough?.borough ?? "Queens"} sub={`${topBorough?.cases.toLocaleString("en-US") ?? "—"} cases`} color="purple" tag={covidTag} />
       </div>
       </ScrollReveal>
 

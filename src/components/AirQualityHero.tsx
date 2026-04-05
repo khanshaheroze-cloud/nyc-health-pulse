@@ -4,21 +4,32 @@ import { useState, useEffect, useRef } from "react";
 
 /* ── Count-up ────────────────────────────────── */
 function useCountUp(target: number, duration = 1200) {
-  const [value, setValue] = useState(0);
-  const started = useRef(false);
+  const safeTarget = isNaN(target) ? 0 : target;
+  const [value, setValue] = useState(safeTarget);
+  const prevTarget = useRef(safeTarget);
+  const rafRef = useRef<number>(0);
+
   useEffect(() => {
-    if (started.current || target === 0) return;
-    started.current = true;
-    const start = performance.now();
-    function tick(now: number) {
-      const elapsed = now - start;
+    if (safeTarget === prevTarget.current) return;
+
+    const from = prevTarget.current;
+    prevTarget.current = safeTarget;
+
+    if (safeTarget === 0) { setValue(0); return; }
+
+    const startTime = performance.now();
+    function step(now: number) {
+      const elapsed = now - startTime;
       const p = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - p, 3);
-      setValue(Math.round(eased * target));
-      if (p < 1) requestAnimationFrame(tick);
+      setValue(Math.round(from + (safeTarget - from) * eased));
+      if (p < 1) rafRef.current = requestAnimationFrame(step);
     }
-    requestAnimationFrame(tick);
-  }, [target, duration]);
+    rafRef.current = requestAnimationFrame(step);
+
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [safeTarget, duration]);
+
   return value;
 }
 
@@ -77,7 +88,7 @@ interface AirQualityHeroProps {
 }
 
 export function AirQualityHero({ aqi, category, pm25, no2, o3, period }: AirQualityHeroProps) {
-  const displayAqi = aqi ?? Math.round(pm25 * 4.2); // rough AQI estimate from PM2.5
+  const displayAqi = aqi ?? (pm25 ? Math.round(pm25 * 4.2) : 0);
   const meta = aqiMeta(displayAqi);
   const animatedAqi = useCountUp(displayAqi);
   const recommendations = getRecommendations(displayAqi);

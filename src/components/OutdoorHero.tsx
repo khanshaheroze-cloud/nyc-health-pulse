@@ -459,7 +459,7 @@ function InlineFoodLogger({ expandRef }: { expandRef?: React.MutableRefObject<((
       {/* Expanded panel */}
       <div
         className="transition-all duration-300 ease-in-out"
-        style={{ maxHeight: expanded ? "700px" : "0", opacity: expanded ? 1 : 0, overflow: expanded ? "visible" : "hidden" }}
+        style={{ maxHeight: expanded ? "700px" : "0", opacity: expanded ? 1 : 0, overflow: "hidden" }}
       >
         <div className="pt-3 space-y-3">
           {/* Meal period chips */}

@@ -5,6 +5,7 @@ import type { FoodEntry } from "./DailySummary";
 import FoodDetailCard from "./FoodDetailCard";
 import MealBuilder from "./MealBuilder";
 import { detectRestaurantTrigger, parseBuilderHints, getRestaurantBuilder, RESTAURANT_LIST } from "@/lib/restaurantBuilderData";
+import { NYC_FOOD_DATABASE, type NycFoodItem } from "@/lib/nycFoodDatabase";
 
 /* ── Types ────────────────────────────────────────────────── */
 
@@ -156,6 +157,44 @@ function getTimeOfDayTags(): { tags: string[]; label: string } {
     return { tags: ["dinner", "ramen", "pizza", "burger", "bowl"], label: "Dinner Ideas" };
   }
   return { tags: ["late-night", "halal", "pizza", "slice"], label: "Late Night Cravings" };
+}
+
+/* ── NYC Favorites browsable categories ─────────────────────── */
+
+const NYC_BROWSE_CATEGORIES: { key: string; emoji: string; label: string; filter: (item: NycFoodItem) => boolean }[] = [
+  { key: "breakfast", emoji: "🌅", label: "Breakfast", filter: (i) => i.tags.includes("breakfast") || i.tags.includes("morning") || i.tags.includes("bagel") || i.category === "Bagels & Bakery" || i.category === "Coffee & Drinks" && i.tags.includes("coffee") },
+  { key: "street", emoji: "🥙", label: "Street Food & Carts", filter: (i) => i.category === "Street Food & Carts" },
+  { key: "bodega", emoji: "🥪", label: "Delis & Bodegas", filter: (i) => i.category === "Bodega" || i.category === "Sandwich & Deli" },
+  { key: "pizza", emoji: "🍕", label: "Pizza", filter: (i) => i.category === "Pizza" || i.tags.includes("pizza") },
+  { key: "caribbean", emoji: "🍗", label: "Caribbean & Soul", filter: (i) => i.tags.includes("caribbean") || i.tags.includes("jamaican") || i.tags.includes("trinidadian") },
+  { key: "noodles", emoji: "🍜", label: "Noodles & Asian", filter: (i) => i.category === "Chinese & Noodles" || i.category === "Japanese & Sushi" || i.category === "Korean" },
+  { key: "indian", emoji: "🍛", label: "Indian & South Asian", filter: (i) => i.category === "Indian & South Asian" },
+  { key: "mexican", emoji: "🌮", label: "Mexican & Tacos", filter: (i) => i.category === "Mexican & Tacos" },
+  { key: "mideast", emoji: "🧆", label: "Middle Eastern", filter: (i) => i.category === "Middle Eastern" },
+  { key: "coffee", emoji: "☕", label: "Coffee & Drinks", filter: (i) => i.category === "Coffee & Drinks" || i.category === "Boba & Juice" },
+  { key: "salads", emoji: "🥗", label: "Salads & Bowls", filter: (i) => i.category === "Salads & Bowls" || i.category === "Fast Casual" },
+  { key: "dessert", emoji: "🍪", label: "Dessert & Snacks", filter: (i) => i.category === "Dessert & Snacks" },
+  { key: "iconic", emoji: "🗽", label: "Iconic NYC Spots", filter: (i) => i.category === "Iconic NYC Spots" || i.tags.includes("classic-nyc") },
+];
+
+function nycItemToSearchResult(item: NycFoodItem): SearchResult {
+  return {
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    calories: item.calories,
+    protein: item.protein,
+    carbs: item.carbs,
+    fat: item.fat,
+    fiber: item.fiber,
+    servingSize: item.servingSize,
+    source: "nyc",
+    nycBadge: true,
+    description: item.description,
+    variants: item.variants,
+    tip: item.tip,
+    tags: item.tags,
+  };
 }
 
 /* ── LocalStorage helpers ─────────────────────────────────── */
@@ -548,6 +587,90 @@ function LogByWeightForm({
           Add to {MEAL_LABELS[meal]} · {totalCal} cal
         </button>
       </div>
+    </div>
+  );
+}
+
+/* ── NYC Favorites Tab (browsable categories) ──────────────── */
+
+function NycFavoritesTab({
+  nycLabel,
+  loadingNyc,
+  timeFavorites,
+  onSelect,
+}: {
+  nycLabel: string;
+  loadingNyc: boolean;
+  timeFavorites: SearchResult[];
+  onSelect: (r: SearchResult) => void;
+}) {
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-3">
+      {/* Time-of-day picks (existing behavior) */}
+      {nycLabel && timeFavorites.length > 0 && (
+        <div>
+          <button
+            onClick={() => setExpandedCat(expandedCat === "_time" ? null : "_time")}
+            className="w-full flex items-center justify-between py-2 px-1"
+          >
+            <p className="text-xs font-bold text-accent flex items-center gap-1.5">
+              🕐 {nycLabel}
+              <span className="text-[10px] font-normal text-muted">({timeFavorites.length})</span>
+            </p>
+            <span className={`text-muted text-[10px] transition-transform ${expandedCat === "_time" ? "rotate-180" : ""}`}>▼</span>
+          </button>
+          {expandedCat === "_time" && (
+            <div className="space-y-0.5">
+              {timeFavorites.map((r) => (
+                <SearchResultRow key={r.id} result={r} onClick={() => onSelect(r)} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {loadingNyc && (
+        <div className="space-y-0.5">
+          <ShimmerRow />
+          <ShimmerRow />
+        </div>
+      )}
+
+      {/* Browsable categories */}
+      <p className="text-[10px] font-bold uppercase tracking-[1.5px] text-muted px-1 pt-1">
+        Browse by Category · {NYC_FOOD_DATABASE.length}+ items
+      </p>
+      {NYC_BROWSE_CATEGORIES.map(({ key, emoji, label, filter }) => {
+        const items = NYC_FOOD_DATABASE.filter(filter);
+        if (items.length === 0) return null;
+        const isOpen = expandedCat === key;
+        return (
+          <div key={key}>
+            <button
+              onClick={() => setExpandedCat(isOpen ? null : key)}
+              className="w-full flex items-center justify-between py-2 px-1 hover:bg-bg rounded-lg transition-colors"
+            >
+              <span className="text-[13px] font-medium text-text flex items-center gap-2">
+                <span>{emoji}</span> {label}
+                <span className="text-[10px] font-normal text-muted">({items.length})</span>
+              </span>
+              <span className={`text-muted text-[10px] transition-transform ${isOpen ? "rotate-180" : ""}`}>▼</span>
+            </button>
+            {isOpen && (
+              <div className="space-y-0.5 ml-1">
+                {items.map((item) => (
+                  <SearchResultRow
+                    key={item.id}
+                    result={nycItemToSearchResult(item)}
+                    onClick={() => onSelect(nycItemToSearchResult(item))}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1291,39 +1414,14 @@ export default function FoodSearchModal({
                 </div>
               )}
 
-              {/* NYC Favorites tab */}
+              {/* NYC Favorites tab — browsable categories */}
               {tab === "nyc" && (
-                <div>
-                  {nycLabel && (
-                    <p className="text-xs font-medium text-accent mb-2 flex items-center gap-1">
-                      🗽 {nycLabel}
-                    </p>
-                  )}
-                  {loadingNyc && (
-                    <div className="space-y-0.5">
-                      <ShimmerRow />
-                      <ShimmerRow />
-                      <ShimmerRow />
-                    </div>
-                  )}
-                  {!loadingNyc && nycFavorites.length === 0 && (
-                    <div className="text-center py-10">
-                      <p className="text-sm text-muted">No NYC favorites available right now</p>
-                      <p className="text-xs text-muted mt-1">Check back later for curated NYC food picks</p>
-                    </div>
-                  )}
-                  {!loadingNyc && nycFavorites.length > 0 && (
-                    <div className="space-y-0.5">
-                      {nycFavorites.map((r) => (
-                        <SearchResultRow
-                          key={r.id}
-                          result={r}
-                          onClick={() => handleSelectResult(r)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <NycFavoritesTab
+                  nycLabel={nycLabel}
+                  loadingNyc={loadingNyc}
+                  timeFavorites={nycFavorites}
+                  onSelect={handleSelectResult}
+                />
               )}
 
               {/* My Foods tab */}

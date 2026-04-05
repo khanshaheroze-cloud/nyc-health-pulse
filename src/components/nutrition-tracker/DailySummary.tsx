@@ -49,11 +49,19 @@ export const DEFAULT_GOALS: UserGoals = {
 /* ── Helpers ───────────────────────────────────────────────── */
 
 function dateKey(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function parseLocal(iso: string): Date {
+  const [y, m, day] = iso.split("-").map(Number);
+  return new Date(y, m - 1, day);
 }
 
 function friendlyDate(iso: string): string {
-  const d = new Date(iso + "T12:00:00");
+  const d = parseLocal(iso);
   const today = new Date();
   const todayKey = dateKey(today);
   const yestKey = dateKey(new Date(today.getTime() - 86400000));
@@ -71,7 +79,7 @@ function friendlyDate(iso: string): string {
 }
 
 function shiftDate(iso: string, delta: number): string {
-  const d = new Date(iso + "T12:00:00");
+  const d = parseLocal(iso);
   d.setDate(d.getDate() + delta);
   return dateKey(d);
 }

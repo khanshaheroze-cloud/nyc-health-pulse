@@ -1,90 +1,182 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { useRef, useEffect, useState } from "react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 import type { NearbyRestaurant } from "./NearbyFoodMap";
+import { getMarkerIcon } from "@/lib/cuisineTips";
 
-/* ── Custom markers ──────────────────────────────────────────────────── */
+/* ── Pin marker factory ────────────────────────────────────────────── */
 
-function makeIcon(color: string, emoji: string) {
-  return L.divIcon({
-    className: "",
-    html: `<div style="background:${color};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:14px;">${emoji}</div>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -16],
-  });
+function createPinMarker(icon: string, isChain: boolean): HTMLElement {
+  const wrapper = document.createElement("div");
+  wrapper.style.cssText = "display:flex;flex-direction:column;align-items:center;cursor:pointer;transition:transform 0.15s ease;";
+  wrapper.addEventListener("mouseenter", () => { wrapper.style.transform = "scale(1.15)"; });
+  wrapper.addEventListener("mouseleave", () => { wrapper.style.transform = "scale(1)"; });
+
+  const circle = document.createElement("div");
+  const bg = isChain ? "#4A7C59" : "#ffffff";
+  circle.style.cssText = `width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3);background:${bg};`;
+  circle.textContent = icon;
+
+  const tail = document.createElement("div");
+  tail.style.cssText = `width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid ${bg};margin-top:-1px;`;
+
+  wrapper.appendChild(circle);
+  wrapper.appendChild(tail);
+  return wrapper;
 }
-
-const chainIcon = makeIcon("#4A7C59", "🌯");
-const healthyIcon = makeIcon("#22d3ee", "🥗");
-const defaultIcon = makeIcon("#9ca3af", "🍴");
-const userIcon = L.divIcon({
-  className: "",
-  html: `<div style="background:#5b9cf5;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #5b9cf5,0 2px 8px rgba(0,0,0,.3);"></div>`,
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
-});
 
 /* ── Component ───────────────────────────────────────────────────────── */
 
 interface Props {
-  center: [number, number];
+  center: [number, number]; // [lat, lng]
   restaurants: NearbyRestaurant[];
 }
 
 export default function NearbyFoodMapImpl({ center, restaurants }: Props) {
-  return (
-    <MapContainer
-      center={center}
-      zoom={14}
-      style={{ height: "100%", width: "100%" }}
-      zoomControl={false}
-      attributionControl={false}
-    >
-      <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const [mapReady, setMapReady] = useState(false);
 
-      {/* User location */}
-      <Marker position={center} icon={userIcon} />
-      <Circle
-        center={center}
-        radius={1600}
-        pathOptions={{ color: "#5b9cf5", fillColor: "#5b9cf5", fillOpacity: 0.04, weight: 1.5, dashArray: "6 4" }}
-      />
+  // Initialize map once
+  useEffect(() => {
+    if (!mapContainer.current) return;
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!token) return;
 
-      {/* Restaurant pins */}
-      {restaurants.map((r, i) => {
-        const icon = r.chainSlug ? chainIcon : r.isHealthy ? healthyIcon : defaultIcon;
-        return (
-          <Marker key={i} position={[r.lat, r.lng]} icon={icon}>
-            <Popup>
-              <div style={{ minWidth: 160, fontSize: 12 }}>
-                <strong>{r.name}</strong>
-                <br />
-                <span style={{ color: "#666" }}>{r.cuisine}</span>
-                {r.grade && (
-                  <span
-                    style={{
-                      marginLeft: 6,
-                      padding: "1px 5px",
-                      borderRadius: 4,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      background: r.grade === "A" ? "#d1fae5" : r.grade === "B" ? "#fef3c7" : "#fecaca",
-                      color: r.grade === "A" ? "#059669" : r.grade === "B" ? "#d97706" : "#dc2626",
-                    }}
-                  >
-                    Grade {r.grade}
-                  </span>
-                )}
-                <br />
-                <span style={{ color: "#888", fontSize: 10 }}>{r.address}</span>
-              </div>
-            </Popup>
-          </Marker>
-        );
-      })}
-    </MapContainer>
-  );
+    mapboxgl.accessToken = token;
+
+    const map = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: "mapbox://styles/mapbox/light-v11",
+      center: [center[1], center[0]],
+      zoom: 15,
+      attributionControl: false,
+      minZoom: 12,
+      maxZoom: 18,
+    });
+
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
+
+    map.on("load", () => {
+      // User location radius
+      map.addSource("user-radius", {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "Point",
+            coordinates: [center[1], center[0]],
+          },
+        },
+      });
+
+      map.addLayer({
+        id: "user-radius-fill",
+        type: "circle",
+        source: "user-radius",
+        paint: {
+          "circle-radius": { stops: [[10, 30], [14, 280], [16, 1100]] },
+          "circle-color": "#5b9cf5",
+          "circle-opacity": 0.04,
+          "circle-stroke-width": 1.5,
+          "circle-stroke-color": "#5b9cf5",
+          "circle-stroke-opacity": 0.2,
+        },
+      });
+
+      setMapReady(true);
+    });
+
+    // User location marker
+    const userEl = document.createElement("div");
+    userEl.style.cssText = "width:14px;height:14px;border-radius:50%;background:#5b9cf5;border:3px solid white;box-shadow:0 0 0 2px #5b9cf5,0 2px 8px rgba(0,0,0,.3);";
+    new mapboxgl.Marker({ element: userEl }).setLngLat([center[1], center[0]]).addTo(map);
+
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      setMapReady(false);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [center[0], center[1]]);
+
+  // Update markers when restaurants or map changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    // Remove old markers
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+
+    // Add restaurant markers
+    restaurants.forEach((r) => {
+      const isChain = r.chainSlug !== null;
+      const icon = getMarkerIcon(r.cuisine, r.chainSlug, r.isHealthy);
+      const el = createPinMarker(icon, isChain);
+
+      const distMi = (r.distance / 1609.34).toFixed(2);
+
+      const gradeBadge = r.grade
+        ? `<span style="margin-left:6px;padding:1px 5px;border-radius:4px;font-size:10px;font-weight:700;background:${
+            r.grade === "A" ? "#d1fae5" : r.grade === "B" ? "#fef3c7" : "#fecaca"
+          };color:${
+            r.grade === "A" ? "#059669" : r.grade === "B" ? "#d97706" : "#dc2626"
+          }">Grade ${r.grade}</span>`
+        : "";
+
+      // Build popup content based on type
+      let extraHtml = "";
+      if (r.bestPick) {
+        extraHtml = `
+          <p style="font-size:10px;color:#4A7C59;font-weight:600;margin:4px 0 0;">💪 Best: ${r.bestPick.name}</p>
+          <p style="font-size:10px;color:#666;margin:2px 0 0;">Score ${r.bestPick.pulseScore} · ${r.bestPick.calories} cal · ${r.bestPick.protein}g P</p>
+        `;
+      } else if (r.healthyTip) {
+        extraHtml = `
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:4px 0;" />
+          <p style="font-size:10px;color:#4A7C59;font-weight:600;margin:0 0 2px;">💡 Healthy Swap:</p>
+          <p style="font-size:10px;color:#888;text-decoration:line-through;margin:0;">${r.healthyTip.defaultOrder}</p>
+          <p style="font-size:10px;color:#333;font-weight:500;margin:2px 0 0;">→ ${r.healthyTip.smartOrder}</p>
+          <p style="font-size:9px;color:#4A7C59;font-weight:600;margin:2px 0 0;">${r.healthyTip.estimatedSavings}</p>
+          <p style="font-size:9px;color:#888;font-style:italic;margin:3px 0 0;">${r.healthyTip.tip}</p>
+        `;
+      }
+
+      const popupHtml = `
+        <div style="min-width:200px;max-width:280px;font-family:system-ui,-apple-system,sans-serif;">
+          <p style="font-size:13px;font-weight:700;margin:0 0 2px;">${r.name}</p>
+          <p style="font-size:11px;color:#666;margin:0;">${r.cuisine} · ${distMi} mi${gradeBadge}</p>
+          <p style="font-size:10px;color:#888;margin:4px 0 0;">${r.address}</p>
+          ${extraHtml}
+        </div>
+      `;
+
+      const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+        .setLngLat([r.lng, r.lat])
+        .setPopup(
+          new mapboxgl.Popup({ offset: 20, closeButton: false, maxWidth: "300px" }).setHTML(popupHtml)
+        )
+        .addTo(map);
+
+      markersRef.current.push(marker);
+    });
+
+    // Fit bounds
+    if (restaurants.length > 0) {
+      const bounds = new mapboxgl.LngLatBounds();
+      bounds.extend([center[1], center[0]]);
+      restaurants.forEach((r) => bounds.extend([r.lng, r.lat]));
+      map.fitBounds(bounds, { padding: 50, maxZoom: 16 });
+    }
+  }, [restaurants, center, mapReady]);
+
+  return <div ref={mapContainer} style={{ height: "100%", width: "100%" }} />;
 }

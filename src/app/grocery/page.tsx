@@ -7,7 +7,7 @@ import { HealthyGroceryGuide } from "@/components/HealthyGroceryGuide";
 import { sampleBasket } from "@/lib/groceryData";
 
 export const metadata: Metadata = {
-  title: "NYC Grocery Prices — Pulse NYC",
+  title: "NYC Grocery Prices",
   description:
     "Track NYC grocery prices monthly, find stores and farmers markets near you, and discover budget-friendly healthy eating tips. BLS price data, SNAP retailers, and dietitian-backed shopping guides.",
 };

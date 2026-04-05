@@ -46,7 +46,7 @@ export function CrashesByBoroughChart({ data }: { data: BoroughCrash[] }) {
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" barGap={4}>
           <CartesianGrid {...chartTheme.grid} horizontal={false} />
-          <XAxis type="number" {...chartTheme.axis} tickFormatter={(v: number) => v.toLocaleString()} />
+          <XAxis type="number" {...chartTheme.axis} tickFormatter={(v: number) => v.toLocaleString("en-US")} />
           <YAxis
             type="category"
             dataKey="borough"
@@ -58,7 +58,7 @@ export function CrashesByBoroughChart({ data }: { data: BoroughCrash[] }) {
             {...chartTheme.tooltip}
             formatter={(v: number | undefined, name: string | undefined) => {
               if (v == null) return [""];
-              return [v.toLocaleString(), name === "crashes" ? "Crashes" : "Injured"];
+              return [v.toLocaleString("en-US"), name === "crashes" ? "Crashes" : "Injured"];
             }}
           />
           <Bar dataKey="crashes" name="Crashes" radius={[0, 3, 3, 0]}>
@@ -100,12 +100,12 @@ export function CrashTrendChart({ data }: { data: MonthlyTrend[] }) {
             tick={{ ...chartTheme.axis.tick, fontSize: 9 }}
             interval={2}
           />
-          <YAxis {...chartTheme.axis} tickFormatter={(v: number) => v.toLocaleString()} />
+          <YAxis {...chartTheme.axis} tickFormatter={(v: number) => v.toLocaleString("en-US")} />
           <Tooltip
             {...chartTheme.tooltip}
             formatter={(v: number | undefined, name: string | undefined) => {
               if (v == null) return [""];
-              return [v.toLocaleString(), name === "crashes" ? "Crashes" : "Fatalities"];
+              return [v.toLocaleString("en-US"), name === "crashes" ? "Crashes" : "Fatalities"];
             }}
           />
           <Line
@@ -158,7 +158,7 @@ export function ContributingFactorsChart({ data }: { data: CrashFactor[] }) {
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} layout="vertical" barGap={4}>
           <CartesianGrid {...chartTheme.grid} horizontal={false} />
-          <XAxis type="number" {...chartTheme.axis} tickFormatter={(v: number) => v.toLocaleString()} />
+          <XAxis type="number" {...chartTheme.axis} tickFormatter={(v: number) => v.toLocaleString("en-US")} />
           <YAxis
             type="category"
             dataKey="label"
@@ -170,7 +170,7 @@ export function ContributingFactorsChart({ data }: { data: CrashFactor[] }) {
             {...chartTheme.tooltip}
             formatter={(v: number | undefined) => {
               if (v == null) return [""];
-              return [v.toLocaleString(), "Crashes"];
+              return [v.toLocaleString("en-US"), "Crashes"];
             }}
             labelFormatter={(label) => {
               const s = String(label);

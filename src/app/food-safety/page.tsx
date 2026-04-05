@@ -57,9 +57,9 @@ export default async function FoodSafetyPage() {
 
       <ScrollReveal>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
-        <KPICard label="Grade A"         value={gradeA?.toLocaleString() ?? "311"} sub={`${gradePct} of graded`} color="green" tag={foodTag} />
-        <KPICard label="Pending (N)"     value={gradeData.find(g=>g.name==="Pending N")?.value.toLocaleString() ?? "235"} sub="awaiting re-inspection" color="yellow" tag={foodTag} />
-        <KPICard label="Pending (Z)"     value={gradeData.find(g=>g.name==="Pending Z")?.value.toLocaleString() ?? "88"} sub="grade under appeal" color="orange" tag={foodTag} />
+        <KPICard label="Grade A"         value={gradeA?.toLocaleString("en-US") ?? "311"} sub={`${gradePct} of graded`} color="green" tag={foodTag} />
+        <KPICard label="Pending (N)"     value={gradeData.find(g=>g.name==="Pending N")?.value.toLocaleString("en-US") ?? "235"} sub="awaiting re-inspection" color="yellow" tag={foodTag} />
+        <KPICard label="Pending (Z)"     value={gradeData.find(g=>g.name==="Pending Z")?.value.toLocaleString("en-US") ?? "88"} sub="grade under appeal" color="orange" tag={foodTag} />
         <KPICard label="Worst Avg Score" value={String(Math.max(...(byBorough ?? foodByBorough).map(b => b.avgScore)))} sub={(byBorough ?? foodByBorough).reduce((a, b) => a.avgScore > b.avgScore ? a : b).borough} color="red" tag={byBorough ? "LIVE" : "2024"} />
       </div>
       </ScrollReveal>

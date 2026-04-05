@@ -29,11 +29,18 @@ export function LazyChart({
           observer.disconnect();
         }
       },
-      { threshold: 0.05, rootMargin: "100px" }
+      { threshold: 0.05, rootMargin: "200px" }
     );
 
     observer.observe(el);
-    return () => observer.disconnect();
+
+    // Fallback: if observer hasn't fired after 3s, force render
+    const timer = setTimeout(() => setVisible(true), 3000);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
   }, []);
 
   return (

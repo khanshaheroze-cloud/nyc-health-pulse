@@ -116,7 +116,7 @@ export default async function SafetyPage() {
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
         <KPICard
           label="Total Crashes"
-          value={totalCrashes.toLocaleString()}
+          value={totalCrashes.toLocaleString("en-US")}
           sub="Last 12 months"
           color="orange"
           tag="LIVE"
@@ -124,7 +124,7 @@ export default async function SafetyPage() {
         />
         <KPICard
           label="Persons Injured"
-          value={totalInjured.toLocaleString()}
+          value={totalInjured.toLocaleString("en-US")}
           sub="All categories"
           color="blue"
           tag="LIVE"
@@ -132,7 +132,7 @@ export default async function SafetyPage() {
         />
         <KPICard
           label="Fatalities"
-          value={totalKilled.toLocaleString()}
+          value={totalKilled.toLocaleString("en-US")}
           sub="Vision Zero goal: 0"
           color={totalKilled > 0 ? "red" : "green"}
           tag="LIVE"
@@ -140,7 +140,7 @@ export default async function SafetyPage() {
         />
         <KPICard
           label="Pedestrians Injured"
-          value={totalPedInjured.toLocaleString()}
+          value={totalPedInjured.toLocaleString("en-US")}
           sub="Most vulnerable road users"
           color="purple"
           tag="LIVE"

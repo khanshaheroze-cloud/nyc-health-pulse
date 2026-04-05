@@ -85,6 +85,23 @@ function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () =
 }
 
 // ══════════════════════════════════════════════════════════════
+// CONFIRM MODAL
+// ══════════════════════════════════════════════════════════════
+function ConfirmModal({ message, onConfirm, onCancel }: { message: string; onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 animate-fade-in-up" onClick={onCancel}>
+      <div className="bg-surface rounded-2xl border border-border-light shadow-lg p-6 mx-4 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+        <p className="text-[14px] font-semibold text-text mb-4">{message}</p>
+        <div className="flex gap-2">
+          <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl border border-border text-[13px] font-semibold text-muted hover:text-text transition-colors">Cancel</button>
+          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl bg-hp-red text-white text-[13px] font-semibold hover:bg-hp-red/90 transition-colors">Confirm</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════
 type ViewMode = "calendar" | "routineSetup" | "editDay" | "stats";
@@ -122,11 +139,22 @@ export function WorkoutTracker() {
     else saveToStorage(STORAGE_KEYS.todayOverride, null);
   }, []);
 
+  // Confirm modal
+  const [confirmModal, setConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null);
+
   // Rest timer
   const [restSeconds, setRestSeconds] = useState(0);
   const [restTarget, setRestTarget] = useState(0);
   const [restActive, setRestActive] = useState(false);
   const restInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Elapsed time tick for active workout (must be unconditional — React hook rules)
+  const [elapsedTick, setElapsedTick] = useState(0);
+  useEffect(() => {
+    if (!activeWorkout) return;
+    const id = setInterval(() => setElapsedTick(t => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [activeWorkout]);
 
   // ── Load from localStorage ────────────────────────────────
   useEffect(() => {
@@ -251,10 +279,8 @@ export function WorkoutTracker() {
   }, [startWorkout]);
 
   // ── Complete workout ──────────────────────────────────────
-  const completeWorkout = useCallback(() => {
+  const finishWorkout = useCallback(() => {
     if (!activeWorkout) return;
-    const totalSets = activeWorkout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
-    if (totalSets === 0 && !confirm("You haven't logged any sets. Finish anyway?")) return;
     const completed: WorkoutSession = {
       ...activeWorkout,
       completedAt: new Date().toISOString(),
@@ -266,6 +292,16 @@ export function WorkoutTracker() {
     skipRest();
     setCompletedSummary(completed);
   }, [activeWorkout, workoutLog, persistLog, persistActive, skipRest]);
+
+  const completeWorkout = useCallback(() => {
+    if (!activeWorkout) return;
+    const totalSets = activeWorkout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
+    if (totalSets === 0) {
+      setConfirmModal({ message: "You haven't logged any sets. Finish anyway?", onConfirm: () => { setConfirmModal(null); finishWorkout(); } });
+      return;
+    }
+    finishWorkout();
+  }, [activeWorkout, finishWorkout]);
 
   // ── Workout exercise management ────────────────────────────
   const addExerciseToWorkout = useCallback((exerciseId: string) => {
@@ -461,31 +497,27 @@ export function WorkoutTracker() {
     );
   }
 
-  // ── Elapsed time (updates every 30s) ─────────────────────
-  const [elapsedTick, setElapsedTick] = useState(0);
-  useEffect(() => {
-    if (!activeWorkout) return;
-    const id = setInterval(() => setElapsedTick(t => t + 1), 30000);
-    return () => clearInterval(id);
-  }, [activeWorkout]);
-
   // ── ACTIVE WORKOUT VIEW ───────────────────────────────────
   if (activeWorkout) {
     void elapsedTick; // use the tick to trigger re-render
-    const elapsed = Math.round((Date.now() - new Date(activeWorkout.startedAt).getTime()) / 60000);
+    const elapsedMs = Date.now() - new Date(activeWorkout.startedAt).getTime();
+    const elapsedMin = Math.floor(elapsedMs / 60000);
+    const elapsedSec = Math.floor((elapsedMs % 60000) / 1000);
+    const elapsed = elapsedMin;
     return (
       <div className="space-y-4">
+        {confirmModal && <ConfirmModal message={confirmModal.message} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(null)} />}
         {/* Header */}
         <div className="bg-surface rounded-2xl border border-border-light p-4 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <h1 className="font-display text-xl text-text">{activeWorkout.name}</h1>
             <div className="flex gap-2">
-              <button onClick={() => { if (confirm("Discard this workout?")) persistActive(null); }} className="text-[12px] text-muted hover:text-hp-red transition-colors">Discard</button>
+              <button onClick={() => setConfirmModal({ message: "Discard this workout? All progress will be lost.", onConfirm: () => { setConfirmModal(null); persistActive(null); skipRest(); } })} className="text-[12px] text-muted hover:text-hp-red transition-colors">Discard</button>
               <button onClick={completeWorkout} className="px-4 py-1.5 bg-accent text-white rounded-full text-[13px] font-semibold hover:bg-accent/90 transition-colors">Finish</button>
             </div>
           </div>
           <div className="flex gap-4 text-[12px] text-muted">
-            <span>⏱ {elapsed} min</span>
+            <span>⏱ {elapsedMin}:{String(elapsedSec).padStart(2, "0")}</span>
             <span>🏋️ {activeWorkout.exercises.length} exercises</span>
             <span>📊 {calculateTotalVolume(activeWorkout.exercises).toLocaleString()} {settings.units} volume</span>
           </div>
@@ -1027,6 +1059,7 @@ function RoutineSetupFlow({
   const [step, setStep] = useState<"choose" | "pickDefaults" | "buildOwn" | "customize">(hasRoutine ? "customize" : "choose");
   const [daysFilter, setDaysFilter] = useState(4);
   const [selectedSplit, setSelectedSplit] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [editingDay, setEditingDay] = useState<DayOfWeek | null>(null);
   const [showAllSplits, setShowAllSplits] = useState(false);
   const [levelFilter, setLevelFilter] = useState<SplitLevel | "all">("all");
@@ -1268,11 +1301,14 @@ function RoutineSetupFlow({
 
       <div className="flex gap-2">
         <button onClick={() => setStep("pickDefaults")} className="flex-1 py-2.5 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">📥 Load Different Split</button>
-        <button onClick={() => {
-          if (confirm("Clear all workouts from your week?")) {
-            onUpdateWeek({ monday: null, tuesday: null, wednesday: null, thursday: null, friday: null, saturday: null, sunday: null });
-          }
-        }} className="py-2.5 px-4 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-hp-red hover:text-hp-red transition-colors">🗑</button>
+        <button onClick={() => setShowClearConfirm(true)} className="py-2.5 px-4 rounded-xl border border-border text-[12px] font-semibold text-muted hover:border-hp-red hover:text-hp-red transition-colors">🗑</button>
+        {showClearConfirm && (
+          <ConfirmModal
+            message="Clear all workouts from your week?"
+            onConfirm={() => { setShowClearConfirm(false); onUpdateWeek({ monday: null, tuesday: null, wednesday: null, thursday: null, friday: null, saturday: null, sunday: null }); }}
+            onCancel={() => setShowClearConfirm(false)}
+          />
+        )}
       </div>
     </div>
   );
@@ -1871,7 +1907,9 @@ function AddExercisePanel({ onAdd, recentExercises, favorites }: {
   const [query, setQuery] = useState("");
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | "">("");
 
-  const results = query.length >= 2 ? searchExercises(query, { muscle: muscleFilter || undefined }).slice(0, 20) : [];
+  const hasSearch = query.length >= 2;
+  const hasMuscle = muscleFilter !== "";
+  const results = (hasSearch || hasMuscle) ? searchExercises(query, { muscle: muscleFilter || undefined }).slice(0, 20) : [];
   const recentList = recentExercises.slice(0, 5).map(getExerciseById).filter(Boolean) as Exercise[];
 
   if (!open) {
@@ -1898,7 +1936,7 @@ function AddExercisePanel({ onAdd, recentExercises, favorites }: {
           </button>
         ))}
       </div>
-      {query.length >= 2 && (
+      {(hasSearch || hasMuscle) && (
         <div className="max-h-[300px] overflow-y-auto space-y-0.5">
           {results.length === 0 && <p className="text-[12px] text-muted py-2">No exercises found</p>}
           {results.map(ex => (
@@ -1913,7 +1951,7 @@ function AddExercisePanel({ onAdd, recentExercises, favorites }: {
           ))}
         </div>
       )}
-      {query.length < 2 && recentList.length > 0 && (
+      {!hasSearch && !hasMuscle && recentList.length > 0 && (
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-1">Recent</p>
           {recentList.map(ex => (
@@ -1939,7 +1977,7 @@ function ReplaceExercisePanel({ exerciseId, onSelect, onClose }: {
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | "">("");
   const source = getExerciseById(exerciseId);
   const alternatives = getSmartAlternatives(exerciseId, 4);
-  const searchResults = query.length >= 2 ? searchExercises(query, { muscle: muscleFilter || undefined }).filter(e => e.id !== exerciseId).slice(0, 12) : [];
+  const searchResults = (query.length >= 2 || muscleFilter) ? searchExercises(query, { muscle: muscleFilter || undefined }).filter(e => e.id !== exerciseId).slice(0, 12) : [];
 
   return (
     <div className="px-3 pb-3 pt-2 border-t border-border-light bg-surface-sage/20 space-y-2">
@@ -1969,7 +2007,7 @@ function ReplaceExercisePanel({ exerciseId, onSelect, onClose }: {
             </button>
           ))}
         </div>
-        {searchResults.length > 0 && (
+        {(query.length >= 2 || muscleFilter) && searchResults.length > 0 && (
           <div className="max-h-[150px] overflow-y-auto mt-1">
             {searchResults.map(ex => (
               <button key={ex.id} onClick={() => onSelect(ex.id)} className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-surface-sage transition-colors text-left">
@@ -1994,7 +2032,7 @@ function ReplaceExercisePanel({ exerciseId, onSelect, onClose }: {
 function ExerciseSearchPanel({ onSelect, onClose }: { onSelect: (id: string) => void; onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | "">("");
-  const results = query.length >= 2 ? searchExercises(query, { muscle: muscleFilter || undefined }).slice(0, 15) : [];
+  const results = (query.length >= 2 || muscleFilter) ? searchExercises(query, { muscle: muscleFilter || undefined }).slice(0, 15) : [];
 
   return (
     <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-3 space-y-2">
@@ -2012,7 +2050,7 @@ function ExerciseSearchPanel({ onSelect, onClose }: { onSelect: (id: string) => 
           </button>
         ))}
       </div>
-      {query.length >= 2 && (
+      {(query.length >= 2 || muscleFilter) && (
         <div className="max-h-[200px] overflow-y-auto space-y-0.5">
           {results.map(ex => (
             <button key={ex.id} onClick={() => onSelect(ex.id)} className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-surface-sage transition-colors text-left">

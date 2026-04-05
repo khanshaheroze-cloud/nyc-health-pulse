@@ -116,10 +116,10 @@ export default async function EnvironmentPage() {
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
         <KPICard label="Rat Activity"       value={activeRate.toString()} sub="Active per 1K inspections · 30d" color="red" tag="LIVE" />
         <KPICard label="Water Safety"       value={wq ? `${((1 - wq.coliformDetected / wq.totalSamples) * 100).toFixed(1)}%` : "99.9%"} sub="Tests negative for coliform · DEP" color="cyan" tag={waterTag} />
-        <KPICard label="Noise Complaints"   value={noiseTotal.toLocaleString()} sub="Last 7 days · 311" color="blue" tag="LIVE" />
+        <KPICard label="Noise Complaints"   value={noiseTotal.toLocaleString("en-US")} sub="Last 7 days · 311" color="blue" tag="LIVE" />
         <KPICard label="Bronx Food Deserts" value="28.3%" sub="Low-access census tracts" color="orange" tag="2019" />
         {dogBites && dogBites.length > 0 && (
-          <KPICard label="Dog Bite Reports" value={dogBites.reduce((s, d) => s + d.count, 0).toLocaleString()} sub={`12 months · Most in ${dogBites[0].borough}`} color="yellow" tag="LIVE" />
+          <KPICard label="Dog Bite Reports" value={dogBites.reduce((s, d) => s + d.count, 0).toLocaleString("en-US")} sub={`12 months · Most in ${dogBites[0].borough}`} color="yellow" tag="LIVE" />
         )}
         {emsResponse && emsResponse.length > 0 && (
           <KPICard

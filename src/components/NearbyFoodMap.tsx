@@ -4,10 +4,12 @@ import { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { CHAINS } from "@/lib/restaurantData";
+import { CHAINS as EAT_SMART_CHAINS, getChainTopPicks } from "@/lib/eatSmartData";
+import { getHealthyTip, type HealthyTip } from "@/lib/cuisineTips";
 
 const MapImpl = dynamic(() => import("./_NearbyFoodMapImpl"), { ssr: false });
 
-/* ── Types ───────────────────────────────────────────────────────────── */
+/* ── Types ───────────────────────────────────────────────── */
 
 export interface NearbyRestaurant {
   name: string;
@@ -20,9 +22,11 @@ export interface NearbyRestaurant {
   distance: number;
   chainSlug: string | null;
   isHealthy: boolean;
+  bestPick?: { name: string; calories: number; protein: number; pulseScore: number };
+  healthyTip?: HealthyTip | null;
 }
 
-/* ── Component ───────────────────────────────────────────────────────── */
+/* ── Component ───────────────────────────────────────────── */
 
 export function NearbyFoodMap() {
   const [results, setResults] = useState<NearbyRestaurant[]>([]);
@@ -30,7 +34,7 @@ export function NearbyFoodMap() {
   const [error, setError] = useState("");
   const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [zip, setZip] = useState("");
-  const [filter, setFilter] = useState<"all" | "chains" | "healthy" | "gradeA">("all");
+  const [filter, setFilter] = useState<"all" | "chains" | "tips" | "gradeA">("all");
   const [showMap, setShowMap] = useState(false);
 
   const fetchNearby = useCallback(async (lat: number, lng: number) => {
@@ -68,7 +72,6 @@ export function NearbyFoodMap() {
 
   const searchByZip = async () => {
     if (!zip || zip.length < 5) return;
-    // Geocode zip to lat/lng using a simple centroid lookup
     setLoading(true);
     setError("");
     try {
@@ -88,9 +91,30 @@ export function NearbyFoodMap() {
     }
   };
 
-  const filtered = results.filter((r) => {
+  // Enrich results with PulseScore best picks + cuisine tips
+  const enriched = results.map((r) => {
+    const out = { ...r };
+
+    // Chain enrichment
+    if (r.chainSlug && !r.bestPick) {
+      const eatChain = EAT_SMART_CHAINS.find(c => c.slug === r.chainSlug);
+      if (eatChain) {
+        const top = getChainTopPicks(eatChain, 1)[0];
+        if (top) out.bestPick = { name: top.name, calories: top.calories, protein: top.protein ?? 0, pulseScore: top.pulseScore };
+      }
+    }
+
+    // Cuisine tip enrichment for non-chains
+    if (!r.chainSlug && !r.healthyTip) {
+      out.healthyTip = getHealthyTip(r.cuisine, r.name);
+    }
+
+    return out;
+  });
+
+  const filtered = enriched.filter((r) => {
     if (filter === "chains") return r.chainSlug !== null;
-    if (filter === "healthy") return r.isHealthy || r.chainSlug !== null;
+    if (filter === "tips") return r.healthyTip != null || r.chainSlug !== null;
     if (filter === "gradeA") return r.grade === "A";
     return true;
   });
@@ -100,6 +124,11 @@ export function NearbyFoodMap() {
     return CHAINS.find((c) => c.slug === slug);
   };
 
+  // Filter counts
+  const chainCount = enriched.filter(r => r.chainSlug !== null).length;
+  const tipCount = enriched.filter(r => r.healthyTip != null || r.chainSlug !== null).length;
+  const gradeACount = enriched.filter(r => r.grade === "A").length;
+
   return (
     <div className="bg-surface border border-border rounded-xl overflow-hidden mb-6">
       {/* Header */}
@@ -108,7 +137,7 @@ export function NearbyFoodMap() {
           <span className="text-lg">📍</span>
           <div>
             <p className="text-[13px] font-bold text-text">Healthy Food Near Me</p>
-            <p className="text-[10px] text-dim">Find restaurants with nutrition data + DOHMH grades near you</p>
+            <p className="text-[10px] text-dim">Real restaurants from NYC DOHMH inspections + smart ordering tips</p>
           </div>
         </div>
 
@@ -148,36 +177,43 @@ export function NearbyFoodMap() {
           {/* Filter bar */}
           <div className="flex gap-1.5 p-3 border-b border-border overflow-x-auto">
             {([
-              ["all", "All"],
-              ["chains", "Chains w/ Nutrition"],
-              ["healthy", "Healthy Options"],
-              ["gradeA", "Grade A Only"],
-            ] as const).map(([key, label]) => (
+              ["all", "All", enriched.length],
+              ["chains", "Chains w/ Nutrition", chainCount],
+              ["tips", "Local w/ Tips", tipCount],
+              ["gradeA", "Grade A Only", gradeACount],
+            ] as const).map(([key, label, count]) => (
               <button
                 key={key}
-                onClick={() => setFilter(key)}
+                onClick={() => setFilter(key as typeof filter)}
                 className={`text-[10px] font-bold px-3 py-1.5 rounded-full border whitespace-nowrap transition-all ${
                   filter === key
                     ? "bg-hp-green/10 border-hp-green/30 text-hp-green"
                     : "border-border text-dim hover:text-text"
                 }`}
               >
-                {label} {key !== "all" ? `(${results.filter((r) => {
-                  if (key === "chains") return r.chainSlug !== null;
-                  if (key === "healthy") return r.isHealthy || r.chainSlug !== null;
-                  if (key === "gradeA") return r.grade === "A";
-                  return true;
-                }).length})` : `(${results.length})`}
+                {label} ({count})
               </button>
             ))}
           </div>
 
           {/* Map */}
-          <div className="h-[320px] w-full">
+          <div className="relative h-[450px] w-full">
             <MapImpl
               center={[userLoc.lat, userLoc.lng]}
               restaurants={filtered}
             />
+            {/* Legend */}
+            <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 shadow-sm border border-border/50 flex gap-3 z-10">
+              <span className="flex items-center gap-1 text-[9px] text-dim">
+                <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: "#4A7C59" }} /> Chain
+              </span>
+              <span className="flex items-center gap-1 text-[9px] text-dim">
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-white border border-gray-300" /> Local
+              </span>
+              <span className="flex items-center gap-1 text-[9px] text-dim">
+                <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: "#5b9cf5" }} /> You
+              </span>
+            </div>
           </div>
 
           {/* List */}
@@ -205,19 +241,31 @@ export function NearbyFoodMap() {
                           {r.grade}
                         </span>
                       )}
+                      {r.chainSlug && (
+                        <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">CHAIN</span>
+                      )}
                     </div>
                     <p className="text-[10px] text-dim">
                       {r.cuisine} · {distMi} mi · {r.address}
                     </p>
-                    {chain && chain.items.length > 0 && (() => {
-                      const best = [...chain.items].sort((a, b) => a.cal - b.cal)[0];
-                      return (
-                        <p className="text-[10px] text-hp-green font-semibold mt-0.5">
-                          Lowest cal: {best.name} ({best.cal} cal, {best.protein}g protein)
-                          {" · "}<a href={`/restaurants/${chain.slug}`} className="underline">Full menu →</a>
-                        </p>
-                      );
-                    })()}
+
+                    {/* Chain best pick */}
+                    {r.bestPick && (
+                      <p className="text-[10px] text-hp-green font-semibold mt-0.5">
+                        💪 {r.bestPick.name} ({r.bestPick.calories} cal, {r.bestPick.protein}g P, Score: {r.bestPick.pulseScore})
+                        {chain && <>{" · "}<Link href={`/restaurants/${chain.slug}`} className="underline">Full menu →</Link></>}
+                      </p>
+                    )}
+
+                    {/* Cuisine tip for non-chains */}
+                    {!r.chainSlug && r.healthyTip && (
+                      <div className="mt-1 text-[10px]">
+                        <span className="text-hp-green font-semibold">💡 </span>
+                        <span className="text-dim line-through">{r.healthyTip.defaultOrder}</span>
+                        <span className="text-text font-medium"> → {r.healthyTip.smartOrder}</span>
+                        <span className="text-hp-green font-semibold"> ({r.healthyTip.estimatedSavings})</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -226,7 +274,7 @@ export function NearbyFoodMap() {
 
           <div className="px-4 py-2 border-t border-border bg-bg/50">
             <p className="text-[9px] text-muted">
-              Data: NYC DOHMH Restaurant Inspections (27K+ active restaurants) · Grade A = lowest violation score · {filtered.length} results within ~1 mi
+              Data: NYC DOHMH Restaurant Inspections · Grade A = lowest violation score · {filtered.length} results within ~1 mi
             </p>
           </div>
         </>

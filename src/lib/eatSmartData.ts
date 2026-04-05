@@ -4,8 +4,19 @@ export interface MenuItem {
   name: string;
   calories: number;
   protein?: number;   // grams
+  fiber?: number;     // grams
   sodium?: number;    // mg
   note?: string;
+}
+
+export interface SmartSwap {
+  from: string;       // popular high-cal item name
+  fromCal: number;
+  fromProtein?: number;
+  to: string;         // better alternative
+  toCal: number;
+  toProtein?: number;
+  tip?: string;       // short explanation
 }
 
 export interface ChainData {
@@ -15,9 +26,74 @@ export interface ChainData {
   locations: number;        // approx NYC locations
   hack: string;
   items: MenuItem[];
+  swaps?: SmartSwap[];
 }
 
-/** ~20 most common NYC chains with best-under-600-cal picks */
+/* ── PulseScore — protein-first scoring (0-100) ────────────────────── */
+
+export function calculatePulseScore(item: MenuItem): number {
+  let score = 0;
+  const protein = item.protein ?? 0;
+
+  // Component 1: Protein Efficiency (0-50 pts)
+  // 10:1 rule — 1g protein per 10 cal is gold standard
+  const ratio = protein > 0 ? item.calories / protein : Infinity;
+  if (ratio <= 10) score += 50;
+  else if (ratio <= 15) score += 40;
+  else if (ratio <= 20) score += 30;
+  else if (ratio <= 30) score += 20;
+  else if (ratio <= 50) score += 10;
+
+  // Component 2: Fiber Density (0-20 pts)
+  if (item.fiber != null && item.calories > 0) {
+    const fiberPer100 = (item.fiber / item.calories) * 100;
+    if (fiberPer100 >= 3) score += 20;
+    else if (fiberPer100 >= 2) score += 15;
+    else if (fiberPer100 >= 1) score += 10;
+    else if (fiberPer100 >= 0.5) score += 5;
+  }
+
+  // Component 3: Calorie Reasonableness (0-20 pts)
+  if (item.calories <= 300) score += 20;
+  else if (item.calories <= 400) score += 15;
+  else if (item.calories <= 500) score += 12;
+  else if (item.calories <= 600) score += 8;
+  else if (item.calories <= 800) score += 4;
+
+  // Component 4: Sodium Penalty (0 to -10 pts)
+  if (item.sodium != null) {
+    if (item.sodium > 1500) score -= 10;
+    else if (item.sodium > 1000) score -= 5;
+    else if (item.sodium > 800) score -= 2;
+  }
+
+  return Math.max(0, Math.min(100, score));
+}
+
+export function getBadges(item: MenuItem): string[] {
+  const badges: string[] = [];
+  const protein = item.protein ?? 0;
+  const ratio = protein > 0 ? item.calories / protein : Infinity;
+
+  if (ratio <= 10) badges.push("💪 High Protein");
+  else if (ratio <= 15) badges.push("💪 Lean");
+
+  if (item.fiber != null && item.fiber >= 5) badges.push("🌿 High Fiber");
+
+  if (item.calories <= 300 && protein >= 15) badges.push("🎯 Smart Pick");
+
+  return badges;
+}
+
+/** Get top picks for a chain, sorted by PulseScore */
+export function getChainTopPicks(chain: ChainData, limit = 3): (MenuItem & { pulseScore: number; badges: string[] })[] {
+  return chain.items
+    .map(item => ({ ...item, pulseScore: calculatePulseScore(item), badges: getBadges(item) }))
+    .sort((a, b) => b.pulseScore - a.pulseScore)
+    .slice(0, limit);
+}
+
+/** ~30 NYC chains with best-under-600-cal picks */
 export const CHAINS: ChainData[] = [
   {
     name: "Chipotle",
@@ -26,10 +102,14 @@ export const CHAINS: ChainData[] = [
     locations: 90,
     hack: "Skip the tortilla, double the fajita veggies — saves 300 calories and adds fiber. Brown rice → lettuce base saves another 210 cal.",
     items: [
-      { name: "Chicken Burrito Bowl (no rice, no sour cream)", calories: 415, protein: 46, sodium: 1250 },
-      { name: "Chicken Salad (no dressing)", calories: 360, protein: 42, sodium: 1060 },
-      { name: "Sofritas Bowl (half rice)", calories: 480, protein: 18, sodium: 1350 },
-      { name: "Steak Bowl (no rice, no cheese)", calories: 400, protein: 44, sodium: 1180 },
+      { name: "Chicken Burrito Bowl (no rice, no sour cream)", calories: 415, protein: 46, fiber: 8, sodium: 1250 },
+      { name: "Chicken Salad (no dressing)", calories: 360, protein: 42, fiber: 6, sodium: 1060 },
+      { name: "Sofritas Bowl (half rice)", calories: 480, protein: 18, fiber: 10, sodium: 1350 },
+      { name: "Steak Bowl (no rice, no cheese)", calories: 400, protein: 44, fiber: 7, sodium: 1180 },
+    ],
+    swaps: [
+      { from: "White Rice", fromCal: 210, to: "No Rice (extra fajita veggies)", toCal: 20, tip: "Saves 190 cal, adds fiber" },
+      { from: "Sour Cream", fromCal: 110, fromProtein: 2, to: "Fresh Tomato Salsa", toCal: 25, toProtein: 0, tip: "Saves 85 cal" },
     ],
   },
   {
@@ -39,10 +119,13 @@ export const CHAINS: ChainData[] = [
     locations: 45,
     hack: "Ask for dressing on the side — most salads drop 100+ cal. The warm bowls are filling but calorie-dense; half portions of grains help.",
     items: [
-      { name: "Kale Caesar (half dressing)", calories: 380, protein: 14, sodium: 620 },
-      { name: "Harvest Bowl", calories: 490, protein: 19, sodium: 580 },
-      { name: "Shroomami", calories: 470, protein: 16, sodium: 640 },
-      { name: "Buffalo Chicken Bowl", calories: 530, protein: 34, sodium: 890 },
+      { name: "Kale Caesar (half dressing)", calories: 380, protein: 14, fiber: 4, sodium: 620 },
+      { name: "Harvest Bowl", calories: 490, protein: 19, fiber: 6, sodium: 580 },
+      { name: "Shroomami", calories: 470, protein: 16, fiber: 5, sodium: 640 },
+      { name: "Buffalo Chicken Bowl", calories: 530, protein: 34, fiber: 5, sodium: 890 },
+    ],
+    swaps: [
+      { from: "Caesar Dressing (full)", fromCal: 180, to: "Lime Cilantro Jalapeño Vinaigrette", toCal: 80, tip: "Saves 100 cal on any salad" },
     ],
   },
   {
@@ -54,8 +137,12 @@ export const CHAINS: ChainData[] = [
     items: [
       { name: "Grilled Nuggets (12pc)", calories: 200, protein: 38, sodium: 660 },
       { name: "Grilled Chicken Sandwich", calories: 390, protein: 29, sodium: 1060 },
-      { name: "Market Salad (no dressing)", calories: 340, protein: 28, sodium: 630 },
-      { name: "Grilled Chicken Cool Wrap", calories: 350, protein: 37, sodium: 1060 },
+      { name: "Market Salad (no dressing)", calories: 340, protein: 28, fiber: 5, sodium: 630 },
+      { name: "Grilled Chicken Cool Wrap", calories: 350, protein: 37, fiber: 3, sodium: 1060 },
+    ],
+    swaps: [
+      { from: "Fried Chicken Sandwich", fromCal: 440, fromProtein: 28, to: "Grilled Chicken Sandwich", toCal: 390, toProtein: 29, tip: "Same protein, 50 fewer cal" },
+      { from: "CFA Sauce (140 cal)", fromCal: 140, to: "Polynesian Sauce", toCal: 110, tip: "Saves 30 cal per packet" },
     ],
   },
   {
@@ -69,7 +156,11 @@ export const CHAINS: ChainData[] = [
       { name: "McChicken", calories: 400, protein: 14, sodium: 560 },
       { name: "6pc Chicken McNuggets", calories: 250, protein: 14, sodium: 500 },
       { name: "Hamburger", calories: 250, protein: 12, sodium: 510 },
-      { name: "Southwest Grilled Chicken Salad", calories: 350, protein: 37, sodium: 1070 },
+      { name: "Southwest Grilled Chicken Salad", calories: 350, protein: 37, fiber: 6, sodium: 1070 },
+    ],
+    swaps: [
+      { from: "Big Mac", fromCal: 550, fromProtein: 25, to: "McDouble (no bun)", toCal: 260, toProtein: 22, tip: "Half the cal, nearly the same protein" },
+      { from: "Large Fries", fromCal: 490, fromProtein: 7, to: "Side Salad", toCal: 15, toProtein: 1, tip: "Saves 475 cal" },
     ],
   },
   {
@@ -82,7 +173,10 @@ export const CHAINS: ChainData[] = [
       { name: "ShackBurger (single, no fries)", calories: 530, protein: 28, sodium: 1050 },
       { name: "Chicken Shack", calories: 570, protein: 35, sodium: 1260 },
       { name: "'Shroom Burger", calories: 550, protein: 18, sodium: 920 },
-      { name: "Chicken Bites (6pc)", calories: 300, protein: 22, sodium: 780, note: "Best low-cal option" },
+      { name: "Chicken Bites (6pc)", calories: 300, protein: 22, sodium: 780 },
+    ],
+    swaps: [
+      { from: "ShackBurger", fromCal: 530, fromProtein: 28, to: "Hamburger (single)", toCal: 370, toProtein: 22, tip: "Saves 160 cal — skip the ShackSauce" },
     ],
   },
   {
@@ -94,7 +188,11 @@ export const CHAINS: ChainData[] = [
     items: [
       { name: "Chicken over Salad (light white sauce)", calories: 500, protein: 42, sodium: 1100 },
       { name: "Chicken over Rice (half portion white sauce)", calories: 650, protein: 38, sodium: 1350 },
-      { name: "Falafel Sandwich", calories: 480, protein: 16, sodium: 920 },
+      { name: "Falafel Sandwich", calories: 480, protein: 16, fiber: 6, sodium: 920 },
+    ],
+    swaps: [
+      { from: "Full White Sauce", fromCal: 300, to: "Hot Sauce Only", toCal: 20, tip: "Saves 280 cal — the biggest single swap in NYC fast food" },
+      { from: "Chicken over Rice", fromCal: 780, fromProtein: 38, to: "Chicken over Salad (no rice)", toCal: 445, toProtein: 42, tip: "More protein, 335 fewer cal" },
     ],
   },
   {
@@ -104,10 +202,14 @@ export const CHAINS: ChainData[] = [
     locations: 400,
     hack: "6-inch > footlong (obvious but people forget). Load up veggies for free. Mustard or vinegar instead of mayo saves 110 cal. The 9-grain wheat bread is the best bread option.",
     items: [
-      { name: "6\" Turkey Breast Sub", calories: 270, protein: 18, sodium: 670 },
-      { name: "6\" Veggie Delite", calories: 200, protein: 8, sodium: 280 },
-      { name: "6\" Grilled Chicken", calories: 320, protein: 26, sodium: 580 },
-      { name: "Chopped Salad (chicken, no dressing)", calories: 240, protein: 24, sodium: 500 },
+      { name: "6\" Turkey Breast Sub", calories: 270, protein: 18, fiber: 3, sodium: 670 },
+      { name: "6\" Veggie Delite", calories: 200, protein: 8, fiber: 4, sodium: 280 },
+      { name: "6\" Grilled Chicken", calories: 320, protein: 26, fiber: 3, sodium: 580 },
+      { name: "Chopped Salad (chicken, no dressing)", calories: 240, protein: 24, fiber: 4, sodium: 500 },
+    ],
+    swaps: [
+      { from: "Mayo", fromCal: 110, to: "Mustard", toCal: 10, tip: "Saves 100 cal on any sub" },
+      { from: "White Bread", fromCal: 200, to: "Multigrain Bread", toCal: 210, tip: "+3g fiber for 10 extra cal" },
     ],
   },
   {
@@ -131,9 +233,12 @@ export const CHAINS: ChainData[] = [
     hack: "A Venti Caramel Frappuccino is 470 cal — more than a Big Mac. Switch to cold brew with a splash of oat milk (35 cal). For food, the egg bites are protein-dense and under 300 cal.",
     items: [
       { name: "Egg White & Roasted Red Pepper Egg Bites", calories: 170, protein: 13, sodium: 460 },
-      { name: "Spinach, Feta & Egg White Wrap", calories: 290, protein: 20, sodium: 840 },
+      { name: "Spinach, Feta & Egg White Wrap", calories: 290, protein: 20, fiber: 3, sodium: 840 },
       { name: "Protein Box (Cheese & Fruit)", calories: 470, protein: 20, sodium: 650 },
       { name: "Turkey & Basil Pesto Sandwich", calories: 480, protein: 28, sodium: 960 },
+    ],
+    swaps: [
+      { from: "Venti Caramel Frappuccino", fromCal: 470, fromProtein: 5, to: "Cold Brew + Splash Oat Milk", toCal: 35, toProtein: 0, tip: "Saves 435 cal" },
     ],
   },
   {
@@ -148,6 +253,10 @@ export const CHAINS: ChainData[] = [
       { name: "Veggie Egg White Omelet Bites (3pc)", calories: 170, protein: 13, sodium: 430 },
       { name: "Avocado Toast", calories: 280, protein: 7, sodium: 440 },
     ],
+    swaps: [
+      { from: "Glazed Donut", fromCal: 260, fromProtein: 3, to: "Egg & Cheese Wrap", toCal: 180, toProtein: 10, tip: "3x the protein, 80 fewer cal" },
+      { from: "Frozen Coffee (medium)", fromCal: 420, to: "Iced Latte (skim, medium)", toCal: 80, tip: "Saves 340 cal" },
+    ],
   },
   {
     name: "Panda Express",
@@ -156,9 +265,13 @@ export const CHAINS: ChainData[] = [
     locations: 30,
     hack: "Super Greens instead of fried rice or chow mein saves 400+ calories. The Grilled Teriyaki Chicken is the leanest protein. Avoid orange chicken (490 cal per serving).",
     items: [
-      { name: "Grilled Teriyaki Chicken + Super Greens", calories: 340, protein: 36, sodium: 830 },
-      { name: "Mushroom Chicken + Super Greens", calories: 290, protein: 18, sodium: 760 },
-      { name: "String Bean Chicken Breast + Super Greens", calories: 280, protein: 20, sodium: 780 },
+      { name: "Grilled Teriyaki Chicken + Super Greens", calories: 340, protein: 36, fiber: 4, sodium: 830 },
+      { name: "Mushroom Chicken + Super Greens", calories: 290, protein: 18, fiber: 4, sodium: 760 },
+      { name: "String Bean Chicken Breast + Super Greens", calories: 280, protein: 20, fiber: 5, sodium: 780 },
+    ],
+    swaps: [
+      { from: "Fried Rice (side)", fromCal: 520, to: "Super Greens (side)", toCal: 90, tip: "Saves 430 cal — the single biggest side swap" },
+      { from: "Orange Chicken", fromCal: 490, fromProtein: 18, to: "Grilled Teriyaki Chicken", toCal: 250, toProtein: 36, tip: "Double the protein, half the cal" },
     ],
   },
   {
@@ -169,9 +282,14 @@ export const CHAINS: ChainData[] = [
     hack: "The Blackened Chicken Tenders are the hidden gem — almost half the calories of the fried version. Skip the biscuit (260 cal of pure butter and flour).",
     items: [
       { name: "Blackened Chicken Tenders (5pc)", calories: 340, protein: 48, sodium: 1260 },
+      { name: "Blackened Chicken Tenders (3pc)", calories: 200, protein: 29, sodium: 760 },
       { name: "Regular Chicken Leg (mild)", calories: 210, protein: 16, sodium: 420 },
-      { name: "Green Beans (regular side)", calories: 50, protein: 2, sodium: 340 },
-      { name: "Corn on the Cob", calories: 190, protein: 5, sodium: 210 },
+      { name: "Green Beans (regular side)", calories: 50, protein: 2, fiber: 3, sodium: 340 },
+      { name: "Corn on the Cob", calories: 190, protein: 5, fiber: 2, sodium: 210 },
+    ],
+    swaps: [
+      { from: "Fried Chicken Sandwich", fromCal: 700, fromProtein: 28, to: "Blackened Tenders (3pc)", toCal: 200, toProtein: 29, tip: "Same protein, 500 fewer cal" },
+      { from: "Biscuit (side)", fromCal: 260, fromProtein: 4, to: "Green Beans (side)", toCal: 50, toProtein: 2, tip: "Saves 210 cal" },
     ],
   },
   {
@@ -363,10 +481,13 @@ export const CHAINS: ChainData[] = [
     locations: 80,
     hack: "Taco Bell is surprisingly hackable. Order 'fresco style' to replace cheese and sauces with pico de gallo — saves 50-80 cal per item. Power Menu Bowl is the best macro ratio.",
     items: [
-      { name: "Power Menu Bowl (chicken)", calories: 470, protein: 26, sodium: 1160 },
+      { name: "Power Menu Bowl (chicken)", calories: 470, protein: 26, fiber: 7, sodium: 1160 },
       { name: "2 Chicken Soft Tacos (fresco)", calories: 320, protein: 22, sodium: 760 },
-      { name: "Black Bean Crunchwrap Supreme", calories: 500, protein: 14, sodium: 1040 },
+      { name: "Black Bean Crunchwrap Supreme", calories: 500, protein: 14, fiber: 8, sodium: 1040 },
       { name: "Chicken Quesadilla (no sauce)", calories: 430, protein: 24, sodium: 920 },
+    ],
+    swaps: [
+      { from: "Any item (regular)", fromCal: 0, to: "Same item — 'Fresco Style'", toCal: 0, tip: "Replaces cheese + sauce with pico de gallo — saves 50-80 cal per item" },
     ],
   },
   {
@@ -377,9 +498,12 @@ export const CHAINS: ChainData[] = [
     hack: "Jr. menu is the move — Jr. Cheeseburger is 290 cal. Chili is one of the best fast food options: 250 cal, 23g protein. Apple Pecan Salad is solid but dressing adds 200 cal.",
     items: [
       { name: "Jr. Hamburger", calories: 250, protein: 13, sodium: 510 },
-      { name: "Small Chili", calories: 250, protein: 23, sodium: 870 },
+      { name: "Small Chili", calories: 250, protein: 23, fiber: 6, sodium: 870 },
       { name: "Grilled Chicken Wrap", calories: 370, protein: 24, sodium: 820 },
-      { name: "Apple Pecan Salad (half dressing)", calories: 420, protein: 30, sodium: 680 },
+      { name: "Apple Pecan Salad (half dressing)", calories: 420, protein: 30, fiber: 5, sodium: 680 },
+    ],
+    swaps: [
+      { from: "Dave's Single", fromCal: 590, fromProtein: 30, to: "Jr. Hamburger + Small Chili", toCal: 500, toProtein: 36, tip: "More protein, more fiber, 90 fewer cal" },
     ],
   },
   {

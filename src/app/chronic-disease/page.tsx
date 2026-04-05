@@ -110,7 +110,7 @@ export default async function ChronicDiseasePage() {
         {totalHivDx && (
           <KPICard
             label="HIV Diagnoses NYC"
-            value={totalHivDx.toLocaleString()}
+            value={totalHivDx.toLocaleString("en-US")}
             sub="Annual · all boroughs"
             color="pink"
             tag="LIVE"

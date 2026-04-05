@@ -65,6 +65,9 @@ const BADGE_STYLE: Record<string, { bg: string; text: string; label: string }> =
 
 /* ── Component ───────────────────────────────────────── */
 
+// Content last updated date — update this when CHANGES array is modified
+const CONTENT_UPDATED = new Date("2026-03-30");
+
 function getCurrentWeekLabel(): string {
   const now = new Date();
   const day = now.getDay();
@@ -73,11 +76,21 @@ function getCurrentWeekLabel(): string {
   return monday.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+function freshness(): string {
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - CONTENT_UPDATED.getTime()) / 86400000);
+  if (diff === 0) return "Updated today";
+  if (diff === 1) return "Updated yesterday";
+  return `Updated ${diff}d ago`;
+}
+
 export function WeeklyChanges() {
   const [weekLabel, setWeekLabel] = useState("");
+  const [fresh, setFresh] = useState("");
 
   useEffect(() => {
     setWeekLabel(getCurrentWeekLabel());
+    setFresh(freshness());
   }, []);
 
   return (
@@ -88,7 +101,7 @@ export function WeeklyChanges() {
           <h2 className="font-display text-[22px] text-text leading-snug">What&apos;s Happening</h2>
           {weekLabel && (
             <p className="text-[12px] text-muted mt-0.5">
-              Week of {weekLabel} · <span className="text-hp-green font-semibold">Updated today</span>
+              Week of {weekLabel} · <span className="text-hp-green font-semibold">{fresh || "Updated today"}</span>
             </p>
           )}
         </div>

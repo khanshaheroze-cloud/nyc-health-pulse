@@ -3,7 +3,7 @@ import { WorkoutTracker } from "@/components/workout-tracker/WorkoutTracker";
 import { WorkoutErrorBoundary } from "@/components/workout-tracker/WorkoutErrorBoundary";
 
 export const metadata: Metadata = {
-  title: "Workouts — Pulse NYC",
+  title: "Workouts",
   description:
     "Plan your weekly routine, log workouts, track PRs, and view your training calendar. 500+ exercises across strength, cardio, yoga, and more.",
 };

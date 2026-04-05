@@ -83,7 +83,7 @@ export function KPIValue({
     );
   }
 
-  const formatted = decimals > 0 ? display.toFixed(decimals) : Math.round(display).toLocaleString();
+  const formatted = decimals > 0 ? display.toFixed(decimals) : Math.round(display).toLocaleString("en-US");
 
   return (
     <div ref={ref} className={className}>
