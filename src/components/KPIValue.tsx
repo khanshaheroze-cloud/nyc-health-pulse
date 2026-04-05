@@ -19,13 +19,16 @@ export function KPIValue({
   unit?: string;
   className: string;
 }) {
-  // Extract leading number (e.g. "42" from "42", "6.7" from "6.7", "99.9%" from "99.9%")
-  const match = value.match(/^([<>≤≥~]?)(\d+(?:\.\d+)?)(.*)/);
+  // Strip commas so "42,357" parses as 42357, not 42 with suffix ",357"
+  const stripped = value.replace(/,/g, "");
+  const match = stripped.match(/^([<>≤≥~]?)(\d+(?:\.\d+)?)(.*)/);
   const isNumeric = !!match;
   const prefix = match?.[1] ?? "";
   const numericPart = match ? parseFloat(match[2]) : 0;
   const suffix = match?.[3] ?? "";
   const decimals = match?.[2]?.includes(".") ? (match[2].split(".")[1]?.length ?? 0) : 0;
+  // If value had commas, we need to format the animated number with commas too
+  const needsCommas = value.includes(",");
 
   // Start with real value for SSR — animation resets to 0 after mount
   const [display, setDisplay] = useState(numericPart);
@@ -83,7 +86,11 @@ export function KPIValue({
     );
   }
 
-  const formatted = decimals > 0 ? display.toFixed(decimals) : Math.round(display).toLocaleString("en-US");
+  const formatted = decimals > 0
+    ? display.toFixed(decimals)
+    : needsCommas
+      ? Math.round(display).toLocaleString("en-US")
+      : String(Math.round(display));
 
   return (
     <div ref={ref} className={className}>

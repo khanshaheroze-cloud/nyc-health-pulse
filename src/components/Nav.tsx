@@ -16,14 +16,16 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Overview" },
   { href: "/air-quality", label: "Air Quality" },
+  { href: "/workouts", label: "Fitness", dropdown: "fitness" },
+  { href: "/eat-smart", label: "Eat Smart", dropdown: "eatout" },
+  { href: "/neighborhood", label: "Neighborhoods" },
+  { href: "/health-data", label: "NYC Health Data", dropdown: "health" },
+];
+
+const FITNESS_ITEMS = [
   { href: "/workouts", label: "Workouts" },
   { href: "/nutrition-tracker", label: "Nutrition Tracker" },
-  { href: "/eat-smart", label: "Eat Out Smart", dropdown: "eatout" },
-  { href: "/neighborhood", label: "Neighborhoods" },
-  { href: "/find-care", label: "Find Care" },
-  { href: "/building-health", label: "Building Safety" },
-  { href: "/health-data", label: "NYC PH Data", dropdown: "health" },
-  { href: "/run-routes", label: "Run Routes", dropdown: "more" },
+  { href: "/run-routes", label: "Run Routes" },
 ];
 
 const EATOUT_ITEMS = [
@@ -31,7 +33,7 @@ const EATOUT_ITEMS = [
   { href: "/restaurants", label: "Restaurant Guide" },
   { href: "/grocery", label: "Grocery Prices" },
   { href: "/food-safety", label: "Food Safety" },
-  { href: "/nutrition", label: "Nutrition Data" },
+  { href: "/find-care", label: "Find Care" },
 ];
 
 const HEALTH_ITEMS = [
@@ -42,14 +44,9 @@ const HEALTH_ITEMS = [
   { href: "/overdose", label: "Overdose & Lead" },
   { href: "/demographics", label: "Demographics" },
   { href: "/environment", label: "Environment" },
-  { href: "/wellness", label: "Wellness" },
   { href: "/safety", label: "Street Safety" },
-];
-
-const MORE_ITEMS = [
-  { href: "/run-routes", label: "Run Route Creator" },
-  { href: "/sources", label: "Data Sources" },
-  { href: "/changelog", label: "Changelog" },
+  { href: "/building-health", label: "Building Safety" },
+  { href: "/wellness", label: "Wellness" },
 ];
 
 /* ── Chevron icon ─────────────────────────────────────────── */
@@ -75,13 +72,13 @@ function MobileOverlay({
 }) {
   const isHealthActive = HEALTH_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
   const isEatOutActive = EATOUT_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
-  const isMoreActive = MORE_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
+  const isFitnessActive = FITNESS_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
 
   const getDropdownItems = (key: string) =>
-    key === "eatout" ? EATOUT_ITEMS : key === "health" ? HEALTH_ITEMS : key === "more" ? MORE_ITEMS : [];
+    key === "fitness" ? FITNESS_ITEMS : key === "eatout" ? EATOUT_ITEMS : key === "health" ? HEALTH_ITEMS : [];
 
   const isDropdownActive = (key: string) =>
-    key === "eatout" ? isEatOutActive : key === "health" ? isHealthActive : key === "more" ? isMoreActive : false;
+    key === "fitness" ? isFitnessActive : key === "eatout" ? isEatOutActive : key === "health" ? isHealthActive : false;
 
   return createPortal(
     <>
@@ -259,13 +256,13 @@ export function Nav() {
 
   const isHealthActive = HEALTH_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
   const isEatOutActive = EATOUT_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
-  const isMoreActive = MORE_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
+  const isFitnessActive = FITNESS_ITEMS.some(i => i.href === pathname || pathname.startsWith(i.href));
 
   const getDropdownItems = (key: string) =>
-    key === "eatout" ? EATOUT_ITEMS : key === "health" ? HEALTH_ITEMS : key === "more" ? MORE_ITEMS : [];
+    key === "fitness" ? FITNESS_ITEMS : key === "eatout" ? EATOUT_ITEMS : key === "health" ? HEALTH_ITEMS : [];
 
   const isDropdownActiveDesktop = (key: string) =>
-    key === "eatout" ? isEatOutActive : key === "health" ? isHealthActive : key === "more" ? isMoreActive : false;
+    key === "fitness" ? isFitnessActive : key === "eatout" ? isEatOutActive : key === "health" ? isHealthActive : false;
 
   // Mounted guard for portal
   useEffect(() => { setMounted(true); }, []);

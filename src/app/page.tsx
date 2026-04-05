@@ -70,7 +70,7 @@ export default async function OverviewPage() {
       ];
 
   return (
-    <div className="stagger-children">
+    <div className="space-y-0">
       {/* 1. TODAY IN NYC ticker — keep as-is */}
       <DailyHealthCheck
         airLabel={airLabel}
