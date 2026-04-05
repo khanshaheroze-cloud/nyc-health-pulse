@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { CHAINS } from "@/lib/restaurantData";
 import { CHAINS as EAT_SMART_CHAINS, getChainTopPicks } from "@/lib/eatSmartData";
-import { getHealthyTip, type HealthyTip } from "@/lib/cuisineTips";
+import { getHealthyTip, getDirectionsUrl, type HealthyTip } from "@/lib/cuisineTips";
 
 const MapImpl = dynamic(() => import("./_NearbyFoodMapImpl"), { ssr: false });
 
@@ -36,6 +36,7 @@ export function NearbyFoodMap() {
   const [zip, setZip] = useState("");
   const [filter, setFilter] = useState<"all" | "chains" | "tips" | "gradeA">("all");
   const [showMap, setShowMap] = useState(false);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const fetchNearby = useCallback(async (lat: number, lng: number) => {
     setLoading(true);
@@ -184,7 +185,7 @@ export function NearbyFoodMap() {
             ] as const).map(([key, label, count]) => (
               <button
                 key={key}
-                onClick={() => setFilter(key as typeof filter)}
+                onClick={() => { setFilter(key as typeof filter); setSelectedIdx(null); }}
                 className={`text-[10px] font-bold px-3 py-1.5 rounded-full border whitespace-nowrap transition-all ${
                   filter === key
                     ? "bg-hp-green/10 border-hp-green/30 text-hp-green"
@@ -201,6 +202,8 @@ export function NearbyFoodMap() {
             <MapImpl
               center={[userLoc.lat, userLoc.lng]}
               restaurants={filtered}
+              selectedIndex={selectedIdx}
+              onMarkerClick={(i: number) => setSelectedIdx(i)}
             />
             {/* Legend */}
             <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 shadow-sm border border-border/50 flex gap-3 z-10">
@@ -224,8 +227,13 @@ export function NearbyFoodMap() {
             {filtered.map((r, i) => {
               const chain = chainMatch(r.chainSlug);
               const distMi = (r.distance / 1609.34).toFixed(2);
+              const dirUrl = getDirectionsUrl(r.lat, r.lng, r.name, r.address);
               return (
-                <div key={i} className="px-4 py-2.5 flex items-start gap-3">
+                <div
+                  key={i}
+                  className="px-4 py-2.5 flex items-start gap-3 cursor-pointer hover:bg-bg/50 transition-colors"
+                  onClick={() => setSelectedIdx(i)}
+                >
                   <span className="text-base flex-shrink-0 mt-0.5">
                     {chain ? chain.emoji : r.isHealthy ? "🥗" : "🍴"}
                   </span>
@@ -253,7 +261,6 @@ export function NearbyFoodMap() {
                     {r.bestPick && (
                       <p className="text-[10px] text-hp-green font-semibold mt-0.5">
                         💪 {r.bestPick.name} ({r.bestPick.calories} cal, {r.bestPick.protein}g P, Score: {r.bestPick.pulseScore})
-                        {chain && <>{" · "}<Link href={`/restaurants/${chain.slug}`} className="underline">Full menu →</Link></>}
                       </p>
                     )}
 
@@ -266,6 +273,24 @@ export function NearbyFoodMap() {
                         <span className="text-hp-green font-semibold"> ({r.healthyTip.estimatedSavings})</span>
                       </div>
                     )}
+
+                    {/* Directions + Full menu row */}
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <a
+                        href={dirUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-accent bg-accent/5 rounded-full hover:bg-accent/10 transition-colors no-underline"
+                      >
+                        🧭 Directions
+                      </a>
+                      {chain && (
+                        <Link href={`/restaurants/${chain.slug}`} onClick={e => e.stopPropagation()} className="text-[10px] text-dim hover:underline">
+                          Full menu →
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

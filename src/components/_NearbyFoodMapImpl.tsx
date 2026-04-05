@@ -4,23 +4,32 @@ import { useRef, useEffect, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { NearbyRestaurant } from "./NearbyFoodMap";
-import { getMarkerIcon } from "@/lib/cuisineTips";
+import { getMarkerIcon, getDirectionsUrl } from "@/lib/cuisineTips";
 
 /* ── Pin marker factory ────────────────────────────────────────────── */
 
 function createPinMarker(icon: string, isChain: boolean): HTMLElement {
   const wrapper = document.createElement("div");
-  wrapper.style.cssText = "display:flex;flex-direction:column;align-items:center;cursor:pointer;transition:transform 0.15s ease;";
-  wrapper.addEventListener("mouseenter", () => { wrapper.style.transform = "scale(1.15)"; });
-  wrapper.addEventListener("mouseleave", () => { wrapper.style.transform = "scale(1)"; });
+  wrapper.style.cssText = "display:flex;flex-direction:column;align-items:center;cursor:pointer;";
 
   const circle = document.createElement("div");
   const bg = isChain ? "#4A7C59" : "#ffffff";
-  circle.style.cssText = `width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3);background:${bg};`;
+  const textColor = isChain ? "white" : "#374151";
+  circle.style.cssText = `width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.25);background:${bg};color:${textColor};transition:transform 0.15s ease,box-shadow 0.15s ease;`;
   circle.textContent = icon;
 
   const tail = document.createElement("div");
   tail.style.cssText = `width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid ${bg};margin-top:-1px;`;
+
+  // Hover effect on the CIRCLE only — not the wrapper (avoids Mapbox transform conflict)
+  wrapper.addEventListener("mouseenter", () => {
+    circle.style.transform = "scale(1.15)";
+    circle.style.boxShadow = "0 4px 12px rgba(0,0,0,.35)";
+  });
+  wrapper.addEventListener("mouseleave", () => {
+    circle.style.transform = "scale(1)";
+    circle.style.boxShadow = "0 2px 8px rgba(0,0,0,.25)";
+  });
 
   wrapper.appendChild(circle);
   wrapper.appendChild(tail);
@@ -32,9 +41,11 @@ function createPinMarker(icon: string, isChain: boolean): HTMLElement {
 interface Props {
   center: [number, number]; // [lat, lng]
   restaurants: NearbyRestaurant[];
+  selectedIndex?: number | null;
+  onMarkerClick?: (index: number) => void;
 }
 
-export default function NearbyFoodMapImpl({ center, restaurants }: Props) {
+export default function NearbyFoodMapImpl({ center, restaurants, selectedIndex, onMarkerClick }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -117,7 +128,7 @@ export default function NearbyFoodMapImpl({ center, restaurants }: Props) {
     markersRef.current = [];
 
     // Add restaurant markers
-    restaurants.forEach((r) => {
+    restaurants.forEach((r, i) => {
       const isChain = r.chainSlug !== null;
       const icon = getMarkerIcon(r.cuisine, r.chainSlug, r.isHealthy);
       const el = createPinMarker(icon, isChain);
@@ -150,12 +161,14 @@ export default function NearbyFoodMapImpl({ center, restaurants }: Props) {
         `;
       }
 
+      const dirUrl = getDirectionsUrl(r.lat, r.lng, r.name, r.address);
       const popupHtml = `
         <div style="min-width:200px;max-width:280px;font-family:system-ui,-apple-system,sans-serif;">
           <p style="font-size:13px;font-weight:700;margin:0 0 2px;">${r.name}</p>
           <p style="font-size:11px;color:#666;margin:0;">${r.cuisine} · ${distMi} mi${gradeBadge}</p>
           <p style="font-size:10px;color:#888;margin:4px 0 0;">${r.address}</p>
           ${extraHtml}
+          <a href="${dirUrl}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;padding:7px 12px;border-radius:8px;background:#4A7C59;color:white;font-size:12px;font-weight:600;text-decoration:none;text-align:center;">🧭 Get Directions</a>
         </div>
       `;
 
@@ -166,6 +179,7 @@ export default function NearbyFoodMapImpl({ center, restaurants }: Props) {
         )
         .addTo(map);
 
+      el.addEventListener("click", () => onMarkerClick?.(i));
       markersRef.current.push(marker);
     });
 
@@ -177,6 +191,23 @@ export default function NearbyFoodMapImpl({ center, restaurants }: Props) {
       map.fitBounds(bounds, { padding: 50, maxZoom: 16 });
     }
   }, [restaurants, center, mapReady]);
+
+  // Fly to selected restaurant
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || selectedIndex == null || selectedIndex < 0) return;
+    const marker = markersRef.current[selectedIndex];
+    if (!marker) return;
+
+    // Close all popups first
+    markersRef.current.forEach((m) => m.getPopup()?.isOpen() && m.togglePopup());
+
+    const lngLat = marker.getLngLat();
+    map.flyTo({ center: lngLat, zoom: 16, duration: 600 });
+    setTimeout(() => {
+      if (!marker.getPopup()?.isOpen()) marker.togglePopup();
+    }, 650);
+  }, [selectedIndex]);
 
   return <div ref={mapContainer} style={{ height: "100%", width: "100%" }} />;
 }

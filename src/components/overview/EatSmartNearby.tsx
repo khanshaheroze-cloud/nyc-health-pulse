@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { CHAINS as EAT_SMART_CHAINS, getChainTopPicks } from "@/lib/eatSmartData";
-import { getHealthyTip, getMarkerIcon } from "@/lib/cuisineTips";
+import { getHealthyTip, getMarkerIcon, getDirectionsUrl } from "@/lib/cuisineTips";
 import type { MiniMapRestaurant } from "./_EatSmartMiniMap";
 
 const MiniMapImpl = dynamic(() => import("./_EatSmartMiniMap"), { ssr: false });
@@ -39,6 +39,8 @@ export function EatSmartNearby() {
   const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [hasLocation, setHasLocation] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [filter, setFilter] = useState<"all" | "chains" | "local">("all");
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const fetchNearby = useCallback(async (lat: number, lng: number) => {
     setLoading(true);
@@ -133,6 +135,7 @@ export function EatSmartNearby() {
         }">Grade ${r.grade}</span>`
       : "";
 
+    const dirUrl = getDirectionsUrl(r.lat, r.lng, r.name);
     return {
       name: r.name,
       cuisine: r.cuisine,
@@ -147,9 +150,17 @@ export function EatSmartNearby() {
           <p style="font-size:13px;font-weight:700;margin:0 0 2px;">${r.name}</p>
           <p style="font-size:11px;color:#666;margin:0;">${r.cuisine} · ${distMi} mi${gradeBadge}</p>
           ${popupContent}
+          <a href="${dirUrl}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;padding:6px 10px;border-radius:8px;background:#4A7C59;color:white;font-size:11px;font-weight:600;text-decoration:none;text-align:center;">🧭 Get Directions</a>
         </div>
       `,
     };
+  });
+
+  // Filter map restaurants
+  const filteredMap = mapRestaurants.filter((r) => {
+    if (filter === "chains") return r.isChain;
+    if (filter === "local") return !r.isChain;
+    return true;
   });
 
   // Top 3 picks for the list below map
@@ -181,10 +192,32 @@ export function EatSmartNearby() {
       {/* Map or location prompt */}
       {hasLocation && userLoc ? (
         <>
-          <div className="relative h-[300px] w-full mt-3">
+          {/* Filter pills */}
+          <div className="flex gap-1.5 px-5 pt-3 overflow-x-auto">
+            {([
+              ["all", "All Nearby", results.length],
+              ["chains", "🍗 Chains", chainCount],
+              ["local", "🏪 Local Spots", tipCount],
+            ] as const).map(([key, label, count]) => (
+              <button
+                key={key}
+                onClick={() => { setFilter(key as typeof filter); setSelectedIdx(null); }}
+                className={`text-[10px] font-bold px-3 py-1.5 rounded-full border whitespace-nowrap transition-all ${
+                  filter === key
+                    ? "bg-accent/10 border-accent/30 text-accent"
+                    : "border-border-light text-dim hover:text-text"
+                }`}
+              >
+                {label} ({count})
+              </button>
+            ))}
+          </div>
+
+          <div className="relative h-[300px] w-full">
             <MiniMapImpl
               center={[userLoc.lat, userLoc.lng]}
-              restaurants={mapRestaurants}
+              restaurants={filteredMap}
+              selectedIndex={selectedIdx}
             />
             {/* Legend */}
             <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 shadow-sm border border-border/50 flex gap-3 z-10">
@@ -202,38 +235,56 @@ export function EatSmartNearby() {
 
           {/* Top picks */}
           <div className="p-5">
-            {topPicks.length > 0 && (
+            {topPicks.length > 0 && filter !== "local" && (
               <>
                 <p className="text-[11px] font-semibold text-dim mb-2">Top PulseScore picks nearby:</p>
                 <div className="space-y-2.5 mb-4">
-                  {topPicks.map((pick, i) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <span className="text-[16px] flex-shrink-0">{medals[i]}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-bold text-text">{pick.name} — {pick.bestPick!.name}</p>
-                        <p className="text-[11px] text-dim">
-                          <span className="font-bold text-accent">Score {pick.bestPick!.pulseScore}</span>
-                          {" · "}{pick.bestPick!.calories} cal · {pick.bestPick!.protein}g protein
-                        </p>
+                  {topPicks.map((pick, i) => {
+                    const mapIdx = filteredMap.findIndex(m => m.lat === pick.lat && m.lng === pick.lng);
+                    const dirUrl = getDirectionsUrl(pick.lat, pick.lng, pick.name);
+                    return (
+                      <div
+                        key={i}
+                        className="flex items-start gap-2.5 cursor-pointer hover:bg-bg/50 rounded-lg px-1 py-0.5 -mx-1 transition-colors"
+                        onClick={() => mapIdx >= 0 && setSelectedIdx(mapIdx)}
+                      >
+                        <span className="text-[16px] flex-shrink-0">{medals[i]}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-bold text-text">{pick.name} — {pick.bestPick!.name}</p>
+                          <p className="text-[11px] text-dim">
+                            <span className="font-bold text-accent">Score {pick.bestPick!.pulseScore}</span>
+                            {" · "}{pick.bestPick!.calories} cal · {pick.bestPick!.protein}g protein
+                          </p>
+                          <a href={dirUrl} target="_blank" rel="noopener" onClick={e => e.stopPropagation()} className="text-[10px] font-semibold text-hp-green hover:underline">🚶 Get Directions</a>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}
 
-            {topTips.length > 0 && (
+            {topTips.length > 0 && filter !== "chains" && (
               <>
                 <p className="text-[11px] font-semibold text-dim mb-2">💡 Local spots with healthy swaps:</p>
                 <div className="space-y-2 mb-4">
-                  {topTips.map((r, i) => (
-                    <div key={i} className="rounded-lg bg-hp-green/5 border border-hp-green/10 px-3 py-2">
-                      <p className="text-[12px] font-bold text-text">{r.icon} {r.name} <span className="text-[10px] text-muted font-normal">· {r.cuisine} · Grade {r.grade}</span></p>
-                      <p className="text-[10px] text-dim line-through mt-0.5">{r.healthyTip!.defaultOrder}</p>
-                      <p className="text-[10px] text-text font-medium">→ {r.healthyTip!.smartOrder}</p>
-                      <p className="text-[9px] text-hp-green font-semibold mt-0.5">{r.healthyTip!.estimatedSavings}</p>
-                    </div>
-                  ))}
+                  {topTips.map((r, i) => {
+                    const mapIdx = filteredMap.findIndex(m => m.lat === r.lat && m.lng === r.lng);
+                    const dirUrl = getDirectionsUrl(r.lat, r.lng, r.name);
+                    return (
+                      <div
+                        key={i}
+                        className="rounded-lg bg-hp-green/5 border border-hp-green/10 px-3 py-2 cursor-pointer hover:bg-hp-green/10 transition-colors"
+                        onClick={() => mapIdx >= 0 && setSelectedIdx(mapIdx)}
+                      >
+                        <p className="text-[12px] font-bold text-text">{r.icon} {r.name} <span className="text-[10px] text-muted font-normal">· {r.cuisine} · Grade {r.grade}</span></p>
+                        <p className="text-[10px] text-dim line-through mt-0.5">{r.healthyTip!.defaultOrder}</p>
+                        <p className="text-[10px] text-text font-medium">→ {r.healthyTip!.smartOrder}</p>
+                        <p className="text-[9px] text-hp-green font-semibold mt-0.5">{r.healthyTip!.estimatedSavings}</p>
+                        <a href={dirUrl} target="_blank" rel="noopener" onClick={e => e.stopPropagation()} className="text-[10px] font-semibold text-hp-green hover:underline mt-1 inline-block">🚶 Get Directions</a>
+                      </div>
+                    );
+                  })}
                 </div>
               </>
             )}

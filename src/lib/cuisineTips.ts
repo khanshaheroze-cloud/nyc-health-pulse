@@ -204,6 +204,16 @@ export function getHealthyTip(cuisineType: string, restaurantName: string): Heal
   return null;
 }
 
+/** Build a Google Maps walking directions URL */
+export function getDirectionsUrl(lat: number, lng: number, name?: string, address?: string): string {
+  const dest = name && address
+    ? encodeURIComponent(`${name}, ${address}, New York, NY`)
+    : name
+      ? `${encodeURIComponent(name)}@${lat},${lng}`
+      : `${lat},${lng}`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=walking`;
+}
+
 /** Get a marker icon (emoji) based on cuisine type */
 export function getMarkerIcon(cuisine: string, chainSlug: string | null, isHealthy: boolean): string {
   if (chainSlug) return "🌯";
