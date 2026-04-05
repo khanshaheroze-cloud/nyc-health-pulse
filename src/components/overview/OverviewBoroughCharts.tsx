@@ -30,7 +30,10 @@ export function OverviewBoroughCharts({ chronicOutcomes, inactivityData }: Props
       {/* Chronic Disease Outcomes */}
       <div className="rounded-2xl bg-surface border border-border-light overflow-hidden">
         <div className="p-4 pb-0">
-          <p className="text-[13px] font-bold text-text">Chronic Disease by Borough</p>
+          <div className="flex items-center gap-2">
+            <p className="text-[13px] font-bold text-text">Chronic Disease by Borough</p>
+            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-hp-green bg-hp-green/10 px-1.5 py-0.5 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse" /> LIVE</span>
+          </div>
           <p className="text-[10px] text-dim mt-0.5">CDC PLACES estimates, % of adults</p>
         </div>
         <div className="h-[260px] px-2 pb-3">
@@ -55,7 +58,10 @@ export function OverviewBoroughCharts({ chronicOutcomes, inactivityData }: Props
       {/* Physical Inactivity */}
       <div className="rounded-2xl bg-surface border border-border-light overflow-hidden">
         <div className="p-4 pb-0">
-          <p className="text-[13px] font-bold text-text">Physical Inactivity by Borough</p>
+          <div className="flex items-center gap-2">
+            <p className="text-[13px] font-bold text-text">Physical Inactivity by Borough</p>
+            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-hp-green bg-hp-green/10 px-1.5 py-0.5 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-hp-green animate-pulse" /> LIVE</span>
+          </div>
           <p className="text-[10px] text-dim mt-0.5">% of adults with no leisure-time physical activity</p>
         </div>
         <div className="h-[260px] px-2 pb-3">
