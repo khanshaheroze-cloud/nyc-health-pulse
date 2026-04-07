@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { WorkoutTracker } from "@/components/workout-tracker/WorkoutTracker";
+import { WorkoutTrackerRedesign } from "@/components/workout-tracker/WorkoutTrackerRedesign";
 import { WorkoutErrorBoundary } from "@/components/workout-tracker/WorkoutErrorBoundary";
 
 export const metadata: Metadata = {
@@ -11,12 +11,8 @@ export const metadata: Metadata = {
 export default function WorkoutsPage() {
   return (
     <section className="max-w-2xl mx-auto">
-      <div className="flex items-center gap-2 mb-5">
-        <span className="text-xl">🏋️</span>
-        <h1 className="font-display text-2xl text-text font-bold">Workouts</h1>
-      </div>
       <WorkoutErrorBoundary>
-        <WorkoutTracker />
+        <WorkoutTrackerRedesign />
       </WorkoutErrorBoundary>
     </section>
   );
