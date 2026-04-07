@@ -18,13 +18,56 @@ export interface OnboardingResult {
 
 type Step = "choose" | "pick-split" | "assign-days";
 
-const SPLIT_OPTIONS = [
-  { id: "ppl-3", label: "Push / Pull / Legs", sub: "3 days/week", emoji: "💪" },
-  { id: "upper-lower-4", label: "Upper / Lower", sub: "4 days/week", emoji: "⬆️" },
-  { id: "bro-split-5", label: "Body Part Split", sub: "5 days/week", emoji: "🏋️" },
-  { id: "full-body-3", label: "Full Body", sub: "3 days/week", emoji: "🔥" },
-  { id: "beginner-full-body-3", label: "Beginner Full Body", sub: "3 days/week", emoji: "🌱" },
-  { id: "beginner-upper-lower-4", label: "Beginner Upper/Lower", sub: "4 days/week", emoji: "🌱" },
+interface ProgramGroup {
+  label: string;
+  programs: { id: string; label: string; sub: string; emoji: string }[];
+}
+
+const PROGRAM_GROUPS: ProgramGroup[] = [
+  {
+    label: "Beginner",
+    programs: [
+      { id: "beginner-full-body-3", label: "Beginner Full Body", sub: "3 days/week", emoji: "🌱" },
+      { id: "beginner-upper-lower-4", label: "Beginner Upper/Lower", sub: "4 days/week", emoji: "🌱" },
+      { id: "beginner-ppl-3", label: "Beginner PPL", sub: "3 days/week", emoji: "🌱" },
+      { id: "beginner-dumbbell-only-3", label: "Dumbbell-Only Home", sub: "3 days/week", emoji: "🏠" },
+    ],
+  },
+  {
+    label: "Strength Splits",
+    programs: [
+      { id: "ppl-3", label: "Push / Pull / Legs", sub: "3 days/week", emoji: "💪" },
+      { id: "ppl-6", label: "PPL (2x/week)", sub: "6 days/week", emoji: "💪" },
+      { id: "upper-lower-4", label: "Upper / Lower", sub: "4 days/week", emoji: "⬆️" },
+      { id: "ulppl-5", label: "Upper/Lower + PPL", sub: "5 days/week", emoji: "⬆️" },
+      { id: "pplul-5", label: "PPLUL Hybrid", sub: "5 days/week", emoji: "💪" },
+      { id: "bro-split-5", label: "Body Part Split", sub: "5 days/week", emoji: "🏋️" },
+      { id: "full-body-3", label: "Full Body", sub: "3 days/week", emoji: "🔥" },
+      { id: "arnold-6", label: "Arnold Split", sub: "6 days/week", emoji: "🏋️" },
+      { id: "advanced-ppl-6", label: "Advanced PPL", sub: "6 days/week", emoji: "🏋️" },
+    ],
+  },
+  {
+    label: "Running & Cardio",
+    programs: [
+      { id: "running-3", label: "Running Program", sub: "3 days/week", emoji: "🏃" },
+      { id: "running-strength-4", label: "Running + Strength", sub: "4 days/week", emoji: "🏃" },
+      { id: "cardio-only-3", label: "Cardio Only", sub: "3 days/week", emoji: "🏃" },
+      { id: "cardio-only-5", label: "Cardio 5-Day Mix", sub: "5 days/week", emoji: "🚴" },
+      { id: "cardio-strength-4", label: "Cardio + Strength", sub: "4 days/week", emoji: "🔥" },
+    ],
+  },
+  {
+    label: "Specialty & Add-Ons",
+    programs: [
+      { id: "core-focused-3", label: "Core-Focused", sub: "3 days/week", emoji: "🔥" },
+      { id: "core-abs-day", label: "Core / Abs Day", sub: "1 day add-on", emoji: "🔥" },
+      { id: "yoga-strength-4", label: "Yoga + Strength", sub: "4 days/week", emoji: "🧘" },
+      { id: "glute-lower-day", label: "Glute-Focused Lower", sub: "1 day add-on", emoji: "🍑" },
+      { id: "shoulder-day", label: "Dedicated Shoulders", sub: "1 day add-on", emoji: "🏋️" },
+      { id: "arms-day", label: "Dedicated Arms", sub: "1 day add-on", emoji: "💪" },
+    ],
+  },
 ];
 
 const DAY_LABELS: Record<DayOfWeek, string> = {
@@ -35,6 +78,7 @@ const DAY_LABELS: Record<DayOfWeek, string> = {
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState<Step>("choose");
   const [selectedSplit, setSelectedSplit] = useState<SplitTemplate | null>(null);
+  const [expandedGroup, setExpandedGroup] = useState<string>("Strength Splits");
   const [dayAssignments, setDayAssignments] = useState<Record<DayOfWeek, number | null>>({
     monday: null, tuesday: null, wednesday: null, thursday: null,
     friday: null, saturday: null, sunday: null,
@@ -167,25 +211,48 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           <h3 className="text-[16px] font-bold text-text">Pick a program</h3>
         </div>
 
-        <div className="space-y-2">
-          {SPLIT_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => handlePickSplit(opt.id)}
-              className="w-full flex items-center gap-3 p-3.5 rounded-xl border border-border-light hover:border-accent/25 hover:bg-accent-bg/30 transition-all text-left group"
-            >
-              <span className="text-lg">{opt.emoji}</span>
-              <div className="flex-1">
-                <span className="text-[13px] font-semibold text-text group-hover:text-accent transition-colors block">
-                  {opt.label}
-                </span>
-                <span className="text-[11px] text-dim">{opt.sub}</span>
+        <div className="space-y-3 max-h-[55vh] overflow-y-auto">
+          {PROGRAM_GROUPS.map((group) => {
+            const isOpen = expandedGroup === group.label;
+            return (
+              <div key={group.label}>
+                <button
+                  onClick={() => setExpandedGroup(isOpen ? "" : group.label)}
+                  className="w-full flex items-center justify-between px-2 py-1.5 text-left"
+                >
+                  <span className="text-[11px] font-bold text-muted uppercase tracking-wide">{group.label}</span>
+                  <svg
+                    width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                    className={`text-muted transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                  >
+                    <path d="M4 6 L8 10 L12 6" />
+                  </svg>
+                </button>
+                {isOpen && (
+                  <div className="space-y-1.5 mt-1">
+                    {group.programs.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => handlePickSplit(opt.id)}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl border border-border-light hover:border-accent/25 hover:bg-accent-bg/30 transition-all text-left group"
+                      >
+                        <span className="text-lg">{opt.emoji}</span>
+                        <div className="flex-1">
+                          <span className="text-[13px] font-semibold text-text group-hover:text-accent transition-colors block">
+                            {opt.label}
+                          </span>
+                          <span className="text-[11px] text-dim">{opt.sub}</span>
+                        </div>
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-muted">
+                          <path d="M6 4 L10 8 L6 12" />
+                        </svg>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-muted">
-                <path d="M6 4 L10 8 L6 12" />
-              </svg>
-            </button>
-          ))}
+            );
+          })}
         </div>
       </div>
     );

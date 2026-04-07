@@ -792,6 +792,190 @@ export const SPLIT_TEMPLATES: SplitTemplate[] = [
       ]},
     ],
   },
+
+  // ═══════════════════════════════════════════════════════════
+  // HYBRID SPLITS
+  // ═══════════════════════════════════════════════════════════
+  {
+    id: "ulppl-5",
+    name: "Upper/Lower + PPL (5-Day)",
+    description: "Best of both worlds. Upper/Lower strength days + PPL hypertrophy.",
+    level: "intermediate",
+    daysPerWeek: 5,
+    days: [
+      { name: "Upper (Strength)", emoji: "💪", exercises: [
+        te("bb-bench", 4, "5", 180), te("bb-row", 4, "5", 180), te("ohp", 3, "6-8", 120),
+        te("lat-pulldown", 3, "8-10", 90), te("db-curl", 2, "10", 60), te("skull-crusher", 2, "10", 60),
+      ]},
+      { name: "Lower (Strength)", emoji: "🦵", exercises: [
+        te("bb-squat", 4, "5", 180), te("rdl", 3, "6-8", 150), te("leg-press", 3, "8-10", 120),
+        te("lying-leg-curl", 3, "10", 90), te("standing-calf-raise", 3, "12", 60), te("plank", 3, "45s", 60),
+      ]},
+      { name: "Push (Hypertrophy)", emoji: "🏋️", exercises: [
+        te("db-incline-bench", 4, "8-10", 120), te("cable-fly", 3, "12-15", 60), te("arnold-press", 3, "10-12", 90),
+        te("db-lateral-raise", 4, "12-15", 60), te("cable-pushdown", 3, "12-15", 60), te("overhead-cable-ext", 3, "12-15", 60),
+      ]},
+      { name: "Pull (Hypertrophy)", emoji: "🏋️", exercises: [
+        te("chest-supported-row", 4, "10-12", 90), te("lat-pulldown-close", 3, "10-12", 90), te("cable-row", 3, "12-15", 60),
+        te("face-pull", 3, "15-20", 60), te("db-incline-curl", 3, "10-12", 60), te("bayesian-curl", 3, "12-15", 60),
+      ]},
+      { name: "Legs (Hypertrophy)", emoji: "🦵", exercises: [
+        te("front-squat", 3, "8-10", 120), te("bulgarian-split-squat", 3, "10 each", 90), te("leg-extension", 3, "12-15", 60),
+        te("lying-leg-curl", 3, "12-15", 60), te("bb-hip-thrust", 3, "10-12", 90), te("seated-calf-raise", 3, "15", 60),
+      ]},
+    ],
+  },
+  {
+    id: "ppl-6",
+    name: "PPL 6-Day (2x/week)",
+    description: "Push/Pull/Legs twice per week. Hit every muscle twice for max growth.",
+    level: "intermediate",
+    daysPerWeek: 6,
+    days: [
+      { name: "Push A", emoji: "🏋️", exercises: [
+        te("bb-bench", 4, "6-8", 180), te("db-incline-bench", 3, "8-10", 120), te("cable-fly-low", 3, "12-15", 90),
+        te("ohp", 3, "8-10", 120), te("db-lateral-raise", 3, "12-15", 60), te("cable-pushdown", 3, "10-12", 60),
+      ]},
+      { name: "Pull A", emoji: "🏋️", exercises: [
+        te("deadlift", 3, "5", 180), te("lat-pulldown-wide", 3, "8-10", 120), te("cable-row", 3, "10-12", 90),
+        te("face-pull", 3, "15", 60), te("bb-curl", 3, "8-10", 60), te("db-hammer-curl", 3, "10-12", 60),
+      ]},
+      { name: "Legs A", emoji: "🦵", exercises: [
+        te("bb-squat", 4, "6-8", 180), te("rdl", 3, "8-10", 120), te("leg-press", 3, "10-12", 120),
+        te("lying-leg-curl", 3, "10-12", 60), te("standing-calf-raise", 4, "12-15", 60), te("leg-raise-hanging", 3, "15", 60),
+      ]},
+      { name: "Push B", emoji: "🏋️", exercises: [
+        te("db-incline-bench", 4, "8-10", 120), te("machine-chest-press", 3, "10-12", 90), te("cable-fly", 3, "12-15", 60),
+        te("arnold-press", 3, "10-12", 90), te("db-lateral-raise", 4, "15-20", 60), te("overhead-cable-ext", 3, "10-12", 60),
+      ]},
+      { name: "Pull B", emoji: "🏋️", exercises: [
+        te("bb-row", 4, "8-10", 120), te("chest-supported-row", 3, "10-12", 90), te("lat-pulldown-close", 3, "10-12", 90),
+        te("db-rear-delt-fly", 3, "15", 60), te("db-incline-curl", 3, "10-12", 60), te("cable-curl", 3, "12-15", 60),
+      ]},
+      { name: "Legs B", emoji: "🦵", exercises: [
+        te("front-squat", 3, "8-10", 150), te("bulgarian-split-squat", 3, "10 each", 90), te("leg-extension", 3, "12-15", 60),
+        te("lying-leg-curl", 3, "12-15", 60), te("bb-hip-thrust", 3, "10-12", 90), te("seated-calf-raise", 4, "15", 60),
+      ]},
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // RUNNING & CARDIO PROGRAMS
+  // ═══════════════════════════════════════════════════════════
+  {
+    id: "running-3",
+    name: "Running Program (3-Day)",
+    description: "Easy runs, tempo work, and a long run. Build endurance safely.",
+    level: "beginner",
+    daysPerWeek: 3,
+    days: [
+      { name: "Easy Run + Core", emoji: "🏃", exercises: [
+        te("outdoor-run", 1, "20-25 min easy", 0), te("plank", 3, "30-45s", 45),
+        te("dead-bug", 3, "10 each", 45), te("side-plank", 2, "20-30s each", 45), te("hip-flexor-stretch", 1, "30s each", 0),
+      ]},
+      { name: "Tempo Run", emoji: "🏃", exercises: [
+        te("outdoor-run", 1, "5 min warmup", 0), te("outdoor-run", 1, "15 min tempo", 0),
+        te("outdoor-run", 1, "5 min cooldown", 0), te("hamstring-stretch", 1, "30s each", 0), te("quad-stretch", 1, "30s each", 0),
+      ]},
+      { name: "Long Run", emoji: "🏃", exercises: [
+        te("outdoor-run", 1, "35-45 min easy", 0), te("hip-flexor-stretch", 1, "30s each", 0),
+        te("pigeon-stretch", 1, "45s each", 0), te("hamstring-stretch", 1, "30s each", 0),
+      ]},
+    ],
+  },
+  {
+    id: "running-strength-4",
+    name: "Running + Strength (4-Day)",
+    description: "2 run days + 2 strength days. Build speed and muscle together.",
+    level: "intermediate",
+    daysPerWeek: 4,
+    days: [
+      { name: "Easy Run + Core", emoji: "🏃", exercises: [
+        te("outdoor-run", 1, "25-30 min easy", 0), te("plank", 3, "45s", 45), te("dead-bug", 3, "10 each", 45),
+        te("russian-twist", 3, "20", 45), te("leg-raise-lying", 3, "15", 45),
+      ]},
+      { name: "Full Body Strength", emoji: "💪", exercises: [
+        te("bb-squat", 3, "8", 150), te("db-bench", 3, "10", 90), te("db-row", 3, "10 each", 90),
+        te("db-rdl", 3, "10", 90), te("db-shoulder-press", 3, "10", 90), te("standing-calf-raise", 3, "15", 60),
+      ]},
+      { name: "Tempo / Intervals", emoji: "🏃", exercises: [
+        te("outdoor-run", 1, "5 min warmup", 0), te("outdoor-run", 1, "20 min tempo", 0),
+        te("outdoor-run", 1, "5 min cooldown", 0), te("hip-flexor-stretch", 1, "30s each", 0),
+      ]},
+      { name: "Lower Body + Core", emoji: "🦵", exercises: [
+        te("goblet-squat", 3, "12", 90), te("db-lunge", 3, "10 each", 90), te("glute-bridge", 3, "15", 60),
+        te("standing-calf-raise", 3, "15", 60), te("cable-woodchop", 3, "12 each", 60), te("plank", 3, "45s", 45),
+      ]},
+    ],
+  },
+  {
+    id: "cardio-only-3",
+    name: "Cardio Only (3-Day)",
+    description: "Pure cardio — running, cycling, rowing. No weights needed.",
+    level: "beginner",
+    daysPerWeek: 3,
+    days: [
+      { name: "Steady-State Cardio", emoji: "🏃", exercises: [
+        te("treadmill-run", 1, "30 min moderate", 0), te("hip-flexor-stretch", 1, "30s each", 0),
+        te("hamstring-stretch", 1, "30s each", 0), te("quad-stretch", 1, "30s each", 0),
+      ]},
+      { name: "Cycling / Rowing", emoji: "🚴", exercises: [
+        te("cycling", 1, "30-40 min", 0), te("rowing-machine", 1, "15 min", 0),
+        te("shoulder-stretch", 1, "30s each", 0), te("cat-cow", 1, "60s", 0),
+      ]},
+      { name: "Interval Cardio", emoji: "🔥", exercises: [
+        te("treadmill-run", 1, "5 min warmup", 0), te("treadmill-run", 8, "1 min fast / 1 min easy", 0),
+        te("elliptical", 1, "10 min cooldown", 0), te("pigeon-stretch", 1, "45s each", 0),
+      ]},
+    ],
+  },
+  {
+    id: "cardio-only-5",
+    name: "Cardio 5-Day Mix",
+    description: "Varied cardio every day — running, HIIT, cycling, rowing, stair work.",
+    level: "intermediate",
+    daysPerWeek: 5,
+    days: [
+      { name: "Easy Run", emoji: "🏃", exercises: [
+        te("outdoor-run", 1, "30 min easy", 0), te("hip-flexor-stretch", 1, "30s each", 0), te("hamstring-stretch", 1, "30s each", 0),
+      ]},
+      { name: "Cycling", emoji: "🚴", exercises: [
+        te("cycling", 1, "40-45 min", 0), te("quad-stretch", 1, "30s each", 0), te("hip-flexor-stretch", 1, "30s each", 0),
+      ]},
+      { name: "HIIT", emoji: "🔥", exercises: [
+        te("burpee", 4, "30s on / 15s off", 15), te("mountain-climber", 4, "30s on / 15s off", 15),
+        te("jump-squat", 4, "30s on / 15s off", 15), te("high-knees", 4, "30s on / 15s off", 15), te("jump-rope", 1, "3 min cooldown", 0),
+      ]},
+      { name: "Row + Stairs", emoji: "🚣", exercises: [
+        te("rowing-machine", 1, "20 min", 0), te("stair-climber", 1, "15 min", 0), te("shoulder-stretch", 1, "30s each", 0),
+      ]},
+      { name: "Tempo Run", emoji: "🏃", exercises: [
+        te("outdoor-run", 1, "5 min warmup", 0), te("outdoor-run", 1, "20 min tempo", 0),
+        te("outdoor-run", 1, "5 min cooldown", 0), te("pigeon-stretch", 1, "45s each", 0),
+      ]},
+    ],
+  },
+  {
+    id: "core-focused-3",
+    name: "Core-Focused (3-Day)",
+    description: "Dedicated core work 3x/week. Abs, obliques, stability, and anti-rotation.",
+    level: "all",
+    daysPerWeek: 3,
+    days: [
+      { name: "Abs & Obliques", emoji: "🔥", exercises: [
+        te("cable-crunch", 3, "15", 60), te("leg-raise-hanging", 3, "12", 60), te("russian-twist", 3, "20", 60),
+        te("bicycle-crunch", 3, "20", 45), te("side-plank", 3, "30-45s each", 45), te("decline-sit-up", 3, "15", 60),
+      ]},
+      { name: "Stability & Anti-Rotation", emoji: "🔥", exercises: [
+        te("plank", 3, "45-60s", 45), te("pallof-press", 3, "12 each", 60), te("dead-bug", 3, "10 each", 45),
+        te("ab-wheel", 3, "10", 60), te("bird-dog", 3, "10 each", 45), te("suitcase-carry", 3, "30s each", 60),
+      ]},
+      { name: "Core Power", emoji: "🔥", exercises: [
+        te("cable-woodchop", 3, "12 each", 60), te("med-ball-slam", 3, "10", 60), te("mountain-climber", 3, "20", 45),
+        te("leg-raise-lying", 3, "15", 45), te("plank", 3, "45s", 45), te("bicycle-crunch", 3, "15", 45),
+      ]},
+    ],
+  },
 ];
 
 /** IDs of quick-start routines (1-day programs, tap-and-go) */
