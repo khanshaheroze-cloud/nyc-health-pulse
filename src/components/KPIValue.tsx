@@ -51,17 +51,18 @@ export function KPIValue({
           started.current = true;
           observer.disconnect();
 
-          // Reset to 0 and animate up — only when element is in view
-          setDisplay(0);
+          // Animate from ~20% of the value to avoid flashing misleading near-zero data
+          const from = numericPart * 0.2;
+          setDisplay(from);
 
-          const duration = 1200;
+          const duration = 900;
           const start = performance.now();
 
           function tick(now: number) {
             const elapsed = now - start;
             const p = Math.min(elapsed / duration, 1);
             const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
-            setDisplay(eased * numericPart);
+            setDisplay(from + eased * (numericPart - from));
             if (p < 1) requestAnimationFrame(tick);
           }
 

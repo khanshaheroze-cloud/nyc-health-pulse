@@ -7,6 +7,8 @@ import { NeighborhoodBar } from "@/components/overview/NeighborhoodBar";
 import { HealthStatusChips } from "@/components/overview/HealthStatusChips";
 import { OverviewBoroughCharts } from "@/components/overview/OverviewBoroughCharts";
 import { AlertBanner } from "@/components/AlertBanner";
+import { WeeklyChanges } from "@/components/WeeklyChanges";
+import { EmailSignup } from "@/components/EmailSignup";
 import { chronicOutcomes as staticOutcomes } from "@/lib/data";
 import {
   fetchCovidByBorough,
@@ -71,7 +73,7 @@ export default async function OverviewPage() {
 
   return (
     <div className="space-y-0">
-      {/* 1. TODAY IN NYC ticker — keep as-is */}
+      {/* 1. TODAY IN NYC ticker */}
       <DailyHealthCheck
         airLabel={airLabel}
         airAqi={airNow?.aqi ?? null}
@@ -94,28 +96,28 @@ export default async function OverviewPage() {
       {/* Emergency alert banner */}
       <AlertBanner aqi={airNow?.aqi ?? null} />
 
-      {/* 3. Workout + Nutrition — side by side on desktop */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
-        <WorkoutWidget />
-        <NutritionWidget />
-      </div>
-
-      {/* 4. Eat Smart — mini map + top picks */}
-      <div className="mt-5">
+      {/* ── Fitness & Nutrition zone — sage tint ── */}
+      <div className="section-tint-sage mt-5 -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <WorkoutWidget />
+          <NutritionWidget />
+        </div>
         <EatSmartNearby />
       </div>
 
-      {/* 5. Borough health charts — chronic disease + inactivity */}
-      <div className="mt-5">
+      {/* ── Health data zone — sky tint ── */}
+      <div className="section-tint-sky -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 space-y-4">
         <OverviewBoroughCharts chronicOutcomes={chronicOutcomes} inactivityData={inactivityData} />
+        <WeeklyChanges />
       </div>
 
-      {/* 6. Neighborhood stat bar */}
-      <div className="mt-5">
+      {/* ── Stay informed — warm tint ── */}
+      <div className="section-tint-warm -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 space-y-4">
+        <EmailSignup />
         <NeighborhoodBar />
       </div>
 
-      {/* 7. Health Status chips */}
+      {/* Health Status chips */}
       <div className="mt-5">
         <HealthStatusChips
           airLabel={airLabel}

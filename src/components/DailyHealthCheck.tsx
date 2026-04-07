@@ -92,7 +92,7 @@ export function DailyHealthCheck({ airLabel, airAqi, covidLabel, totalHosp, iliR
 
   return (
     <div
-      className="ticker-container mt-7 bg-surface border border-border-light rounded-2xl px-4 sm:px-5 py-3 sm:py-3.5 flex items-center animate-fade-in-up"
+      className="ticker-container mt-7 bg-surface border border-border-light rounded-2xl px-4 sm:px-5 py-3 sm:py-3.5 flex items-center animate-fade-in-up border-l-[3px] border-l-hp-green"
       style={{ animationDelay: "100ms" }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
