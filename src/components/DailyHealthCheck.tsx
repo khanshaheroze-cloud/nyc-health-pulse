@@ -124,7 +124,7 @@ export function DailyHealthCheck({ airLabel, airAqi, covidLabel, totalHosp, iliR
               key={item.label}
               href={item.href}
               className="flex items-center gap-2 whitespace-nowrap hover:opacity-70 transition-opacity flex-shrink-0 min-h-[44px]"
-              style={{ animation: `fadeUp 0.4s ease-out ${idx * 0.1}s both` }}
+              style={{ animation: `fadeUp 0.4s ease-out ${idx * 0.1}s forwards` }}
             >
               <span className={`w-[7px] h-[7px] rounded-full flex-shrink-0 ${dotCss(item.color)}`} />
               <span className="text-[13px] font-semibold text-text">{item.label}</span>

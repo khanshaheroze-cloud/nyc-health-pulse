@@ -66,7 +66,7 @@ const BADGE_STYLE: Record<string, { bg: string; text: string; label: string }> =
 /* ── Component ───────────────────────────────────────── */
 
 // Content last updated date — update this when CHANGES array is modified
-const CONTENT_UPDATED = new Date("2026-03-30");
+const CONTENT_UPDATED = new Date("2026-04-11");
 
 function getCurrentWeekLabel(): string {
   const now = new Date();

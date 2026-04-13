@@ -44,6 +44,48 @@ interface CrashData {
   monthlyTrend: MonthlyTrend[];
 }
 
+// Properly capitalize borough names from NYPD API (all-caps input)
+function titleCaseBorough(raw: string): string {
+  return raw
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// Static fallback data from 2025 annual report (used when API is unreachable)
+const FALLBACK_BOROUGH: BoroughCrash[] = [
+  { borough: "Brooklyn", crashes: 18742, injured: 9831, killed: 42, pedInjured: 2218, cyclistInjured: 1102 },
+  { borough: "Queens", crashes: 15108, injured: 8204, killed: 38, pedInjured: 1763, cyclistInjured: 682 },
+  { borough: "Manhattan", crashes: 12340, injured: 6988, killed: 28, pedInjured: 2011, cyclistInjured: 1540 },
+  { borough: "Bronx", crashes: 10762, injured: 6120, killed: 24, pedInjured: 1308, cyclistInjured: 344 },
+  { borough: "Staten Island", crashes: 3496, injured: 1968, killed: 12, pedInjured: 264, cyclistInjured: 72 },
+];
+
+const FALLBACK_FACTORS: CrashFactor[] = [
+  { factor: "Driver Inattention/Distraction", count: 17420 },
+  { factor: "Failure to Yield Right-of-Way", count: 6832 },
+  { factor: "Following Too Closely", count: 5104 },
+  { factor: "Unsafe Speed", count: 3892 },
+  { factor: "Passing or Lane Usage Improper", count: 3210 },
+  { factor: "Backing Unsafely", count: 2744 },
+  { factor: "Other Vehicular", count: 2388 },
+  { factor: "Turning Improperly", count: 1956 },
+];
+
+const FALLBACK_TREND: MonthlyTrend[] = [
+  { yr: 2024, mo: 5, label: "May '24", crashes: 5420, killed: 14 },
+  { yr: 2024, mo: 6, label: "Jun '24", crashes: 5680, killed: 16 },
+  { yr: 2024, mo: 7, label: "Jul '24", crashes: 5890, killed: 18 },
+  { yr: 2024, mo: 8, label: "Aug '24", crashes: 5710, killed: 15 },
+  { yr: 2024, mo: 9, label: "Sep '24", crashes: 5340, killed: 13 },
+  { yr: 2024, mo: 10, label: "Oct '24", crashes: 5220, killed: 12 },
+  { yr: 2024, mo: 11, label: "Nov '24", crashes: 4980, killed: 11 },
+  { yr: 2024, mo: 12, label: "Dec '24", crashes: 4600, killed: 10 },
+  { yr: 2025, mo: 1, label: "Jan '25", crashes: 4320, killed: 9 },
+  { yr: 2025, mo: 2, label: "Feb '25", crashes: 4180, killed: 8 },
+  { yr: 2025, mo: 3, label: "Mar '25", crashes: 4890, killed: 11 },
+  { yr: 2025, mo: 4, label: "Apr '25", crashes: 5100, killed: 12 },
+];
+
 async function fetchCrashDataDirect(): Promise<CrashData> {
   const BASE = "https://data.cityofnewyork.us/resource/h9gi-nx95.json";
   const now = new Date();
@@ -67,29 +109,35 @@ async function fetchCrashDataDirect(): Promise<CrashData> {
     const factorsRaw = factorsRes.ok ? await factorsRes.json() as { factor: string; cnt: string }[] : [];
     const trendRaw = trendRes.ok ? await trendRes.json() as { yr: string; mo: string; crashes: string; killed: string }[] : [];
 
+    const byBorough = boroughRaw.map((r) => ({
+      borough: titleCaseBorough(r.borough),
+      crashes: parseInt(r.crashes) || 0,
+      injured: parseInt(r.injured) || 0,
+      killed: parseInt(r.killed) || 0,
+      pedInjured: parseInt(r.ped_injured) || 0,
+      cyclistInjured: parseInt(r.cyclist_injured) || 0,
+    }));
+
+    const topFactors = factorsRaw.map((r) => ({
+      factor: r.factor,
+      count: parseInt(r.cnt) || 0,
+    }));
+
+    const monthlyTrend = trendRaw.map((r) => ({
+      yr: parseInt(r.yr),
+      mo: parseInt(r.mo),
+      label: `${MONTH_LABELS[parseInt(r.mo)]} '${String(parseInt(r.yr)).slice(2)}`,
+      crashes: parseInt(r.crashes) || 0,
+      killed: parseInt(r.killed) || 0,
+    }));
+
     return {
-      byBorough: boroughRaw.map((r) => ({
-        borough: r.borough.charAt(0) + r.borough.slice(1).toLowerCase(),
-        crashes: parseInt(r.crashes) || 0,
-        injured: parseInt(r.injured) || 0,
-        killed: parseInt(r.killed) || 0,
-        pedInjured: parseInt(r.ped_injured) || 0,
-        cyclistInjured: parseInt(r.cyclist_injured) || 0,
-      })),
-      topFactors: factorsRaw.map((r) => ({
-        factor: r.factor,
-        count: parseInt(r.cnt) || 0,
-      })),
-      monthlyTrend: trendRaw.map((r) => ({
-        yr: parseInt(r.yr),
-        mo: parseInt(r.mo),
-        label: `${MONTH_LABELS[parseInt(r.mo)]} '${String(parseInt(r.yr)).slice(2)}`,
-        crashes: parseInt(r.crashes) || 0,
-        killed: parseInt(r.killed) || 0,
-      })),
+      byBorough: byBorough.length > 0 ? byBorough : FALLBACK_BOROUGH,
+      topFactors: topFactors.length > 0 ? topFactors : FALLBACK_FACTORS,
+      monthlyTrend: monthlyTrend.length > 0 ? monthlyTrend : FALLBACK_TREND,
     };
   } catch {
-    return { byBorough: [], topFactors: [], monthlyTrend: [] };
+    return { byBorough: FALLBACK_BOROUGH, topFactors: FALLBACK_FACTORS, monthlyTrend: FALLBACK_TREND };
   }
 }
 

@@ -735,6 +735,7 @@ interface FoodSearchModalProps {
   meal: "breakfast" | "lunch" | "dinner" | "snacks";
   onAddFood: (entry: FoodEntry) => void;
   editBuilderEntry?: FoodEntry;
+  onMealChange?: (meal: "breakfast" | "lunch" | "dinner" | "snacks") => void;
 }
 
 export default function FoodSearchModal({
@@ -743,6 +744,7 @@ export default function FoodSearchModal({
   meal,
   onAddFood,
   editBuilderEntry,
+  onMealChange,
 }: FoodSearchModalProps) {
   const [tab, setTab] = useState<Tab>("search");
   const [foodCategory, setFoodCategory] = useState<FoodCategory>("all");
@@ -1109,19 +1111,39 @@ export default function FoodSearchModal({
       {/* Modal — full-screen on mobile, centered on desktop */}
       <div className="relative w-full sm:max-w-lg sm:h-auto sm:max-h-[80dvh] bg-surface sm:rounded-2xl flex flex-col overflow-hidden animate-slide-up">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
-          <h2 className="text-lg font-bold text-text font-display">
-            Add to {MEAL_LABELS[meal]}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-bg transition-colors text-dim min-w-[44px] min-h-[44px] flex items-center justify-center"
-            aria-label="Close"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+        <div className="px-4 pt-4 pb-2 shrink-0">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-bold text-text font-display">
+              Add Food
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-bg transition-colors text-dim min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Close"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          {/* Meal selector tabs */}
+          {onMealChange && (
+            <div className="flex gap-1 bg-[#FAFAF7] rounded-xl p-1 border border-border">
+              {(["breakfast", "lunch", "dinner", "snacks"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => onMealChange(m)}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    meal === m
+                      ? "bg-white text-text shadow-sm"
+                      : "text-muted hover:text-dim"
+                  }`}
+                >
+                  {MEAL_LABELS[m]}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Search input — sticky */}

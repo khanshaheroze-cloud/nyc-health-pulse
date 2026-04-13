@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import BodyProfile from "@/components/nutrition-tracker/BodyProfile";
 import type { MacroTargets } from "@/components/nutrition-tracker/BodyProfile";
 import DailySummary from "@/components/nutrition-tracker/DailySummary";
@@ -68,6 +68,59 @@ function loadGoals(): UserGoals {
 }
 
 type MealKey = "breakfast" | "lunch" | "dinner" | "snacks";
+
+/* ── Floating Add Button ─────────────────────────────────── */
+
+const MEAL_OPTIONS: { key: MealKey; emoji: string; label: string }[] = [
+  { key: "breakfast", emoji: "☀️", label: "Breakfast" },
+  { key: "lunch", emoji: "🌤️", label: "Lunch" },
+  { key: "dinner", emoji: "🌙", label: "Dinner" },
+  { key: "snacks", emoji: "🍿", label: "Snacks" },
+];
+
+function FloatingAddButton({ onSelectMeal }: { onSelectMeal: (meal: MealKey) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="fixed bottom-6 right-6 z-50">
+      {/* Meal selector popover */}
+      {open && (
+        <div className="absolute bottom-16 right-0 bg-surface rounded-2xl border border-border shadow-xl p-2 min-w-[160px] animate-fade-in-up">
+          {MEAL_OPTIONS.map((m) => (
+            <button
+              key={m.key}
+              onClick={() => { onSelectMeal(m.key); setOpen(false); }}
+              className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm text-text hover:bg-bg transition-colors"
+            >
+              <span className="text-base">{m.emoji}</span>
+              <span className="font-medium">{m.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {/* FAB */}
+      <button
+        onClick={() => setOpen(!open)}
+        className={`w-14 h-14 bg-hp-green text-white rounded-full shadow-lg hover:bg-hp-green/90 transition-all hover:scale-105 flex items-center justify-center ${open ? "rotate-45" : ""}`}
+        aria-label="Log food"
+      >
+        <svg className="w-6 h-6 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
+    </div>
+  );
+}
 
 /* ── Main Page Component ─────────────────────────────────── */
 
@@ -190,12 +243,7 @@ export default function NutritionTrackerPage() {
       {/* Page header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-3">
-            <h1 className="font-display text-[28px] sm:text-[34px] text-text">Nutrition Tracker</h1>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent-bg border border-hp-green/20 text-hp-green font-bold uppercase tracking-wide">
-              Beta
-            </span>
-          </div>
+          <h1 className="font-display text-[28px] sm:text-[34px] text-text">Nutrition Tracker</h1>
           <button
             onClick={() => setSettingsOpen(true)}
             className="w-9 h-9 rounded-xl border border-border flex items-center justify-center text-dim hover:text-text hover:bg-surface-warm transition-colors"
@@ -274,6 +322,7 @@ export default function NutritionTrackerPage() {
         open={searchOpen}
         onClose={() => { setSearchOpen(false); setEditBuilderEntry(null); }}
         meal={searchMeal}
+        onMealChange={setSearchMeal}
         onAddFood={(entry) => {
           if (editBuilderEntry) {
             // Replace existing entry at index
@@ -300,16 +349,8 @@ export default function NutritionTrackerPage() {
         />
       )}
 
-      {/* Floating quick-log button */}
-      <button
-        onClick={() => { setSearchMeal("snacks"); setSearchOpen(true); }}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-hp-green text-white rounded-full shadow-lg hover:bg-hp-green/90 transition-all hover:scale-105 flex items-center justify-center"
-        aria-label="Log food"
-      >
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-      </button>
+      {/* Floating quick-log button with meal selector */}
+      <FloatingAddButton onSelectMeal={(meal) => { setSearchMeal(meal); setSearchOpen(true); }} />
     </>
   );
 }

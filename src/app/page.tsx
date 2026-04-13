@@ -2,6 +2,7 @@ import { DailyHealthCheck } from "@/components/DailyHealthCheck";
 import { HeroBanner } from "@/components/overview/HeroBanner";
 import { WorkoutWidget } from "@/components/overview/WorkoutWidget";
 import { NutritionWidget } from "@/components/overview/NutritionWidget";
+import { RunOutsideWidget } from "@/components/overview/RunOutsideWidget";
 import { EatSmartNearby } from "@/components/overview/EatSmartNearby";
 import { NeighborhoodBar } from "@/components/overview/NeighborhoodBar";
 import { HealthStatusChips } from "@/components/overview/HealthStatusChips";
@@ -98,9 +99,10 @@ export default async function OverviewPage() {
 
       {/* ── Fitness & Nutrition zone — sage tint ── */}
       <div className="section-tint-sage mt-5 -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <WorkoutWidget />
           <NutritionWidget />
+          <RunOutsideWidget />
         </div>
         <EatSmartNearby />
       </div>

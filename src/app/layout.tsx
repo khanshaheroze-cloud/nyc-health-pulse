@@ -7,6 +7,9 @@ import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistratio
 import { NycSkyline } from "@/components/NycSkyline";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserMenu } from "@/components/UserMenu";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { OnboardingTrigger } from "@/components/OnboardingTrigger";
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
@@ -102,7 +105,9 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider>
+        <AuthProvider>
         <ServiceWorkerRegistration />
+        <OnboardingTrigger />
 
         {/* ── Sticky Header ─────────────────────────────── */}
         <header
@@ -147,7 +152,8 @@ export default function RootLayout({
               <Nav />
             </div>
 
-            {/* Theme toggle */}
+            {/* User menu + Theme toggle */}
+            <UserMenu />
             <ThemeToggle />
           </div>
         </header>
@@ -259,6 +265,7 @@ export default function RootLayout({
             </div>
           </footer>
         </div>
+        </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

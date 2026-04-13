@@ -202,15 +202,16 @@ function MacroBar({
   current,
   goal,
   unit,
+  color = "#4A7C59",
 }: {
   label: string;
   current: number;
   goal: number;
   unit: string;
+  color?: string;
 }) {
   const pct = Math.min((current / goal) * 100, 100);
   const isOver = current > goal;
-  const barColor = isOver ? "bg-hp-orange" : "bg-accent";
 
   return (
     <div className="space-y-1">
@@ -223,8 +224,8 @@ function MacroBar({
       </div>
       <div className="h-2 rounded-full bg-border overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-500 ease-out ${barColor}`}
-          style={{ width: `${pct}%` }}
+          className="h-full rounded-full transition-all duration-500 ease-out"
+          style={{ width: `${pct}%`, backgroundColor: isOver ? "#f59e42" : color }}
         />
       </div>
     </div>
@@ -383,10 +384,10 @@ export default function DailySummary({
 
       {/* Macro bars */}
       <div className="space-y-3">
-        <MacroBar label="Protein" current={totals.protein} goal={goals.proteinGoal} unit="g" />
-        <MacroBar label="Carbs" current={totals.carbs} goal={goals.carbGoal} unit="g" />
-        <MacroBar label="Fat" current={totals.fat} goal={goals.fatGoal} unit="g" />
-        <MacroBar label="Fiber" current={totals.fiber} goal={goals.fiberGoal} unit="g" />
+        <MacroBar label="Protein" current={totals.protein} goal={goals.proteinGoal} unit="g" color="#4A7C59" />
+        <MacroBar label="Carbs" current={totals.carbs} goal={goals.carbGoal} unit="g" color="#5b9cf5" />
+        <MacroBar label="Fat" current={totals.fat} goal={goals.fatGoal} unit="g" color="#f59e42" />
+        <MacroBar label="Fiber" current={totals.fiber} goal={goals.fiberGoal} unit="g" color="#a78bfa" />
       </div>
 
       {/* Copy yesterday */}

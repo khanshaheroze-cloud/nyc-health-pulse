@@ -44,7 +44,7 @@ export function LazyChart({
   }, []);
 
   return (
-    <div ref={ref} className={className}>
+    <div ref={ref} className={className} style={{ minHeight: fallbackHeight }}>
       {visible ? (
         children
       ) : (

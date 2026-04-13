@@ -25,6 +25,7 @@ const NAV_ITEMS: NavItem[] = [
 const FITNESS_ITEMS = [
   { href: "/workouts", label: "Workouts" },
   { href: "/nutrition-tracker", label: "Nutrition Tracker" },
+  { href: "/run-outside", label: "Run Outside" },
   { href: "/run-routes", label: "Run Routes" },
 ];
 

@@ -36,7 +36,7 @@ export function OverviewBoroughCharts({ chronicOutcomes, inactivityData }: Props
           </div>
           <p className="text-[10px] text-dim mt-0.5">CDC PLACES estimates, % of adults</p>
         </div>
-        <div className="h-[260px] px-2 pb-3">
+        <div className="h-[260px] px-2 pb-3" style={{ minHeight: 260 }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chronicOutcomes} barGap={1}>
               <CartesianGrid {...chartTheme.grid} vertical={false} />
@@ -64,7 +64,7 @@ export function OverviewBoroughCharts({ chronicOutcomes, inactivityData }: Props
           </div>
           <p className="text-[10px] text-dim mt-0.5">% of adults with no leisure-time physical activity</p>
         </div>
-        <div className="h-[260px] px-2 pb-3">
+        <div className="h-[260px] px-2 pb-3" style={{ minHeight: 260 }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={inactivityData} layout="vertical" barSize={28}>
               <CartesianGrid {...chartTheme.grid} horizontal={false} />

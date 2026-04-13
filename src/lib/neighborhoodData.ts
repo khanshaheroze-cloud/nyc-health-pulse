@@ -114,6 +114,29 @@ export const BOROUGH_ORDER = ["Bronx", "Brooklyn", "Manhattan", "Queens", "State
 
 type HealthScore = { score: number; grade: string };
 
+export type HealthSubScore = {
+  key: string;
+  label: string;
+  icon: string;
+  score: number;      // 0-100 normalized
+  weight: number;     // 0-1
+  rawValue: number;
+  unit: string;
+};
+
+export type HealthScoreDetail = HealthScore & { subScores: HealthSubScore[] };
+
+const METRIC_LABELS: Record<string, { label: string; icon: string; unit: string }> = {
+  lifeExp:      { label: "Life Expectancy",  icon: "❤️", unit: "y" },
+  asthmaED:     { label: "Asthma ED Rate",   icon: "🫁", unit: "/10K" },
+  obesity:      { label: "Obesity",           icon: "⚖️", unit: "%" },
+  poverty:      { label: "Poverty",           icon: "💰", unit: "%" },
+  pm25:         { label: "Air Quality",       icon: "🌬️", unit: "μg/m³" },
+  overdoseRate: { label: "Overdose Rate",     icon: "🛡️", unit: "/100K" },
+  diabetes:     { label: "Diabetes",          icon: "🩺", unit: "%" },
+  pretermBirth: { label: "Preterm Births",    icon: "👶", unit: "%" },
+};
+
 const METRIC_WEIGHTS: { key: keyof Neighborhood["metrics"]; weight: number; higherIsBetter: boolean }[] = [
   { key: "lifeExp",      weight: 0.20, higherIsBetter: true },
   { key: "asthmaED",     weight: 0.15, higherIsBetter: false },
@@ -163,6 +186,58 @@ export function computeHealthScore(metrics: Neighborhood["metrics"]): HealthScor
 /** Pre-computed slug → { score, grade } for all 42 neighborhoods */
 export const neighborhoodScores: Map<string, HealthScore> = new Map(
   neighborhoods.map(n => [n.slug, computeHealthScore(n.metrics)])
+);
+
+/** Detailed health score with per-metric sub-scores */
+export function computeHealthScoreDetail(metrics: Neighborhood["metrics"]): HealthScoreDetail {
+  const ranges: Record<string, { min: number; max: number }> = {};
+  for (const { key } of METRIC_WEIGHTS) {
+    const vals = neighborhoods.map(n => n.metrics[key]).filter((v): v is number => v != null);
+    ranges[key] = { min: Math.min(...vals), max: Math.max(...vals) };
+  }
+
+  const subScores: HealthSubScore[] = [];
+  let weighted = 0;
+
+  for (const { key, weight, higherIsBetter } of METRIC_WEIGHTS) {
+    const val = metrics[key];
+    if (val == null) continue;
+    const { min, max } = ranges[key];
+    const span = max - min;
+    const normalized = span === 0
+      ? 100
+      : higherIsBetter
+        ? 100 * (val - min) / span
+        : 100 * (1 - (val - min) / span);
+
+    weighted += normalized * weight;
+
+    const meta = METRIC_LABELS[key] ?? { label: key, icon: "📊", unit: "" };
+    subScores.push({
+      key,
+      label: meta.label,
+      icon: meta.icon,
+      score: Math.round(normalized),
+      weight,
+      rawValue: val,
+      unit: meta.unit,
+    });
+  }
+
+  const score = Math.round(weighted);
+  let grade: string;
+  if (score >= 90) grade = "A";
+  else if (score >= 80) grade = "B";
+  else if (score >= 70) grade = "C";
+  else if (score >= 60) grade = "D";
+  else grade = "F";
+
+  return { score, grade, subScores };
+}
+
+/** Pre-computed slug → detailed scores with sub-score breakdown */
+export const neighborhoodScoreDetails: Map<string, HealthScoreDetail> = new Map(
+  neighborhoods.map(n => [n.slug, computeHealthScoreDetail(n.metrics)])
 );
 
 // ─── Move Score (Livability) ─────────────────────────────────────────────────

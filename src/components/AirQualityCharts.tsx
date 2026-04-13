@@ -19,7 +19,7 @@ import { pm25Neighborhoods as STATIC_PM25_NBHD, pollutantsByBorough as STATIC_PO
 import { chartTheme } from "@/lib/chartTheme";
 
 type Pm25Row     = { name: string; value: number };
-type PollutantRow = { borough: string; pm25: number; no2: number; o3: number };
+type PollutantRow = { borough: string; pm25: number; no2: number; o3: number | null };
 
 // ─── PM2.5 Neighborhood Rankings ──────────────────────────────────────────────
 

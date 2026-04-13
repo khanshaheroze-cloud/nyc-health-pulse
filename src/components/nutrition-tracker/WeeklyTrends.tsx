@@ -232,11 +232,13 @@ export default function WeeklyTrends() {
         </ResponsiveContainer>
       </div>
 
-      {/* No data hint */}
+      {/* No data — friendly empty state */}
       {chartData.every((d) => d.value === 0) && (
-        <p className="text-muted text-xs text-center mt-2">
-          No nutrition data logged in the past 7 days
-        </p>
+        <div className="text-center py-4 -mt-2">
+          <p className="text-3xl mb-2">📊</p>
+          <p className="text-dim text-sm font-medium mb-1">No data yet this week</p>
+          <p className="text-muted text-xs">Log your first meal and trends will appear here</p>
+        </div>
       )}
     </div>
   );

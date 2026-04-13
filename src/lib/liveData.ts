@@ -399,7 +399,7 @@ export async function fetchAirQualityNeighborhoods(): Promise<{ name: string; va
 }
 
 export async function fetchAirQualityByBorough(): Promise<
-  { borough: string; pm25: number; no2: number; o3: number }[] | null
+  { borough: string; pm25: number; no2: number; o3: number | null }[] | null
 > {
   try {
     const params = new URLSearchParams({
@@ -420,12 +420,12 @@ export async function fetchAirQualityByBorough(): Promise<
     const rows = source.filter(r => r.time_period === latestPeriod);
 
     const BOROS = ["Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island"];
-    const lookup: Record<string, { pm25: number; no2: number; o3: number }> = {};
+    const lookup: Record<string, { pm25: number; no2: number; o3: number | null }> = {};
     for (const row of rows) {
       const match = BOROS.find(b => row.geo_place_name?.includes(b));
       if (!match) continue;
       const label = match === "Staten Island" ? "Staten Is." : match;
-      if (!lookup[label]) lookup[label] = { pm25: 0, no2: 0, o3: 0 };
+      if (!lookup[label]) lookup[label] = { pm25: 0, no2: 0, o3: null };
       const v = Math.round(parseFloat(row.data_value) * 10) / 10;
       if (isNaN(v)) continue;
       const n = row.name?.toLowerCase() ?? "";

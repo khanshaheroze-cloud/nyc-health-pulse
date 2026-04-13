@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 
 /* ── AQI helpers ─────────────────────────────────────────── */
 
@@ -75,6 +76,7 @@ interface HeroBannerProps {
 /* ── Component ───────────────────────────────────────────── */
 
 export function HeroBanner({ aqi, aqiCategory, tempF, weatherLabel }: HeroBannerProps) {
+  const { user, profile } = useAuth();
   const [greeting, setGreeting] = useState("Good morning");
   const [userName, setUserName] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
@@ -87,23 +89,33 @@ export function HeroBanner({ aqi, aqiCategory, tempF, weatherLabel }: HeroBanner
     setMounted(true);
     setGreeting(getGreeting());
 
-    // Load user name
-    try {
-      const name = localStorage.getItem("pulse-user-name");
-      if (name) setUserName(name);
-    } catch {}
+    // If logged in with a profile, use that; otherwise try localStorage
+    if (user && profile?.display_name) {
+      setUserName(profile.display_name.split(" ")[0]);
+    } else {
+      try {
+        const name = localStorage.getItem("pulse-user-name");
+        if (name) setUserName(name);
+      } catch {}
+    }
 
-    // Load neighborhood
-    try {
-      const saved = localStorage.getItem("pulse-my-neighborhood");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setHoodName(parsed.name);
-        setHoodBorough(parsed.borough);
-      }
-    } catch {}
+    // Neighborhood: profile first, then localStorage
+    if (user && profile?.neighborhood) {
+      // Profile neighborhood is just a name string
+      setHoodName(profile.neighborhood);
+      setHoodBorough(null);
+    } else {
+      try {
+        const saved = localStorage.getItem("pulse-my-neighborhood");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setHoodName(parsed.name);
+          setHoodBorough(parsed.borough);
+        }
+      } catch {}
+    }
 
-    // Listen for neighborhood changes
+    // Listen for neighborhood changes (localStorage mode)
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail) {
@@ -113,7 +125,7 @@ export function HeroBanner({ aqi, aqiCategory, tempF, weatherLabel }: HeroBanner
     };
     window.addEventListener("pulse-my-neighborhood-change", handler);
     return () => window.removeEventListener("pulse-my-neighborhood-change", handler);
-  }, []);
+  }, [user, profile]);
 
   const saveName = () => {
     const trimmed = nameInput.trim();
@@ -141,13 +153,21 @@ export function HeroBanner({ aqi, aqiCategory, tempF, weatherLabel }: HeroBanner
           <p className="text-[13px] text-dim mt-0.5">Here&apos;s your pulse for today.</p>
 
           {/* Name setter */}
-          {!userName && !editingName && (
+          {!userName && !editingName && !user && (
             <button
               onClick={() => setEditingName(true)}
               className="text-[11px] text-muted hover:text-dim transition-colors mt-1"
             >
               Set your name →
             </button>
+          )}
+          {!userName && user && (
+            <Link
+              href="/settings"
+              className="text-[11px] text-muted hover:text-dim transition-colors mt-1 inline-block"
+            >
+              Set your name →
+            </Link>
           )}
           {editingName && (
             <div className="flex items-center gap-2 mt-2">
@@ -168,10 +188,10 @@ export function HeroBanner({ aqi, aqiCategory, tempF, weatherLabel }: HeroBanner
           <div className="mt-3 space-y-0.5">
             {hoodName ? (
               <p className="text-[12px] text-dim">
-                📍 {hoodName}, {hoodBorough}
+                📍 {hoodName}{hoodBorough ? `, ${hoodBorough}` : ""}
               </p>
             ) : (
-              <Link href="/neighborhood" className="text-[12px] text-accent hover:underline">
+              <Link href={user ? "/settings" : "/neighborhood"} className="text-[12px] text-accent hover:underline">
                 📍 Set your neighborhood →
               </Link>
             )}

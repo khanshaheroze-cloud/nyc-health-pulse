@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getNeighborhood, neighborhoods, cityAvg, neighborhoodScores, neighborhoodMoveScores } from "@/lib/neighborhoodData";
+import { getNeighborhood, neighborhoods, cityAvg, neighborhoodScores, neighborhoodMoveScores, neighborhoodScoreDetails } from "@/lib/neighborhoodData";
 import { KPICard } from "@/components/KPICard";
 import { SaveNeighborhoodButton } from "@/components/SaveNeighborhoodButton";
-import { ShareNeighborhood } from "@/components/ShareNeighborhood";
+import { ShareScoreCard } from "@/components/ShareScoreCard";
+import { HealthScoreBreakdown } from "@/components/HealthScoreBreakdown";
+import { NeighborhoodRanking, type RankedNeighborhood } from "@/components/NeighborhoodRanking";
 import { fetchRodentByBorough, fetchNoiseByBorough, fetchNeighborhoodPm25, fetchHivByNeighborhood, fetchLeadByNeighborhood, fetchHeatVulnerabilityByNeighborhood } from "@/lib/liveData";
 import { CHAINS } from "@/lib/eatSmartData";
 import { SubwayBullet, BOROUGH_LINE } from "@/components/SubwayBullet";
@@ -19,9 +21,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const n = getNeighborhood(slug);
   if (!n) return {};
+  const hs = neighborhoodScores.get(slug);
+  const scoreText = hs ? `Health Score: ${hs.grade} (${hs.score}/100)` : "";
   return {
-    title: `${n.name} Health Profile`,
-    description: `Health metrics for ${n.name}, ${n.borough}: asthma ED rate ${n.metrics.asthmaED}/10K, life expectancy ${n.metrics.lifeExp}y, poverty ${n.metrics.poverty}%, obesity ${n.metrics.obesity}%. NYC DOHMH data.`,
+    title: `${n.name} Health Profile${hs ? ` — ${hs.grade} (${hs.score}/100)` : ""}`,
+    description: `${n.name}, ${n.borough}${hs ? ` — ${scoreText}.` : "."} Asthma ED ${n.metrics.asthmaED}/10K, life expectancy ${n.metrics.lifeExp}y, poverty ${n.metrics.poverty}%, obesity ${n.metrics.obesity}%. NYC DOHMH data on Pulse NYC.`,
+    openGraph: {
+      title: `${n.name}: ${hs?.grade ?? "?"} Health Score`,
+      description: `Scored ${hs?.score ?? "?"}/100 across air quality, life expectancy, safety, and more.`,
+      url: `https://pulsenyc.app/neighborhood/${slug}`,
+      siteName: "Pulse NYC",
+    },
   };
 }
 
@@ -195,6 +205,18 @@ export default async function NeighborhoodPage({ params }: Props) {
   const sortedByMove = [...neighborhoodMoveScores.entries()].sort((a, b) => b[1].score - a[1].score);
   const moveRank = sortedByMove.findIndex(([s]) => s === slug) + 1;
 
+  // Health Score detail (sub-scores)
+  const scoreDetail = neighborhoodScoreDetails.get(slug);
+  const subScores = scoreDetail?.subScores ?? [];
+  const bestSub = [...subScores].sort((a, b) => b.score - a.score)[0];
+  const worstSub = [...subScores].sort((a, b) => a.score - b.score)[0];
+
+  // Rankings for all 42 neighborhoods
+  const rankings: RankedNeighborhood[] = sortedByScore.map(([s, hs], i) => {
+    const nb = neighborhoods.find(x => x.slug === s);
+    return { slug: s, name: nb?.name ?? s, borough: nb?.borough ?? "", score: hs.score, grade: hs.grade, rank: i + 1 };
+  });
+
   return (
     <div className="max-w-[1200px] mx-auto">
       {/* ── Hero with borough accent ── */}
@@ -223,11 +245,16 @@ export default async function NeighborhoodPage({ params }: Props) {
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <ShareNeighborhood
-                name={n.name}
+              <ShareScoreCard
+                neighborhood={n.name}
                 slug={n.slug}
                 borough={n.borough}
-                metrics={{ asthmaED: m.asthmaED, lifeExp: m.lifeExp, poverty: m.poverty, obesity: m.obesity }}
+                grade={healthScore.grade}
+                score={healthScore.score}
+                rank={healthRank}
+                gradeColor={gradeColor}
+                bestCategory={bestSub ? `${bestSub.label} (${bestSub.score})` : "N/A"}
+                worstCategory={worstSub ? `${worstSub.label} (${worstSub.score})` : "N/A"}
               />
               <SaveNeighborhoodButton slug={n.slug} size="md" />
             </div>
@@ -237,44 +264,14 @@ export default async function NeighborhoodPage({ params }: Props) {
 
       {/* Score Badges */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 animate-fade-in-up stagger-1">
-        {/* Health Score */}
-        <div className="bg-surface border border-border-light rounded-3xl p-6 flex items-center gap-5">
-          <div className="flex flex-col items-center flex-shrink-0">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center text-white font-display font-bold text-[30px] leading-none shadow-lg"
-              style={{ background: gradeColor, boxShadow: `0 0 18px ${gradeColor}44` }}
-            >
-              {healthScore.grade}
-            </div>
-            <span className="text-[11px] font-semibold text-dim mt-1.5">{healthScore.score}/100</span>
-          </div>
-          <div className="min-w-0">
-            <p className="text-[15px] font-bold text-text">
-              Health Score: {healthScore.grade}
-              <span className="text-dim font-normal ml-1.5">#{healthRank} of 42</span>
-            </p>
-            <p className="text-[12px] text-dim mt-1 leading-relaxed">
-              Clinical outcomes: life expectancy, asthma, obesity, poverty, overdose, diabetes.
-            </p>
-            <details className="mt-2">
-              <summary className="text-[11px] text-hp-blue cursor-pointer hover:underline">How is this calculated?</summary>
-              <div className="mt-2 text-[10px] text-dim leading-relaxed space-y-1.5">
-                <p>Each metric normalized 0-100 across all 42 neighborhoods (100 = best). Weighted average:</p>
-                <ul className="list-disc pl-4 space-y-0.5">
-                  <li>Life Expectancy: 20%</li>
-                  <li>Asthma ED Rate: 15%</li>
-                  <li>Obesity: 15%</li>
-                  <li>Poverty: 15%</li>
-                  <li>PM2.5: 10%</li>
-                  <li>Overdose Rate: 10%</li>
-                  <li>Diabetes: 10%</li>
-                  <li>Preterm Births: 5%</li>
-                </ul>
-                <p>Grades: A (90+), B (80-89), C (70-79), D (60-69), F (&lt;60).</p>
-              </div>
-            </details>
-          </div>
-        </div>
+        {/* Health Score — expandable breakdown */}
+        <HealthScoreBreakdown
+          grade={healthScore.grade}
+          score={healthScore.score}
+          rank={healthRank}
+          gradeColor={gradeColor}
+          subScores={subScores}
+        />
 
         {/* Move Score */}
         <div className="bg-surface border border-border-light rounded-3xl p-6 flex items-center gap-5">
@@ -471,6 +468,15 @@ export default async function NeighborhoodPage({ params }: Props) {
         </div>
         <span className="text-dim text-[11px] ml-auto flex-shrink-0">View →</span>
       </Link>
+
+      {/* Neighborhood Ranking */}
+      <div className="mb-6">
+        <NeighborhoodRanking
+          currentSlug={slug}
+          currentName={n.name}
+          rankings={rankings}
+        />
+      </div>
 
       {/* Other neighborhoods in same borough */}
       {boroughNeighborhoods.length > 0 && (

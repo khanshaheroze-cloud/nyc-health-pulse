@@ -66,6 +66,7 @@ export default function GoalSettings({
   onSave,
   onClose,
 }: GoalSettingsProps) {
+  const [goalMode, setGoalMode] = useState<"auto" | "manual">("auto");
   const [sex, setSex] = useState<Sex>("male");
   const [age, setAge] = useState("30");
   const [weightLbs, setWeightLbs] = useState("160");
@@ -79,9 +80,32 @@ export default function GoalSettings({
   const [customF, setCustomF] = useState(30);
   const [fiberGoal, setFiberGoal] = useState(sex === "female" ? 25 : 30);
   const [waterGoal, setWaterGoal] = useState(64);
+  // Manual mode fields
+  const [manualCal, setManualCal] = useState(2000);
+  const [manualProtein, setManualProtein] = useState(150);
+  const [manualCarbs, setManualCarbs] = useState(250);
+  const [manualFat, setManualFat] = useState(65);
+  const [manualFiber, setManualFiber] = useState(30);
 
-  // Sync from BodyProfile on mount
+  // Sync from BodyProfile + load goalMode on mount
   useEffect(() => {
+    // Load goal mode
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved.goalMode === "manual") {
+          setGoalMode("manual");
+          setManualCal(saved.dailyCalories || 2000);
+          setManualProtein(saved.proteinGoal || 150);
+          setManualCarbs(saved.carbGoal || 250);
+          setManualFat(saved.fatGoal || 65);
+          setManualFiber(saved.fiberGoal || 30);
+          if (saved.waterGoalOz) setWaterGoal(saved.waterGoalOz);
+        }
+      }
+    } catch { /* ignore */ }
+
     const saved = loadProfile();
     if (saved) {
       setHeightFt(String(Math.floor(saved.height / 12)));
@@ -89,7 +113,6 @@ export default function GoalSettings({
       setWeightLbs(String(saved.weight));
       setAge(String(saved.age));
       setSex(saved.gender);
-      // Map BodyProfile activity levels to GoalSettings activity levels
       const activityMap: Record<string, ActivityLevel> = {
         sedentary: "sedentary",
         light: "lightly",
@@ -98,7 +121,6 @@ export default function GoalSettings({
         "very-active": "extra",
       };
       setActivity(activityMap[saved.activityLevel] || "moderately");
-      // Map goal
       if (saved.goal === "lose") setWeightGoal("lose1");
       else if (saved.goal === "gain") setWeightGoal("gain05");
       else setWeightGoal("maintain");
@@ -141,13 +163,19 @@ export default function GoalSettings({
   const carbG = Math.round((dailyCalories * (split.c / 100)) / 4);
   const fatG = Math.round((dailyCalories * (split.f / 100)) / 9);
 
+  // Macro calorie math for manual mode
+  const manualMacroCal = manualProtein * 4 + manualCarbs * 4 + manualFat * 9;
+  const macroDiff = manualCal - manualMacroCal;
+
   function handleSave() {
-    const newGoals: UserGoals = {
-      dailyCalories,
-      proteinGoal: proteinG,
-      carbGoal: carbG,
-      fatGoal: fatG,
-      fiberGoal,
+    const isManual = goalMode === "manual";
+    const newGoals: UserGoals & { goalMode: string } = {
+      goalMode,
+      dailyCalories: isManual ? manualCal : dailyCalories,
+      proteinGoal: isManual ? manualProtein : proteinG,
+      carbGoal: isManual ? manualCarbs : carbG,
+      fatGoal: isManual ? manualFat : fatG,
+      fiberGoal: isManual ? manualFiber : fiberGoal,
       waterGoalOz: waterGoal,
     };
     localStorage.setItem(LS_KEY, JSON.stringify(newGoals));
@@ -169,6 +197,14 @@ export default function GoalSettings({
       activityLevel: (reverseActivityMap[activity] || "moderate") as "sedentary" | "light" | "moderate" | "active" | "very-active",
       goal: weightGoal.startsWith("lose") ? "lose" : weightGoal === "gain05" ? "gain" : "maintain",
     });
+  }
+
+  function applyPreset(cal: number, p: number, c: number, f: number, fi: number) {
+    setManualCal(cal);
+    setManualProtein(p);
+    setManualCarbs(c);
+    setManualFat(f);
+    setManualFiber(fi);
   }
 
   const bodyFieldsValid =
@@ -351,20 +387,139 @@ export default function GoalSettings({
             </div>
           </section>
 
-          {/* Calculated TDEE */}
-          <div className="bg-[#4A7C59]/10 rounded-2xl p-4 text-center">
-            <p className="text-dim text-sm mb-1">Daily Calorie Target</p>
-            <p className="text-[#4A7C59] font-bold text-3xl">
-              {dailyCalories.toLocaleString()}
-            </p>
-            <p className="text-muted text-xs mt-1">
-              TDEE: {tdee.toLocaleString()} cal
-              {WEIGHT_GOAL_OFFSETS[weightGoal] !== 0 &&
-                ` ${WEIGHT_GOAL_OFFSETS[weightGoal] > 0 ? "+" : ""}${WEIGHT_GOAL_OFFSETS[weightGoal]}`}
-            </p>
+          {/* Goal Mode Toggle */}
+          <div>
+            <label className="block text-dim font-medium text-sm uppercase tracking-wide mb-2">
+              Daily Targets
+            </label>
+            <div className="flex bg-[#FAFAF7] border border-border rounded-xl p-1">
+              <button
+                type="button"
+                onClick={() => setGoalMode("auto")}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                  goalMode === "auto"
+                    ? "bg-white text-text shadow-sm"
+                    : "text-muted hover:text-dim"
+                }`}
+              >
+                Auto (TDEE)
+              </button>
+              <button
+                type="button"
+                onClick={() => setGoalMode("manual")}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                  goalMode === "manual"
+                    ? "bg-white text-text shadow-sm"
+                    : "text-muted hover:text-dim"
+                }`}
+              >
+                Custom
+              </button>
+            </div>
           </div>
 
-          {/* Macro split */}
+          {goalMode === "auto" ? (
+            <>
+              {/* Calculated TDEE */}
+              <div className="bg-[#4A7C59]/10 rounded-2xl p-4 text-center">
+                <p className="text-dim text-sm mb-1">Daily Calorie Target</p>
+                <p className="text-[#4A7C59] font-bold text-3xl">
+                  {dailyCalories.toLocaleString()}
+                </p>
+                <p className="text-muted text-xs mt-1">
+                  TDEE: {tdee.toLocaleString()} cal
+                  {WEIGHT_GOAL_OFFSETS[weightGoal] !== 0 &&
+                    ` ${WEIGHT_GOAL_OFFSETS[weightGoal] > 0 ? "+" : ""}${WEIGHT_GOAL_OFFSETS[weightGoal]}`}
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Manual mode — editable fields */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-dim text-sm mb-1">Daily Calories</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={manualCal}
+                      onChange={(e) => setManualCal(Number(e.target.value))}
+                      min={1000}
+                      max={10000}
+                      step={50}
+                      className={inputCls + " text-lg font-semibold pr-12"}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-sm">cal</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-dim text-sm mb-2">Macro Targets</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: "Protein", value: manualProtein, set: setManualProtein, unit: "g", max: 500 },
+                      { label: "Carbs", value: manualCarbs, set: setManualCarbs, unit: "g", max: 800 },
+                      { label: "Fat", value: manualFat, set: setManualFat, unit: "g", max: 300 },
+                      { label: "Fiber", value: manualFiber, set: setManualFiber, unit: "g", max: 100 },
+                    ].map((f) => (
+                      <div key={f.label}>
+                        <label className="text-muted text-xs mb-1 block">{f.label}</label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={f.value}
+                            onChange={(e) => f.set(Number(e.target.value))}
+                            min={0}
+                            max={f.max}
+                            className={inputCls + " pr-8"}
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-xs">{f.unit}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Macro calorie math */}
+                  <div className="mt-3 bg-[#FAFAF7] rounded-xl p-3 border border-border">
+                    <p className="text-xs text-dim">
+                      Macro total: {manualMacroCal.toLocaleString()} cal
+                      {Math.abs(macroDiff) > 50 && (
+                        <span className="text-hp-orange ml-1">
+                          ({macroDiff > 0 ? "+" : ""}{macroDiff} cal vs target)
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted mt-0.5">P×4 + C×4 + F×9 = macro calories</p>
+                  </div>
+                </div>
+
+                {/* Quick presets */}
+                <div>
+                  <p className="text-muted text-xs mb-2">Quick presets:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: "Cut (1500)", cal: 1500, p: 150, c: 150, f: 50, fi: 30 },
+                      { label: "Moderate (2000)", cal: 2000, p: 180, c: 200, f: 67, fi: 35 },
+                      { label: "Maintain (2500)", cal: 2500, p: 200, c: 280, f: 83, fi: 38 },
+                      { label: "Bulk (3000)", cal: 3000, p: 225, c: 350, f: 100, fi: 40 },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => applyPreset(preset.cal, preset.p, preset.c, preset.f, preset.fi)}
+                        className="px-3 py-1.5 rounded-full text-xs bg-[#FAFAF7] text-dim border border-border hover:bg-[#f0ede6] transition-colors"
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Macro split — only shown in auto mode */}
+          {goalMode === "auto" && (
           <section className="space-y-3">
             <h3 className="text-dim font-medium text-sm uppercase tracking-wide">
               Macro Split
@@ -453,26 +608,29 @@ export default function GoalSettings({
               ))}
             </div>
           </section>
+          )}
 
-          {/* Fiber & Water */}
+          {/* Water Goal — shared across both modes */}
           <section className="space-y-3">
             <h3 className="text-dim font-medium text-sm uppercase tracking-wide">
-              Other Goals
+              {goalMode === "auto" ? "Other Goals" : "Water Goal"}
             </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-dim text-sm mb-1">
-                  Fiber (g)
-                </label>
-                <input
-                  type="number"
-                  value={fiberGoal}
-                  onChange={(e) => setFiberGoal(Number(e.target.value))}
-                  min="10"
-                  max="60"
-                  className={inputCls}
-                />
-              </div>
+            <div className={goalMode === "auto" ? "grid grid-cols-2 gap-3" : ""}>
+              {goalMode === "auto" && (
+                <div>
+                  <label className="block text-dim text-sm mb-1">
+                    Fiber (g)
+                  </label>
+                  <input
+                    type="number"
+                    value={fiberGoal}
+                    onChange={(e) => setFiberGoal(Number(e.target.value))}
+                    min="10"
+                    max="60"
+                    className={inputCls}
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-dim text-sm mb-1">
                   Water (oz)
@@ -490,7 +648,7 @@ export default function GoalSettings({
           </section>
 
           {/* Save */}
-          {!bodyFieldsValid && (
+          {goalMode === "auto" && !bodyFieldsValid && (
             <p className="text-xs text-hp-orange">
               Please fill in age, weight, and height to calculate your goals.
             </p>
@@ -499,9 +657,11 @@ export default function GoalSettings({
             <button
               onClick={handleSave}
               disabled={
-                !bodyFieldsValid ||
-                (macroSplit === "custom" &&
-                customP + customC + customF !== 100)
+                goalMode === "auto" && (
+                  !bodyFieldsValid ||
+                  (macroSplit === "custom" &&
+                  customP + customC + customF !== 100)
+                )
               }
               className="flex-1 bg-[#4A7C59] text-white font-medium rounded-xl py-3 px-4
                          hover:bg-[#3a6347] active:scale-[0.98] transition-all text-sm

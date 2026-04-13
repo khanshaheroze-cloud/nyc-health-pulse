@@ -53,6 +53,36 @@ function mealEmoji(key: MealKey): string {
 }
 
 function loadGoals(): Goals {
+  // Prefer BodyProfile-derived targets (same source as Nutrition Tracker page)
+  try {
+    const profile = localStorage.getItem("pulse_nutrition_profile");
+    if (profile) {
+      const p = JSON.parse(profile);
+      const kg = p.weight * 0.453592;
+      const cm = p.height * 2.54;
+      const bmr = p.gender === "male"
+        ? 10 * kg + 6.25 * cm - 5 * p.age + 5
+        : 10 * kg + 6.25 * cm - 5 * p.age - 161;
+      const mult: Record<string, number> = {
+        sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, "very-active": 1.9,
+      };
+      const tdee = Math.round(bmr * (mult[p.activityLevel] || 1.55));
+      const cal = Math.max(
+        p.goal === "lose" ? tdee - 500 : p.goal === "gain" ? tdee + 300 : tdee,
+        1200
+      );
+      const protPct = p.goal === "lose" ? 0.35 : p.goal === "gain" ? 0.25 : 0.30;
+      const fatPct  = p.goal === "lose" ? 0.30 : p.goal === "gain" ? 0.25 : 0.25;
+      const carbPct = 1 - protPct - fatPct;
+      const protein = Math.max(Math.round(p.weight * 0.8), Math.round((cal * protPct) / 4));
+      const remaining = cal - protein * 4;
+      const fat  = Math.round((remaining * fatPct / (fatPct + carbPct)) / 9);
+      const carbs = Math.round((remaining * carbPct / (fatPct + carbPct)) / 4);
+      return { dailyCalories: cal, proteinGoal: protein, carbGoal: carbs, fatGoal: fat };
+    }
+  } catch {}
+
+  // Fall back to GoalSettings data
   try {
     const raw = localStorage.getItem("pulsenyc_nutrition_goals");
     if (raw) {
