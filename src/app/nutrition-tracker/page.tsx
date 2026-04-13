@@ -10,6 +10,8 @@ import FoodSearchModal from "@/components/nutrition-tracker/FoodSearchModal";
 import GoalSettings from "@/components/nutrition-tracker/GoalSettings";
 import MicronutrientPanel from "@/components/nutrition-tracker/MicronutrientPanel";
 import WaterTracker from "@/components/nutrition-tracker/WaterTracker";
+import { useAuth } from "@/contexts/AuthContext";
+import { getSupabase } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
 
 const WeeklyTrends = dynamic(
@@ -125,6 +127,7 @@ function FloatingAddButton({ onSelectMeal }: { onSelectMeal: (meal: MealKey) => 
 /* ── Main Page Component ─────────────────────────────────── */
 
 export default function NutritionTrackerPage() {
+  const { user } = useAuth();
   const [date, setDate] = useState(todayStr);
   const [day, setDay] = useState<NutritionDay>(() => loadDay(todayStr()));
   const [goals, setGoals] = useState<UserGoals>(DEFAULT_GOALS);
@@ -145,6 +148,27 @@ export default function NutritionTrackerPage() {
     if ((g as any).goalMode === "manual") setGoalMode("manual");
     setDay(loadDay(todayStr()));
   }, []);
+
+  // Sync goals from Supabase when authenticated (overrides localStorage)
+  useEffect(() => {
+    if (!user || !mounted) return;
+    const sb = getSupabase();
+    if (!sb) return;
+    sb.from("profiles")
+      .select("nutrition_goals")
+      .eq("id", user.id)
+      .single()
+      .then((res: { data: { nutrition_goals?: unknown } | null }) => {
+        const ng = res.data?.nutrition_goals as (UserGoals & { goalMode?: string }) | null;
+        if (ng) {
+          setGoals(ng);
+          setGoalMode(ng.goalMode === "manual" ? "manual" : "auto");
+          // Also sync to localStorage so other components stay consistent
+          localStorage.setItem("pulsenyc_nutrition_goals", JSON.stringify(ng));
+        }
+      })
+      .catch(() => { /* column may not exist yet — fall back to localStorage */ });
+  }, [user, mounted]);
 
   // Reload when date changes
   useEffect(() => {
@@ -219,12 +243,24 @@ export default function NutritionTrackerPage() {
   const handleGoalsSave = useCallback((newGoals: UserGoals) => {
     setGoals(newGoals);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setGoalMode((newGoals as any).goalMode === "manual" ? "manual" : "auto");
+    const mode = (newGoals as any).goalMode === "manual" ? "manual" : "auto";
+    setGoalMode(mode);
     if (typeof window !== "undefined") {
       localStorage.setItem("pulsenyc_nutrition_goals", JSON.stringify(newGoals));
     }
+    // Sync to Supabase if authenticated
+    if (user) {
+      const sb = getSupabase();
+      if (sb) {
+        sb.from("profiles")
+          .update({ nutrition_goals: newGoals })
+          .eq("id", user.id)
+          .then(() => { /* synced */ })
+          .catch(() => { /* column may not exist yet */ });
+      }
+    }
     setSettingsOpen(false);
-  }, []);
+  }, [user]);
 
   const copyPreviousDay = useCallback((prevMeals: { breakfast: FoodEntry[]; lunch: FoodEntry[]; dinner: FoodEntry[]; snacks: FoodEntry[] }) => {
     setDay((cur) => ({

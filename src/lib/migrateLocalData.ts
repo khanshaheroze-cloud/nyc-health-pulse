@@ -46,9 +46,15 @@ export async function migrateLocalData(): Promise<number> {
 
   let migrated = 0;
 
-  // Migrate profile
+  // Migrate profile + nutrition goals
   if (profile || userName || neighborhood) {
-    const { error } = await getSupabaseOrThrow().from("profiles").upsert({
+    let nutritionGoals = null;
+    try {
+      const goalsRaw = localStorage.getItem("pulsenyc_nutrition_goals");
+      if (goalsRaw) nutritionGoals = JSON.parse(goalsRaw);
+    } catch { /* ignore */ }
+
+    const upsertData: Record<string, unknown> = {
       id: user.id,
       display_name: userName || user.user_metadata?.display_name || "PulseNYC User",
       height_ft: profile?.heightFt ?? null,
@@ -59,7 +65,10 @@ export async function migrateLocalData(): Promise<number> {
       activity_level: profile?.activityLevel ?? null,
       goal: profile?.goal ?? null,
       neighborhood: neighborhood ?? null,
-    });
+    };
+    if (nutritionGoals) upsertData.nutrition_goals = nutritionGoals;
+
+    const { error } = await getSupabaseOrThrow().from("profiles").upsert(upsertData);
     if (!error) migrated++;
   }
 

@@ -4,6 +4,16 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getSupabase } from "@/lib/supabase/client";
 
+export interface NutritionGoals {
+  goalMode: "auto" | "manual";
+  dailyCalories: number;
+  proteinGoal: number;
+  carbGoal: number;
+  fatGoal: number;
+  fiberGoal: number;
+  waterGoalOz: number;
+}
+
 export interface UserProfile {
   display_name: string | null;
   height_ft: number | null;
@@ -14,6 +24,7 @@ export interface UserProfile {
   activity_level: string | null;
   goal: string | null;
   neighborhood: string | null;
+  nutrition_goals: NutritionGoals | null;
 }
 
 /**
@@ -30,6 +41,11 @@ export function useUserData() {
       try {
         const bodyRaw = localStorage.getItem("pulsenyc_body_profile");
         const body = bodyRaw ? JSON.parse(bodyRaw) : null;
+        let nutritionGoals: NutritionGoals | null = null;
+        try {
+          const goalsRaw = localStorage.getItem("pulsenyc_nutrition_goals");
+          if (goalsRaw) nutritionGoals = JSON.parse(goalsRaw);
+        } catch { /* ignore */ }
         setProfile({
           display_name: localStorage.getItem("pulse-user-name"),
           height_ft: body?.heightFt ?? null,
@@ -40,6 +56,7 @@ export function useUserData() {
           activity_level: body?.activityLevel ?? null,
           goal: body?.goal ?? null,
           neighborhood: localStorage.getItem("pulse-my-neighborhood"),
+          nutrition_goals: nutritionGoals,
         });
       } catch {
         setProfile(null);
@@ -54,7 +71,7 @@ export function useUserData() {
       try {
         const { data, error } = await getSupabase()!
           .from("profiles")
-          .select("display_name, height_ft, height_in, weight_lbs, age, sex, activity_level, goal, neighborhood")
+          .select("display_name, height_ft, height_in, weight_lbs, age, sex, activity_level, goal, neighborhood, nutrition_goals")
           .eq("id", user!.id)
           .single();
 
@@ -66,6 +83,7 @@ export function useUserData() {
                 display_name: user!.user_metadata?.display_name || user!.email?.split("@")[0] || null,
                 height_ft: null, height_in: null, weight_lbs: null,
                 age: null, sex: null, activity_level: null, goal: null, neighborhood: null,
+                nutrition_goals: null,
               };
               await getSupabase()!.from("profiles").upsert({ id: user!.id, ...stub });
               setProfile(stub);
@@ -106,6 +124,7 @@ export function useUserData() {
         localStorage.setItem("pulsenyc_body_profile", JSON.stringify(updated));
         if (updates.display_name) localStorage.setItem("pulse-user-name", updates.display_name);
         if (updates.neighborhood) localStorage.setItem("pulse-my-neighborhood", updates.neighborhood);
+        if (updates.nutrition_goals) localStorage.setItem("pulsenyc_nutrition_goals", JSON.stringify(updates.nutrition_goals));
         setProfile((prev) => (prev ? { ...prev, ...updates } : null));
         return;
       }
@@ -115,7 +134,7 @@ export function useUserData() {
         .from("profiles")
         .update(updates)
         .eq("id", user.id)
-        .select("display_name, height_ft, height_in, weight_lbs, age, sex, activity_level, goal, neighborhood")
+        .select("display_name, height_ft, height_in, weight_lbs, age, sex, activity_level, goal, neighborhood, nutrition_goals")
         .single();
 
       if (error) throw error;
