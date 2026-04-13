@@ -305,6 +305,7 @@ interface DailySummaryProps {
   date: string;
   meals: MealsMap;
   goals: UserGoals;
+  goalMode?: "auto" | "manual";
   onDateChange?: (newDate: string) => void;
   onCopyYesterday?: (meals: MealsMap) => void;
 }
@@ -313,6 +314,7 @@ export default function DailySummary({
   date,
   meals,
   goals,
+  goalMode,
   onDateChange,
   onCopyYesterday,
 }: DailySummaryProps) {
@@ -389,6 +391,15 @@ export default function DailySummary({
         <MacroBar label="Fat" current={totals.fat} goal={goals.fatGoal} unit="g" color="#f59e42" />
         <MacroBar label="Fiber" current={totals.fiber} goal={goals.fiberGoal} unit="g" color="#a78bfa" />
       </div>
+
+      {/* Goal mode badge */}
+      {goalMode === "manual" && (
+        <div className="text-center">
+          <span className="text-xs bg-[#4A7C59]/10 text-[#4A7C59] px-3 py-1 rounded-full font-medium">
+            Custom goal &middot; {fmt(goals.dailyCalories)} cal
+          </span>
+        </div>
+      )}
 
       {/* Copy yesterday */}
       {onCopyYesterday && (
