@@ -23,13 +23,14 @@ const metrics = [
   { key: "smoking", name: "Smoking (30d)", color: COLORS.blue, dash: "2 3" },
 ] as const;
 
-export function YouthRiskTrendChart({ data }: { data: YrbsRow[] }) {
+export function YouthRiskTrendChart({ data, lastUpdated }: { data: YrbsRow[]; lastUpdated?: string }) {
   return (
     <ChartCard
       title="NYC Youth Health Behaviors (Grades 9–12)"
       subtitle="% prevalence · NYC YRBS · 2011–2021"
       fullWidth
       tag="LIVE"
+      lastUpdated={lastUpdated}
     >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>

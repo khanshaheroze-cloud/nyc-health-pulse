@@ -28,6 +28,8 @@ export default async function EnvironmentPage() {
     fetchBeachWater(),
   ]);
 
+  const liveAt = new Date().toISOString();
+
   const rodent        = rodentData ?? rodentByBorough;
   const noiseTotal    = (noiseBorough ?? noiseByBorough).reduce((s, d) => s + d.complaints, 0);
   const rodentActive  = rodent.reduce((s, d) => s + d.active, 0);
@@ -114,12 +116,12 @@ export default async function EnvironmentPage() {
     >
       <ScrollReveal>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
-        <KPICard label="Rat Activity"       value={activeRate.toString()} sub="Active per 1K inspections · 30d" color="red" tag="LIVE" />
+        <KPICard label="Rat Activity"       value={activeRate.toString()} sub="Active per 1K inspections · 30d" color="red" tag="LIVE" lastUpdated={liveAt} />
         <KPICard label="Water Safety"       value={wq ? `${((1 - wq.coliformDetected / wq.totalSamples) * 100).toFixed(1)}%` : "99.9%"} sub="Tests negative for coliform · DEP" color="cyan" tag={waterTag} />
-        <KPICard label="Noise Complaints"   value={noiseTotal.toLocaleString("en-US")} sub="Last 7 days · 311" color="blue" tag="LIVE" />
+        <KPICard label="Noise Complaints"   value={noiseTotal.toLocaleString("en-US")} sub="Last 7 days · 311" color="blue" tag="LIVE" lastUpdated={liveAt} />
         <KPICard label="Bronx Food Deserts" value="28.3%" sub="Low-access census tracts" color="orange" tag="2019" />
         {dogBites && dogBites.length > 0 && (
-          <KPICard label="Dog Bite Reports" value={dogBites.reduce((s, d) => s + d.count, 0).toLocaleString("en-US")} sub={`12 months · Most in ${dogBites[0].borough}`} color="yellow" tag="LIVE" />
+          <KPICard label="Dog Bite Reports" value={dogBites.reduce((s, d) => s + d.count, 0).toLocaleString("en-US")} sub={`12 months · Most in ${dogBites[0].borough}`} color="yellow" tag="LIVE" lastUpdated={liveAt} />
         )}
         {emsResponse && emsResponse.length > 0 && (
           <KPICard
@@ -128,6 +130,7 @@ export default async function EnvironmentPage() {
             sub={`Slowest: ${emsResponse[0].borough}`}
             color="red"
             tag="LIVE"
+            lastUpdated={liveAt}
           />
         )}
       </div>
@@ -176,14 +179,14 @@ export default async function EnvironmentPage() {
 
       <ScrollReveal delay={150}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
-        <RodentByBoroughChart data={rodentData ?? rodentByBorough} />
-        <NoiseByBoroughChart  data={noiseBorough ?? noiseByBorough} />
+        <RodentByBoroughChart data={rodentData ?? rodentByBorough} lastUpdated={liveAt} />
+        <NoiseByBoroughChart  data={noiseBorough ?? noiseByBorough} lastUpdated={liveAt} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
         <RodentHotspotsChart />
         <div className="flex flex-col gap-3">
-          <NoiseByTypeChart data={noiseType ?? noiseByType} />
+          <NoiseByTypeChart data={noiseType ?? noiseByType} lastUpdated={liveAt} />
           <FoodDesertChart />
         </div>
       </div>
@@ -199,7 +202,7 @@ export default async function EnvironmentPage() {
             <strong className="text-text"> Red bars = above EPA limit.</strong>
           </p>
           <div className="mb-3">
-            <BeachWaterChart data={beachWater} />
+            <BeachWaterChart data={beachWater} lastUpdated={liveAt} />
           </div>
         </ScrollReveal>
       )}
@@ -209,8 +212,8 @@ export default async function EnvironmentPage() {
         <ScrollReveal delay={250}>
           <h3 className="text-sm font-bold mb-2 mt-5">Public Safety & Animal Reports</h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
-            {dogBites && dogBites.length > 0 && <DogBiteChart data={dogBites} />}
-            {emsResponse && emsResponse.length > 0 && <EmsResponseChart data={emsResponse} />}
+            {dogBites && dogBites.length > 0 && <DogBiteChart data={dogBites} lastUpdated={liveAt} />}
+            {emsResponse && emsResponse.length > 0 && <EmsResponseChart data={emsResponse} lastUpdated={liveAt} />}
           </div>
         </ScrollReveal>
       )}

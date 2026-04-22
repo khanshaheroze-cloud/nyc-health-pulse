@@ -88,6 +88,7 @@ interface AirQualityHeroProps {
 }
 
 export function AirQualityHero({ aqi, category, pm25, no2, o3, period }: AirQualityHeroProps) {
+  const isLiveAqi = aqi != null;
   const displayAqi = aqi ?? (pm25 ? Math.round(pm25 * 4.2) : 0);
   const meta = aqiMeta(displayAqi);
   const animatedAqi = useCountUp(displayAqi);
@@ -176,7 +177,9 @@ export function AirQualityHero({ aqi, category, pm25, no2, o3, period }: AirQual
             {category ?? meta.label}
           </p>
           <p className="text-[14px] text-dim mt-1 max-w-[400px]">{meta.desc}</p>
-          <p className="text-[11px] text-muted mt-2">NYCCAS {period} (latest available survey) · EPA AirNow</p>
+          <p className="text-[11px] text-muted mt-2">
+            {isLiveAqi ? "EPA AirNow — real-time" : `Estimated from NYCCAS PM2.5 (${period})`}
+          </p>
         </div>
       </div>
 

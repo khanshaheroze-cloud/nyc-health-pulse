@@ -85,7 +85,7 @@ export function HealthScoreBreakdown({ grade, score, rank, gradeColor, subScores
                   />
                 </div>
                 <p className="text-[10px] text-muted mt-0.5">
-                  {sub.key === "pm25" ? Number(sub.rawValue).toFixed(1) : sub.rawValue}{sub.unit}
+                  {sub.key === "pm25" ? `${Number(sub.rawValue).toFixed(1)}${sub.unit} (scoring baseline)` : `${sub.rawValue}${sub.unit}`}
                 </p>
               </div>
             </div>

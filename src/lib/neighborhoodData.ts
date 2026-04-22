@@ -96,17 +96,23 @@ export const getNeighborhood = (slug: string) =>
 export const geocodeToSlug: Record<number, string> =
   Object.fromEntries(neighborhoods.map(n => [n.geocode, n.slug]));
 
-// NYC citywide averages (for context on profile pages)
-export const cityAvg = {
-  asthmaED:     58.4,
-  obesity:      27.1,
-  diabetes:     12.8,
-  poverty:      19.4,
-  pm25:          6.66,
-  lifeExp:      81.0,
-  overdoseRate: 44.5,   // per 100K, 2023
-  pretermBirth:  8.8,   // %, 2020
-};
+// NYC citywide averages — computed from all 42 UHF neighborhoods
+function computeCityAvg() {
+  const n = neighborhoods.length;
+  const sum = (fn: (m: Neighborhood["metrics"]) => number) =>
+    Math.round(neighborhoods.reduce((s, nb) => s + fn(nb.metrics), 0) / n * 10) / 10;
+  return {
+    asthmaED:     sum(m => m.asthmaED),
+    obesity:      sum(m => m.obesity),
+    diabetes:     sum(m => m.diabetes),
+    poverty:      sum(m => m.poverty),
+    pm25:         sum(m => m.pm25),
+    lifeExp:      sum(m => m.lifeExp),
+    overdoseRate: sum(m => m.overdoseRate),
+    pretermBirth: sum(m => m.pretermBirth),
+  };
+}
+export const cityAvg = computeCityAvg();
 
 export const BOROUGH_ORDER = ["Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island"] as const;
 

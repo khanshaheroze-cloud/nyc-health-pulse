@@ -14,7 +14,7 @@ import { COLORS } from "@/lib/data";
 import { chartTheme } from "@/lib/chartTheme";
 import type { FluWastewaterRow } from "@/lib/liveData";
 
-export function FluWastewaterChart({ data }: { data: FluWastewaterRow[] }) {
+export function FluWastewaterChart({ data, lastUpdated }: { data: FluWastewaterRow[]; lastUpdated?: string }) {
   const chartData = data.map(d => ({
     date: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     value: d.concentration,
@@ -26,6 +26,7 @@ export function FluWastewaterChart({ data }: { data: FluWastewaterRow[] }) {
       subtitle="Avg copies/L across NYC sewersheds · CDC NWSS · 6-month window"
       fullWidth
       tag="LIVE"
+      lastUpdated={lastUpdated}
     >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData}>

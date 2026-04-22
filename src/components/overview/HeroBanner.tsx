@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { CountUp } from "@/components/CountUp";
 
 /* ── AQI helpers ─────────────────────────────────────────── */
 
@@ -38,7 +39,7 @@ function AqiMiniRing({ aqi }: { aqi: number }) {
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-700" />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[16px] font-display font-bold leading-none" style={{ color }}>{aqi}</span>
+        <span style={{ color }}><CountUp value={aqi} durationMs={700} storageKey="hero-aqi" className="text-[16px] font-display font-bold leading-none" /></span>
         <span className="text-[8px] text-muted leading-none mt-0.5">AQI</span>
       </div>
     </div>

@@ -31,6 +31,8 @@ export default async function ChronicDiseasePage() {
     fetchCdcPlacesByBorough(),
   ]);
 
+  const liveAt = new Date().toISOString();
+
   const topHivBorough = hivData ? [...hivData].sort((a, b) => b.rate - a.rate)[0] : null;
   const totalHivDx    = hivData?.reduce((s, d) => s + d.diagnoses, 0) ?? null;
 
@@ -95,9 +97,9 @@ export default async function ChronicDiseasePage() {
     >
       <ScrollReveal>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6">
-        <KPICard label="Obesity (Bronx)"   value={obesityVal}  sub="Highest borough" color="red"    tag={cdcTag} />
-        <KPICard label="Diabetes (Bronx)"  value={diabetesVal} sub="Highest borough" color="orange" tag={cdcTag} />
-        <KPICard label="Depression"        value={depressionVal} sub={depressionSub}  color="purple" tag={cdcTag} />
+        <KPICard label="Obesity (Bronx)"   value={obesityVal}  sub="Highest borough" color="red"    tag={cdcTag} lastUpdated={cdcTag === "LIVE" ? liveAt : undefined} />
+        <KPICard label="Diabetes (Bronx)"  value={diabetesVal} sub="Highest borough" color="orange" tag={cdcTag} lastUpdated={cdcTag === "LIVE" ? liveAt : undefined} />
+        <KPICard label="Depression"        value={depressionVal} sub={depressionSub}  color="purple" tag={cdcTag} lastUpdated={cdcTag === "LIVE" ? liveAt : undefined} />
         {topHivBorough && (
           <KPICard
             label="HIV Rate (Highest)"
@@ -105,6 +107,7 @@ export default async function ChronicDiseasePage() {
             sub={`${topHivBorough.rate} per 100K`}
             color="pink"
             tag="LIVE"
+            lastUpdated={liveAt}
           />
         )}
         {totalHivDx && (
@@ -114,6 +117,7 @@ export default async function ChronicDiseasePage() {
             sub="Annual · all boroughs"
             color="pink"
             tag="LIVE"
+            lastUpdated={liveAt}
           />
         )}
         <KPICard
@@ -142,10 +146,10 @@ export default async function ChronicDiseasePage() {
       {cdcPlaces ? (
         <>
           <div className="mb-3">
-            <CdcPlacesOutcomesChart data={cdcPlaces} />
+            <CdcPlacesOutcomesChart data={cdcPlaces} lastUpdated={liveAt} />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
-            <CdcPlacesBehaviorsChart data={cdcPlaces} />
+            <CdcPlacesBehaviorsChart data={cdcPlaces} lastUpdated={liveAt} />
             <AsthmaByBoroughChart />
           </div>
         </>
@@ -191,14 +195,14 @@ export default async function ChronicDiseasePage() {
       {/* Live leading causes */}
       {leadingCauses && (
         <div className="mb-4">
-          <LeadingCausesChart data={leadingCauses} />
+          <LeadingCausesChart data={leadingCauses} lastUpdated={liveAt} />
         </div>
       )}
 
       {/* Live HIV data */}
       {hivData && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
-          <HivByBoroughChart data={hivData} />
+          <HivByBoroughChart data={hivData} lastUpdated={liveAt} />
           <div className="bg-surface border border-border-light rounded-3xl p-6 flex flex-col justify-center gap-2">
             <h3 className="text-[13px] font-bold">HIV in NYC</h3>
             <p className="text-[11px] text-dim leading-relaxed">

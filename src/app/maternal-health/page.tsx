@@ -22,6 +22,8 @@ export default async function MaternalHealthPage() {
     fetchInfantMortality(),
   ]);
 
+  const liveAt = new Date().toISOString();
+
   const totalDeaths = mortality?.reduce((s, d) => s + d.deaths, 0) ?? 0;
   const topCause = mortality
     ? [...new Map<string, number>(mortality.map(r => [r.cause, 0])).keys()]
@@ -92,6 +94,7 @@ export default async function MaternalHealthPage() {
           sub="Pregnancy-related, 2016–2017"
           color="red"
           tag={mortality ? "LIVE" : "2017"}
+          lastUpdated={mortality ? liveAt : undefined}
         />
         <KPICard
           label="Leading Cause"
@@ -99,6 +102,7 @@ export default async function MaternalHealthPage() {
           sub="Of pregnancy-related deaths"
           color="purple"
           tag={mortality ? "LIVE" : "2017"}
+          lastUpdated={mortality ? liveAt : undefined}
         />
         <KPICard
           label="Avg C-Section Rate"
@@ -106,6 +110,7 @@ export default async function MaternalHealthPage() {
           sub="Across all boroughs"
           color="pink"
           tag={csection ? "LIVE" : "2022"}
+          lastUpdated={csection ? liveAt : undefined}
         />
         {highestCsection && (
           <KPICard
@@ -114,6 +119,7 @@ export default async function MaternalHealthPage() {
             sub={`${highestCsection.csectionPct}% of births`}
             color="orange"
             tag="LIVE"
+            lastUpdated={liveAt}
           />
         )}
       </div>
@@ -122,8 +128,8 @@ export default async function MaternalHealthPage() {
       {mortality && mortality.length > 0 && (
         <ScrollReveal delay={100}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
-          <MaternalMortalityCauseChart data={mortality} />
-          <MaternalMortalityRaceChart data={mortality} />
+          <MaternalMortalityCauseChart data={mortality} lastUpdated={liveAt} />
+          <MaternalMortalityRaceChart data={mortality} lastUpdated={liveAt} />
         </div>
         </ScrollReveal>
       )}
@@ -131,10 +137,10 @@ export default async function MaternalHealthPage() {
       <ScrollReveal delay={150}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
         {csection && csection.length > 0 && (
-          <CSectionChart data={csection} />
+          <CSectionChart data={csection} lastUpdated={liveAt} />
         )}
         {infantMort && infantMort.length > 0 && (
-          <InfantMortalityChart data={infantMort} />
+          <InfantMortalityChart data={infantMort} lastUpdated={liveAt} />
         )}
       </div>
       </ScrollReveal>

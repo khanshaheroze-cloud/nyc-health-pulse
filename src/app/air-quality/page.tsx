@@ -45,6 +45,7 @@ export default async function AirQualityPage() {
   const o3Vals = byBorough?.map(b => b.o3).filter((v): v is number => v != null) ?? [];
   const avgO3 = o3Vals.length > 0 ? Math.round(o3Vals.reduce((s, v) => s + v, 0) / o3Vals.length * 10) / 10 : null;
   const liveTag = neighborhoods ? "LIVE" : "2023";
+  const liveAt = neighborhoods ? new Date().toISOString() : undefined;
 
   const jsonLd = datasetJsonLdString([
     {
@@ -90,6 +91,7 @@ export default async function AirQualityPage() {
           sub={period}
           color="green"
           tag={liveTag}
+          lastUpdated={liveAt}
         />
         <KPICard
           label="Worst Area"
@@ -97,6 +99,7 @@ export default async function AirQualityPage() {
           sub={`${Number(worst.value).toFixed(1)} μg/m³`}
           color="orange"
           tag={liveTag}
+          lastUpdated={liveAt}
         />
         <KPICard
           label="Best Area"
@@ -104,6 +107,7 @@ export default async function AirQualityPage() {
           sub={`${Number(best.value).toFixed(1)} μg/m³`}
           color="green"
           tag={liveTag}
+          lastUpdated={liveAt}
         />
         <KPICard
           label="NO₂ (Highest)"
@@ -112,6 +116,7 @@ export default async function AirQualityPage() {
           sub={topNo2 ? topNo2.borough : "Manhattan"}
           color="blue"
           tag={liveTag}
+          lastUpdated={liveAt}
         />
       </div>
       </ScrollReveal>
@@ -126,7 +131,7 @@ export default async function AirQualityPage() {
       )}
 
       {/* Live AQI widget + notification opt-in */}
-      <AirNowWidget />
+      <AirNowWidget serverAqi={airNow?.aqi ?? null} serverCategory={airNow?.category ?? null} />
       <AqiNotificationButton />
 
       {/* Charts grid */}

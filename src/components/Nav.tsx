@@ -15,9 +15,9 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Overview" },
-  { href: "/air-quality", label: "Air Quality" },
-  { href: "/workouts", label: "Fitness", dropdown: "fitness" },
   { href: "/eat-smart", label: "Eat Smart", dropdown: "eatout" },
+  { href: "/workouts", label: "Fitness", dropdown: "fitness" },
+  { href: "/air-quality", label: "Air Quality" },
   { href: "/neighborhood", label: "Neighborhoods" },
   { href: "/health-data", label: "NYC Health Data", dropdown: "health" },
 ];

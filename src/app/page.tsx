@@ -3,13 +3,13 @@ import { HeroBanner } from "@/components/overview/HeroBanner";
 import { WorkoutWidget } from "@/components/overview/WorkoutWidget";
 import { NutritionWidget } from "@/components/overview/NutritionWidget";
 import { RunOutsideWidget } from "@/components/overview/RunOutsideWidget";
-import { EatSmartNearby } from "@/components/overview/EatSmartNearby";
 import { NeighborhoodBar } from "@/components/overview/NeighborhoodBar";
 import { HealthStatusChips } from "@/components/overview/HealthStatusChips";
 import { OverviewBoroughCharts } from "@/components/overview/OverviewBoroughCharts";
 import { AlertBanner } from "@/components/AlertBanner";
 import { WeeklyChanges } from "@/components/WeeklyChanges";
 import { EmailSignup } from "@/components/EmailSignup";
+import { HomepageEatSmartHero } from "@/components/eat-smart/HomepageEatSmartHero";
 import { chronicOutcomes as staticOutcomes } from "@/lib/data";
 import {
   fetchCovidByBorough,
@@ -97,20 +97,33 @@ export default async function OverviewPage() {
       {/* Emergency alert banner */}
       <AlertBanner aqi={airNow?.aqi ?? null} />
 
+      {/* ── EAT SMART HERO — primary daily-use feature ── */}
+      <div className="mt-5">
+        <HomepageEatSmartHero />
+      </div>
+
       {/* ── Fitness & Nutrition zone — sage tint ── */}
       <div className="section-tint-sage mt-5 -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <WorkoutWidget />
           <NutritionWidget />
-          <RunOutsideWidget />
+          <RunOutsideWidget serverAqi={airNow?.aqi ?? null} serverUV={weather?.uvIndex ?? null} />
         </div>
-        <EatSmartNearby />
       </div>
 
       {/* ── Health data zone — sky tint ── */}
       <div className="section-tint-sky -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 space-y-4">
         <OverviewBoroughCharts chronicOutcomes={chronicOutcomes} inactivityData={inactivityData} />
-        <WeeklyChanges />
+        <WeeklyChanges
+          totalHosp={totalHosp}
+          iliRate={3.84}
+          rodentActive={activeRate}
+          airAqi={airNow?.aqi ?? null}
+          airLabel={airLabel}
+          critViolations={critViolations}
+          pollenLevel={pollen?.level ?? null}
+          lastUpdated={new Date().toISOString()}
+        />
       </div>
 
       {/* ── Stay informed — warm tint ── */}

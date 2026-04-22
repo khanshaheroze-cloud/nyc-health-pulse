@@ -13,6 +13,8 @@ export const metadata: Metadata = {
 };
 
 export default function GroceryPage() {
+  const liveAt = new Date().toISOString();
+
   return (
     <SectionShell
       icon="🛒"
@@ -29,6 +31,7 @@ export default function GroceryPage() {
           sub="Licensed food retailers in NYC"
           color="orange"
           tag="LIVE"
+          lastUpdated={liveAt}
           tooltip="NYS Dept. of Agriculture & Markets licenses all food retailers. Includes supermarkets, grocery stores, bodegas, and specialty food stores. Count from NYS Ag & Markets licensing database."
         />
         <KPICard
@@ -47,6 +50,7 @@ export default function GroceryPage() {
           sub="Stores accepting EBT in NYC"
           color="blue"
           tag="LIVE"
+          lastUpdated={liveAt}
           tooltip="USDA-authorized SNAP retailers where EBT/food stamp benefits can be used. Includes supermarkets, bodegas, and some farmers markets. Source: USDA Food & Nutrition Service."
         />
         <KPICard

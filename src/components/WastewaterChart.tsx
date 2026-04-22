@@ -14,7 +14,7 @@ import { COLORS } from "@/lib/data";
 import { chartTheme } from "@/lib/chartTheme";
 import type { WastewaterCitywide } from "@/lib/liveData";
 
-export function WastewaterTrendChart({ data }: { data: WastewaterCitywide[] }) {
+export function WastewaterTrendChart({ data, lastUpdated }: { data: WastewaterCitywide[]; lastUpdated?: string }) {
   const chartData = data.map(d => ({
     date: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     value: Math.round(d.avgCopiesPerL),
@@ -26,6 +26,7 @@ export function WastewaterTrendChart({ data }: { data: WastewaterCitywide[] }) {
       subtitle="Avg SARS-CoV-2 copies/L across NYC sewersheds · 6-month window"
       fullWidth
       tag="LIVE"
+      lastUpdated={lastUpdated}
     >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData}>

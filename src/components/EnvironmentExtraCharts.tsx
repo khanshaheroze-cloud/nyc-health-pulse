@@ -25,12 +25,13 @@ const BOROUGH_COLORS: Record<string, string> = {
 
 // ─── Dog Bites by Borough ────────────────────────────────────────────────────
 
-export function DogBiteChart({ data }: { data: DogBiteByBorough[] }) {
+export function DogBiteChart({ data, lastUpdated }: { data: DogBiteByBorough[]; lastUpdated?: string }) {
   return (
     <ChartCard
       title="Dog Bite Reports by Borough"
       subtitle="Last 12 months · DOHMH Animal Bite Data"
       tag="LIVE"
+      lastUpdated={lastUpdated}
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barGap={4}>
@@ -58,7 +59,7 @@ export function DogBiteChart({ data }: { data: DogBiteByBorough[] }) {
 
 // ─── EMS Response Time by Borough ────────────────────────────────────────────
 
-export function EmsResponseChart({ data }: { data: EmsResponseBorough[] }) {
+export function EmsResponseChart({ data, lastUpdated }: { data: EmsResponseBorough[]; lastUpdated?: string }) {
   const chartData = data.map((d) => ({
     ...d,
     avgMinutes: Math.round(d.avgResponseSec / 6) / 10, // to 1 decimal minutes
@@ -69,6 +70,7 @@ export function EmsResponseChart({ data }: { data: EmsResponseBorough[] }) {
       title="EMS Response Time by Borough"
       subtitle="Average time to scene · Last 12 months · NYC Open Data"
       tag="LIVE"
+      lastUpdated={lastUpdated}
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} barGap={4}>
@@ -98,7 +100,7 @@ export function EmsResponseChart({ data }: { data: EmsResponseBorough[] }) {
 
 // ─── Beach Water Quality ─────────────────────────────────────────────────────
 
-export function BeachWaterChart({ data }: { data: BeachWaterRow[] }) {
+export function BeachWaterChart({ data, lastUpdated }: { data: BeachWaterRow[]; lastUpdated?: string }) {
   const chartData = data.slice(0, 12);
   const EPA_LIMIT = 104;
 
@@ -107,6 +109,7 @@ export function BeachWaterChart({ data }: { data: BeachWaterRow[] }) {
       title="Beach Water Quality"
       subtitle={`Avg enterococci (MPN/100ml) · EPA advisory threshold = ${EPA_LIMIT}`}
       tag="LIVE"
+      lastUpdated={lastUpdated}
       tall
     >
       <ResponsiveContainer width="100%" height="100%">

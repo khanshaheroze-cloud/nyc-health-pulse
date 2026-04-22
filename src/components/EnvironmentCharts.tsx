@@ -21,9 +21,9 @@ type NoiseTypeRow     = { type: string; count: number; fill: string };
 
 // ─── Rodent by Borough ────────────────────────────────────────────────────────
 
-export function RodentByBoroughChart({ data = STATIC_RODENT_BOROUGH }: { data?: RodentBoroughRow[] }) {
+export function RodentByBoroughChart({ data = STATIC_RODENT_BOROUGH, lastUpdated }: { data?: RodentBoroughRow[]; lastUpdated?: string }) {
   return (
-    <ChartCard title="Rodent Inspections by Borough" subtitle="Active infestations vs. passed · last 30 days" tag="LIVE" whyItMatters="Rat populations correlate with building violations and sanitation gaps. Report sightings via 311 — it triggers DOHMH inspections.">
+    <ChartCard title="Rodent Inspections by Borough" subtitle="Active infestations vs. passed · last 30 days" tag="LIVE" lastUpdated={lastUpdated} whyItMatters="Rat populations correlate with building violations and sanitation gaps. Report sightings via 311 — it triggers DOHMH inspections.">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barGap={2}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />
@@ -63,9 +63,9 @@ export function RodentHotspotsChart() {
 
 // ─── Noise by Borough ─────────────────────────────────────────────────────────
 
-export function NoiseByBoroughChart({ data = STATIC_NOISE_BOROUGH }: { data?: NoiseBoroughRow[] }) {
+export function NoiseByBoroughChart({ data = STATIC_NOISE_BOROUGH, lastUpdated }: { data?: NoiseBoroughRow[]; lastUpdated?: string }) {
   return (
-    <ChartCard title="311 Noise Complaints by Borough" subtitle="Last 7 days · NYC Open Data" tag="LIVE" whyItMatters="Chronic noise exposure above 70 dB increases risk of hearing loss and cardiovascular disease. NYC averages 80+ dB on many streets.">
+    <ChartCard title="311 Noise Complaints by Borough" subtitle="Last 7 days · NYC Open Data" tag="LIVE" lastUpdated={lastUpdated} whyItMatters="Chronic noise exposure above 70 dB increases risk of hearing loss and cardiovascular disease. NYC averages 80+ dB on many streets.">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barGap={4}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />
@@ -81,10 +81,10 @@ export function NoiseByBoroughChart({ data = STATIC_NOISE_BOROUGH }: { data?: No
 
 // ─── Noise by Type ────────────────────────────────────────────────────────────
 
-export function NoiseByTypeChart({ data = STATIC_NOISE_TYPE }: { data?: NoiseTypeRow[] }) {
+export function NoiseByTypeChart({ data = STATIC_NOISE_TYPE, lastUpdated }: { data?: NoiseTypeRow[]; lastUpdated?: string }) {
   const total = data.reduce((s, d) => s + d.count, 0);
   return (
-    <ChartCard title="Noise Complaint Categories" subtitle="311 breakdown by type · last 7 days" tag="LIVE">
+    <ChartCard title="Noise Complaint Categories" subtitle="311 breakdown by type · last 7 days" tag="LIVE" lastUpdated={lastUpdated}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="count">

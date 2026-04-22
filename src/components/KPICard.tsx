@@ -1,5 +1,6 @@
 import { TooltipIcon } from "./TooltipIcon";
 import { KPIValue } from "./KPIValue";
+import { FreshnessStamp } from "./FreshnessStamp";
 
 type BadgeType = "good" | "warn" | "bad";
 
@@ -23,6 +24,7 @@ interface KPICardProps {
   badge?: { text: string; type: BadgeType };
   color: KPIColor;
   tag?: string;
+  lastUpdated?: string;
   tooltip?: string;
   trend?: { direction: TrendDirection; label: string };
   index?: number;
@@ -74,7 +76,7 @@ const badgeStyles: Record<BadgeType, string> = {
   bad:  "text-hp-red bg-hp-red/10",
 };
 
-export function KPICard({ label, value, unit, sub, badge, color, tag, tooltip, trend, index }: KPICardProps) {
+export function KPICard({ label, value, unit, sub, badge, color, tag, lastUpdated, tooltip, trend, index }: KPICardProps) {
   const c = colorMap[color];
 
   return (
@@ -95,7 +97,10 @@ export function KPICard({ label, value, unit, sub, badge, color, tag, tooltip, t
           </div>
           {tooltip && <TooltipIcon text={tooltip} />}
         </div>
-        {tag && <DataTag tag={tag} />}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {tag && <DataTag tag={tag} />}
+          {lastUpdated && <FreshnessStamp lastUpdated={lastUpdated} compact />}
+        </div>
       </div>
 
       <div className="flex items-baseline gap-2">
@@ -103,6 +108,8 @@ export function KPICard({ label, value, unit, sub, badge, color, tag, tooltip, t
           value={value}
           unit={unit}
           className={`font-display font-bold text-[clamp(22px,6vw,32px)] leading-tight ${c.value}`}
+          animate={tag === "LIVE"}
+          storageKey={tag === "LIVE" ? `kpi-${label.replace(/\s+/g, "-").toLowerCase()}` : undefined}
         />
         {trend && (
           <span className={`text-[11px] font-semibold animate-trend-bounce ${TREND_STYLES[trend.direction].color}`}>

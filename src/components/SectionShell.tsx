@@ -38,16 +38,20 @@ export function SectionShell({
           </nav>
         )}
 
-        <div className="flex items-center gap-3 mb-2">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-            style={{ background: accentColor }}
-          >
-            {icon}
+        {title && (
+          <div className="flex items-center gap-3 mb-2">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+              style={{ background: accentColor }}
+            >
+              {icon}
+            </div>
+            <h1 className="font-display text-[24px] sm:text-[32px] text-text leading-snug">{title}</h1>
           </div>
-          <h1 className="font-display text-[24px] sm:text-[32px] text-text leading-snug">{title}</h1>
-        </div>
-        <p className="text-[14px] sm:text-[16px] text-dim max-w-[600px] mt-2 leading-relaxed">{description}</p>
+        )}
+        {description && (
+          <p className="text-[14px] sm:text-[16px] text-dim max-w-[600px] mt-2 leading-relaxed">{description}</p>
+        )}
       </div>
 
       {/* Content area */}

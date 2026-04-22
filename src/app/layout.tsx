@@ -127,7 +127,7 @@ export default function RootLayout({
             <a href="/" className="flex items-center gap-2 flex-shrink-0">
               {/* Logo mark */}
               <div
-                className="w-8 h-8 rounded-[9px] flex items-center justify-center flex-shrink-0"
+                className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: "linear-gradient(135deg, var(--color-hp-green) 0%, var(--color-hp-green-light) 100%)" }}
               >
                 <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
@@ -188,7 +188,7 @@ export default function RootLayout({
                 <div>
                   <div className="flex items-center gap-2.5 mb-3">
                     <div
-                      className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ background: "linear-gradient(135deg, var(--color-hp-green) 0%, var(--color-hp-green-light) 100%)" }}
                     >
                       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">

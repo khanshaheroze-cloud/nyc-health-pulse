@@ -151,6 +151,7 @@ export default async function SafetyPage() {
   const totalPedInjured = byBorough.reduce((s, b) => s + b.pedInjured, 0);
 
   const hasData = byBorough.length > 0;
+  const liveAt = hasData ? new Date().toISOString() : undefined;
 
   return (
     <SectionShell
@@ -168,6 +169,7 @@ export default async function SafetyPage() {
           sub="Last 12 months"
           color="orange"
           tag="LIVE"
+          lastUpdated={liveAt}
           tooltip="Total motor vehicle collisions reported to NYPD across all five boroughs in the last 12 months."
         />
         <KPICard
@@ -176,6 +178,7 @@ export default async function SafetyPage() {
           sub="All categories"
           color="blue"
           tag="LIVE"
+          lastUpdated={liveAt}
           tooltip="Total persons injured including motorists, pedestrians, and cyclists."
         />
         <KPICard
@@ -184,6 +187,7 @@ export default async function SafetyPage() {
           sub="Vision Zero goal: 0"
           color={totalKilled > 0 ? "red" : "green"}
           tag="LIVE"
+          lastUpdated={liveAt}
           tooltip="Total persons killed in motor vehicle collisions. NYC's Vision Zero aims to eliminate all traffic deaths."
         />
         <KPICard
@@ -192,6 +196,7 @@ export default async function SafetyPage() {
           sub="Most vulnerable road users"
           color="purple"
           tag="LIVE"
+          lastUpdated={liveAt}
           tooltip="Pedestrians injured in motor vehicle collisions. Pedestrians account for a disproportionate share of traffic fatalities."
         />
       </div>

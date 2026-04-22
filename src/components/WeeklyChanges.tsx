@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { FreshnessStamp } from "./FreshnessStamp";
 
-/* ── Data ────────────────────────────────────────────── */
+/* ── Types ──────────────────────────────────────────── */
 
 interface Change {
   icon: string;
@@ -15,46 +16,109 @@ interface Change {
   stat?: { value: number; suffix?: string; label: string };
 }
 
-const CHANGES: Change[] = [
-  {
+export interface WeeklyChangesProps {
+  totalHosp: number;
+  iliRate: number;
+  rodentActive: number;
+  airAqi: number | null;
+  airLabel: string;
+  critViolations: number | null;
+  pollenLevel: string | null;
+  lastUpdated: string;
+}
+
+/* ── Dynamic change builder ─────────────────────────── */
+
+function buildChanges(p: WeeklyChangesProps): Change[] {
+  const items: Change[] = [];
+
+  // COVID
+  const covidDir = p.totalHosp < 2000 ? "down" : p.totalHosp < 3000 ? "steady" : "up";
+  const covidDetail = p.totalHosp < 2000
+    ? "Continued decline — citywide 90-day total below spring baseline"
+    : p.totalHosp < 3000
+    ? "Moderate activity — watch for seasonal upticks"
+    : "Elevated — hospitalizations rising across boroughs";
+  items.push({
     icon: "🦠", label: "COVID Hospitalizations",
-    detail: "Trending down across all boroughs vs. last month",
-    direction: "down", href: "/covid",
+    detail: covidDetail,
+    direction: covidDir, href: "/covid",
     iconBg: "var(--color-accent-bg, rgba(74,124,89,0.1))",
-    stat: { value: 1763, label: "90-day total" },
-  },
-  {
+    stat: { value: p.totalHosp, label: "90-day total" },
+  });
+
+  // Flu
+  const fluDir = p.iliRate > 5 ? "up" : p.iliRate > 3 ? "steady" : "down";
+  const fluDetail = p.iliRate > 5
+    ? "Flu season active — ILI rate above baseline"
+    : p.iliRate > 3
+    ? "Season winding down — ILI rate near off-season baseline"
+    : "Off-season — minimal influenza activity";
+  items.push({
     icon: "🤧", label: "Flu Season",
-    detail: "ILI rate declining from Wk51 peak of 11.03%",
-    direction: "down", href: "/flu",
+    detail: fluDetail,
+    direction: fluDir, href: "/flu",
     iconBg: "var(--color-surface-sky)",
-    stat: { value: 3.84, suffix: "%", label: "current ILI rate" },
-  },
-  {
+    stat: { value: p.iliRate, suffix: "%", label: "current ILI rate" },
+  });
+
+  // Rats
+  const ratDir = p.rodentActive > 200 ? "up" : p.rodentActive > 150 ? "steady" : "down";
+  const ratDetail = p.rodentActive > 200
+    ? "Spring surge — 311 rat complaints up in Brooklyn & Bronx"
+    : p.rodentActive > 150
+    ? "Moderate activity — seasonal levels holding"
+    : "Below average — inspections keeping pace";
+  items.push({
     icon: "🐀", label: "Rat Activity",
-    detail: "311 complaints remain elevated in Brooklyn & Bronx",
-    direction: "up", href: "/environment",
+    detail: ratDetail,
+    direction: ratDir, href: "/environment",
     iconBg: "var(--color-surface-peach)",
-  },
-  {
+  });
+
+  // Air Quality
+  const aqi = p.airAqi;
+  const aqiDir = aqi != null && aqi > 100 ? "up" : aqi != null && aqi > 50 ? "steady" : "down";
+  const aqiDetail = p.pollenLevel === "High" || p.pollenLevel === "Very High"
+    ? "Spring pollen elevated — tree & grass counts high across boroughs"
+    : aqi != null && aqi <= 50
+    ? "Air quality good — safe for all outdoor activities"
+    : aqi != null && aqi <= 100
+    ? "Moderate — sensitive groups should take care outdoors"
+    : "Air quality concerns — limit prolonged outdoor exertion";
+  items.push({
+    icon: "🌬️", label: "Air Quality",
+    detail: aqiDetail,
+    direction: aqiDir, href: "/air-quality",
+    iconBg: "var(--color-surface-sage)",
+  });
+
+  // Food Safety
+  const foodDir = p.critViolations != null
+    ? p.critViolations > 5000 ? "up" : p.critViolations > 3000 ? "steady" : "down"
+    : "steady";
+  const foodDetail = p.critViolations != null
+    ? `${p.critViolations.toLocaleString()} critical violations in the last 30 days`
+    : "Critical violations stable — outdoor dining inspections ongoing";
+  items.push({
     icon: "🍽️", label: "Food Safety",
-    detail: "Critical violations stable — inspections ongoing",
-    direction: "steady", href: "/food-safety",
+    detail: foodDetail,
+    direction: foodDir, href: "/food-safety",
     iconBg: "#FDF5ED",
-  },
-  {
-    icon: "🧬", label: "Maternal Health",
-    detail: "New section — pregnancy-related mortality & C-section data",
-    direction: "new", href: "/maternal-health",
+  });
+
+  // Street Safety (static for now — crash data isn't on homepage)
+  items.push({
+    icon: "🏗️", label: "Street Safety",
+    detail: "Vision Zero — track fatalities and injuries by borough",
+    direction: "steady", href: "/safety",
     iconBg: "#F3EFF8",
-  },
-  {
-    icon: "💧", label: "Wastewater Surveillance",
-    detail: "COVID + flu wastewater signals now tracked",
-    direction: "new", href: "/covid",
-    iconBg: "var(--color-surface-sky)",
-  },
-];
+  });
+
+  return items;
+}
+
+/* ── Styles ─────────────────────────────────────────── */
 
 const BADGE_STYLE: Record<string, { bg: string; text: string; label: string }> = {
   up:     { bg: "#FDE8E4", text: "var(--color-hp-red)",    label: "Rising" },
@@ -63,10 +127,7 @@ const BADGE_STYLE: Record<string, { bg: string; text: string; label: string }> =
   steady: { bg: "#FDF5ED", text: "var(--color-hp-orange)", label: "Stable" },
 };
 
-/* ── Component ───────────────────────────────────────── */
-
-// Content last updated date — update this when CHANGES array is modified
-const CONTENT_UPDATED = new Date("2026-04-11");
+/* ── Component ──────────────────────────────────────── */
 
 function getCurrentWeekLabel(): string {
   const now = new Date();
@@ -76,22 +137,14 @@ function getCurrentWeekLabel(): string {
   return monday.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function freshness(): string {
-  const now = new Date();
-  const diff = Math.floor((now.getTime() - CONTENT_UPDATED.getTime()) / 86400000);
-  if (diff === 0) return "Updated today";
-  if (diff === 1) return "Updated yesterday";
-  return `Updated ${diff}d ago`;
-}
-
-export function WeeklyChanges() {
+export function WeeklyChanges(props: WeeklyChangesProps) {
   const [weekLabel, setWeekLabel] = useState("");
-  const [fresh, setFresh] = useState("");
 
   useEffect(() => {
     setWeekLabel(getCurrentWeekLabel());
-    setFresh(freshness());
   }, []);
+
+  const changes = buildChanges(props);
 
   return (
     <div>
@@ -104,7 +157,7 @@ export function WeeklyChanges() {
           </div>
           {weekLabel && (
             <p className="text-[12px] text-muted mt-0.5 ml-[34px]">
-              Week of {weekLabel} · <span className="text-hp-green font-semibold">{fresh || "Updated today"}</span>
+              Week of {weekLabel} · <FreshnessStamp lastUpdated={props.lastUpdated} />
             </p>
           )}
         </div>
@@ -115,14 +168,14 @@ export function WeeklyChanges() {
 
       {/* Compact list card */}
       <div className="bg-surface border border-border-light rounded-2xl overflow-hidden">
-        {CHANGES.map((c, i) => {
+        {changes.map((c, i) => {
           const badge = BADGE_STYLE[c.direction];
           return (
             <Link
               key={c.label}
               href={c.href}
               className={`flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-[#f3f7f5] ${
-                i < CHANGES.length - 1 ? "border-b border-border-light" : ""
+                i < changes.length - 1 ? "border-b border-border-light" : ""
               }`}
             >
               {/* Emoji */}

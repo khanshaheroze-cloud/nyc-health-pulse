@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
       { source: "/neighborhoods", destination: "/neighborhood", permanent: true },
       { source: "/building-safety", destination: "/building-health", permanent: true },
       { source: "/street-safety", destination: "/safety", permanent: true },
+      { source: "/fitness", destination: "/workouts", permanent: true },
+      { source: "/active", destination: "/run-routes", permanent: true },
     ];
   },
   async headers() {

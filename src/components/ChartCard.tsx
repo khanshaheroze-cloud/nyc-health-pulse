@@ -1,5 +1,6 @@
 import { WhyThisMatters } from "./WhyThisMatters";
 import { LazyChart } from "./LazyChart";
+import { FreshnessStamp } from "./FreshnessStamp";
 
 function DataTag({ tag }: { tag: string }) {
   if (tag === "LIVE") return (
@@ -28,6 +29,7 @@ interface ChartCardProps {
   tall?: boolean;
   fill?: boolean;
   tag?: string;
+  lastUpdated?: string;
   whyItMatters?: string;
 }
 
@@ -39,6 +41,7 @@ export function ChartCard({
   tall,
   fill,
   tag,
+  lastUpdated,
   whyItMatters,
 }: ChartCardProps) {
   return (
@@ -51,7 +54,10 @@ export function ChartCard({
     >
       <div className="flex items-start justify-between mb-1 gap-2">
         <h3 className="text-[13px] font-bold text-text">{title}</h3>
-        {tag && <DataTag tag={tag} />}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {tag && <DataTag tag={tag} />}
+          {lastUpdated && <FreshnessStamp lastUpdated={lastUpdated} compact />}
+        </div>
       </div>
       {subtitle && (
         <p className="text-[11px] text-dim mb-4">{subtitle}</p>

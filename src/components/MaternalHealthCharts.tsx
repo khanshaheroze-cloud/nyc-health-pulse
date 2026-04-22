@@ -18,7 +18,7 @@ import type { MaternalMortalityRow, CSectionRow, InfantMortalityRow } from "@/li
 
 // ─── Maternal Mortality by Cause ─────────────────────────────────────────────
 
-export function MaternalMortalityCauseChart({ data }: { data: MaternalMortalityRow[] }) {
+export function MaternalMortalityCauseChart({ data, lastUpdated }: { data: MaternalMortalityRow[]; lastUpdated?: string }) {
   const byCause = new Map<string, number>();
   for (const row of data) {
     byCause.set(row.cause, (byCause.get(row.cause) ?? 0) + row.deaths);
@@ -34,6 +34,7 @@ export function MaternalMortalityCauseChart({ data }: { data: MaternalMortalityR
       subtitle="NYC · 2016–2017 · Underlying cause of death"
       tall
       tag="LIVE"
+      lastUpdated={lastUpdated}
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
@@ -65,7 +66,7 @@ const RACE_COLORS: Record<string, string> = {
   "Other":                  COLORS.pink,
 };
 
-export function MaternalMortalityRaceChart({ data }: { data: MaternalMortalityRow[] }) {
+export function MaternalMortalityRaceChart({ data, lastUpdated }: { data: MaternalMortalityRow[]; lastUpdated?: string }) {
   const byRace = new Map<string, number>();
   for (const row of data) {
     if (row.raceEthnicity && row.raceEthnicity !== "All" && row.raceEthnicity !== "Unknown") {
@@ -81,6 +82,7 @@ export function MaternalMortalityRaceChart({ data }: { data: MaternalMortalityRo
       title="Pregnancy-Related Deaths by Race/Ethnicity"
       subtitle="NYC · 2016–2017 · Stark disparities persist"
       tag="LIVE"
+      lastUpdated={lastUpdated}
       whyItMatters="Black women in NYC face pregnancy-related death rates 8–12x higher than white women. Structural racism and unequal prenatal care access drive this crisis."
     >
       <ResponsiveContainer width="100%" height="100%">
@@ -105,12 +107,13 @@ export function MaternalMortalityRaceChart({ data }: { data: MaternalMortalityRo
 
 // ─── C-Section Rate by Borough ──────────────────────────────────────────────
 
-export function CSectionChart({ data }: { data: CSectionRow[] }) {
+export function CSectionChart({ data, lastUpdated }: { data: CSectionRow[]; lastUpdated?: string }) {
   return (
     <ChartCard
       title="C-Section Rate by Borough"
       subtitle="% of live births delivered via cesarean section · NY State DOH"
       tag="LIVE"
+      lastUpdated={lastUpdated}
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barGap={4}>
@@ -135,12 +138,13 @@ export function CSectionChart({ data }: { data: CSectionRow[] }) {
 
 // ─── Infant Mortality by Race/Ethnicity ─────────────────────────────────────
 
-export function InfantMortalityChart({ data }: { data: InfantMortalityRow[] }) {
+export function InfantMortalityChart({ data, lastUpdated }: { data: InfantMortalityRow[]; lastUpdated?: string }) {
   return (
     <ChartCard
       title="Infant Mortality Rate by Maternal Race/Ethnicity"
       subtitle="Deaths per 1,000 live births · NYC DOHMH"
       tag="LIVE"
+      lastUpdated={lastUpdated}
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barGap={4}>

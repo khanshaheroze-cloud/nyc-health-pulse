@@ -83,7 +83,9 @@ export default async function NeighborhoodPage({ params }: Props) {
   const pm25Color = pm25Live > 7.5 ? "orange" as const : pm25Live > 7.0 ? "yellow" as const : "green" as const;
   const pm25Tag   = livePm25 ? (livePm25.period.match(/\d{4}/)?.[0] ?? "2023") : "2023";
 
-  const metrics: { label: string; value: string; sub: string; color: "red" | "green" | "blue" | "orange" | "cyan" | "purple" | "yellow"; tag?: string }[] = [
+  const liveAt = (hivRow || leadRow || heatRow) ? new Date().toISOString() : undefined;
+
+  const metrics: { label: string; value: string; sub: string; color: "red" | "green" | "blue" | "orange" | "cyan" | "purple" | "yellow"; tag?: string; lastUpdated?: string }[] = [
     {
       label: "Asthma ED Rate",
       value: `${m.asthmaED}`,
@@ -167,6 +169,7 @@ export default async function NeighborhoodPage({ params }: Props) {
       sub: `per 100K · ${hivRow.diagnoses} new diagnoses · NYC DOHMH`,
       color: hivRow.rate > 30 ? "red" : hivRow.rate > 15 ? "orange" : "blue",
       tag: "LIVE",
+      lastUpdated: liveAt,
     });
   }
   if (leadRow) {
@@ -176,6 +179,7 @@ export default async function NeighborhoodPage({ params }: Props) {
       sub: `children <6 with elevated BLL (≥5 μg/dL) · DOHMH`,
       color: leadRow.pct > 3 ? "red" : leadRow.pct > 1.5 ? "orange" : "green",
       tag: "LIVE",
+      lastUpdated: liveAt,
     });
   }
   if (heatRow) {
@@ -185,6 +189,7 @@ export default async function NeighborhoodPage({ params }: Props) {
       sub: `NYC Heat Vulnerability Index · 1=low, 5=very high`,
       color: heatRow.score >= 4 ? "red" : heatRow.score >= 3 ? "orange" : "green",
       tag: "LIVE",
+      lastUpdated: liveAt,
     });
   }
 
@@ -330,8 +335,8 @@ export default async function NeighborhoodPage({ params }: Props) {
 
       {/* KPI metrics grid */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-2.5 mb-6 animate-fade-in-up stagger-3">
-        {metrics.map(({ label, value, sub, color: c, tag }) => (
-          <KPICard key={label} label={label} value={value} sub={sub} color={c} tag={tag} />
+        {metrics.map(({ label, value, sub, color: c, tag, lastUpdated: lu }) => (
+          <KPICard key={label} label={label} value={value} sub={sub} color={c} tag={tag} lastUpdated={lu} />
         ))}
       </div>
 

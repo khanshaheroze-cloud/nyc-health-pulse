@@ -255,7 +255,7 @@ export function MentalHealthEdTrendChart() {
 
 // ─── Leading Causes of Death (live) ───────────────────────────────────────────
 
-export function LeadingCausesChart({ data }: { data: CauseOfDeath[] }) {
+export function LeadingCausesChart({ data, lastUpdated }: { data: CauseOfDeath[]; lastUpdated?: string }) {
   return (
     <ChartCard
       title="Leading Causes of Death — NYC"
@@ -263,6 +263,7 @@ export function LeadingCausesChart({ data }: { data: CauseOfDeath[] }) {
       fullWidth
       tall
       tag="LIVE"
+      lastUpdated={lastUpdated}
       whyItMatters="Heart disease and cancer account for over half of all NYC deaths. Many of these deaths are preventable with early screening and lifestyle changes."
     >
       <ResponsiveContainer width="100%" height="100%">
@@ -287,12 +288,13 @@ export function LeadingCausesChart({ data }: { data: CauseOfDeath[] }) {
 
 // ─── HIV by Borough (live) ─────────────────────────────────────────────────────
 
-export function HivByBoroughChart({ data }: { data: HivBoroughRow[] }) {
+export function HivByBoroughChart({ data, lastUpdated }: { data: HivBoroughRow[]; lastUpdated?: string }) {
   return (
     <ChartCard
       title="HIV Diagnoses by Borough"
       subtitle="Rate per 100,000 population · NYC DOHMH HIV Surveillance"
       tag="LIVE"
+      lastUpdated={lastUpdated}
       whyItMatters="NYC still has the highest HIV rate of any US city. Free testing is available at any NYC Health + Hospitals location."
     >
       <ResponsiveContainer width="100%" height="100%">
@@ -317,7 +319,7 @@ export function HivByBoroughChart({ data }: { data: HivBoroughRow[] }) {
 
 // ─── CDC PLACES Live — Outcomes by Borough ────────────────────────────────────
 
-export function CdcPlacesOutcomesChart({ data }: { data: CdcPlacesBorough[] }) {
+export function CdcPlacesOutcomesChart({ data, lastUpdated }: { data: CdcPlacesBorough[]; lastUpdated?: string }) {
   const chartData = data.map(d => ({
     borough:    d.borough,
     "Obesity":    d.obesity    ?? 0,
@@ -341,6 +343,7 @@ export function CdcPlacesOutcomesChart({ data }: { data: CdcPlacesBorough[] }) {
       subtitle="Age-adjusted prevalence % · CDC PLACES 2025 release · BRFSS county estimates"
       fullWidth
       tag="LIVE"
+      lastUpdated={lastUpdated}
       whyItMatters="These rates directly affect your neighbors' quality of life and local hospital wait times. The Bronx has nearly double Manhattan's obesity and diabetes rates."
     >
       <ResponsiveContainer width="100%" height="100%">
@@ -362,7 +365,7 @@ export function CdcPlacesOutcomesChart({ data }: { data: CdcPlacesBorough[] }) {
   );
 }
 
-export function CdcPlacesBehaviorsChart({ data }: { data: CdcPlacesBorough[] }) {
+export function CdcPlacesBehaviorsChart({ data, lastUpdated }: { data: CdcPlacesBorough[]; lastUpdated?: string }) {
   const chartData = data.map(d => ({
     borough:    d.borough,
     "Smoking":    d.smoking    ?? 0,
@@ -381,6 +384,7 @@ export function CdcPlacesBehaviorsChart({ data }: { data: CdcPlacesBorough[] }) 
       title="Health Risk Behaviors by Borough"
       subtitle="Age-adjusted prevalence % · CDC PLACES 2025 release · BRFSS county estimates"
       tag="LIVE"
+      lastUpdated={lastUpdated}
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} barGap={2}>

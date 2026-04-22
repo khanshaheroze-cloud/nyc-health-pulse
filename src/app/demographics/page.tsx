@@ -35,6 +35,8 @@ export default async function DemographicsPage() {
     fetchMedianIncomeByBorough(),
     fetchUninsuredByBorough(),
   ]);
+  const liveAt = new Date().toISOString();
+
   const raceData = liveRace ?? raceByBorough;
 
   // KPI computations
@@ -166,7 +168,7 @@ export default async function DemographicsPage() {
       {/* Race charts */}
       <ScrollReveal delay={100}>
       <div className="mb-3">
-        <RacePctByBoroughChart data={raceData} />
+        <RacePctByBoroughChart data={raceData} lastUpdated={liveAt} />
       </div>
       </ScrollReveal>
 
@@ -271,9 +273,9 @@ export default async function DemographicsPage() {
       {/* Poverty, Income & Uninsured */}
       {(poverty || income || uninsured) && (
         <div className={`grid grid-cols-1 gap-3 mb-3 ${poverty && income && uninsured ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
-          {poverty   && <PovertyByBoroughChart data={poverty} />}
-          {income    && <MedianIncomeChart data={income} />}
-          {uninsured && <UninsuredByBoroughChart data={uninsured} />}
+          {poverty   && <PovertyByBoroughChart data={poverty} lastUpdated={liveAt} />}
+          {income    && <MedianIncomeChart data={income} lastUpdated={liveAt} />}
+          {uninsured && <UninsuredByBoroughChart data={uninsured} lastUpdated={liveAt} />}
         </div>
       )}
 

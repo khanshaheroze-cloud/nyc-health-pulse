@@ -12,9 +12,17 @@ interface Conditions {
   aqi: number | null;
   tempF: number | null;
   weatherLabel: string | null;
+  uvIndex: number | null;
 }
 
-export function RunOutsideWidget() {
+interface RunOutsideWidgetProps {
+  /** Server-fetched AQI — used as initial value so homepage numbers stay consistent */
+  serverAqi?: number | null;
+  /** Server-fetched UV index */
+  serverUV?: number | null;
+}
+
+export function RunOutsideWidget({ serverAqi, serverUV }: RunOutsideWidgetProps = {}) {
   const [city, setCity] = useState<CityScore | null>(null);
   const [conditions, setConditions] = useState<Conditions | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -67,12 +75,17 @@ export function RunOutsideWidget() {
         )}
       </div>
 
-      {/* Quick stats */}
-      {conditions && (
-        <div className="flex gap-3 text-[11px] text-dim mb-4">
-          {conditions.tempF !== null && <span>🌡️ {conditions.tempF}°F</span>}
-          {conditions.aqi !== null && <span>🌬️ AQI {conditions.aqi}</span>}
-          {conditions.weatherLabel && <span>🌤️ {conditions.weatherLabel}</span>}
+      {/* Quick stats — prefer server-provided AQI/UV for homepage consistency */}
+      {(conditions || serverAqi != null) && (
+        <div className="flex flex-wrap gap-3 text-[11px] text-dim mb-4">
+          {(conditions?.tempF ?? null) !== null && <span>🌡️ {conditions!.tempF}°F</span>}
+          {(serverAqi ?? conditions?.aqi ?? null) !== null && (
+            <span data-aqi-source="server-unified">🌬️ AQI {serverAqi ?? conditions!.aqi}</span>
+          )}
+          {(serverUV ?? conditions?.uvIndex ?? null) !== null && (
+            <span>☀️ UV {serverUV ?? conditions!.uvIndex}</span>
+          )}
+          {conditions?.weatherLabel && <span>🌤️ {conditions.weatherLabel}</span>}
         </div>
       )}
 

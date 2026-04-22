@@ -5,6 +5,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { NearbyRestaurant } from "./NearbyFoodMap";
 import { getMarkerIcon, getDirectionsUrl } from "@/lib/cuisineTips";
+import { formatDistance, type DistanceUnit } from "@/lib/eat-smart/distance";
 
 /* ── Pin marker factory ────────────────────────────────────────────── */
 
@@ -43,9 +44,10 @@ interface Props {
   restaurants: NearbyRestaurant[];
   selectedIndex?: number | null;
   onMarkerClick?: (index: number) => void;
+  distanceUnit?: DistanceUnit;
 }
 
-export default function NearbyFoodMapImpl({ center, restaurants, selectedIndex, onMarkerClick }: Props) {
+export default function NearbyFoodMapImpl({ center, restaurants, selectedIndex, onMarkerClick, distanceUnit = "blocks" }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -133,7 +135,7 @@ export default function NearbyFoodMapImpl({ center, restaurants, selectedIndex, 
       const icon = getMarkerIcon(r.cuisine, r.chainSlug, r.isHealthy);
       const el = createPinMarker(icon, isChain);
 
-      const distMi = (r.distance / 1609.34).toFixed(2);
+      const distLabel = formatDistance(r.distance, distanceUnit);
 
       const gradeBadge = r.grade
         ? `<span style="margin-left:6px;padding:1px 5px;border-radius:4px;font-size:10px;font-weight:700;background:${
@@ -165,7 +167,7 @@ export default function NearbyFoodMapImpl({ center, restaurants, selectedIndex, 
       const popupHtml = `
         <div style="min-width:200px;max-width:280px;font-family:system-ui,-apple-system,sans-serif;">
           <p style="font-size:13px;font-weight:700;margin:0 0 2px;">${r.name}</p>
-          <p style="font-size:11px;color:#666;margin:0;">${r.cuisine} · ${distMi} mi${gradeBadge}</p>
+          <p style="font-size:11px;color:#666;margin:0;">${r.cuisine} · ${distLabel}${gradeBadge}</p>
           <p style="font-size:10px;color:#888;margin:4px 0 0;">${r.address}</p>
           ${extraHtml}
           <a href="${dirUrl}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;padding:7px 12px;border-radius:8px;background:#4A7C59;color:white;font-size:12px;font-weight:600;text-decoration:none;text-align:center;">🧭 Get Directions</a>
@@ -190,7 +192,7 @@ export default function NearbyFoodMapImpl({ center, restaurants, selectedIndex, 
       restaurants.forEach((r) => bounds.extend([r.lng, r.lat]));
       map.fitBounds(bounds, { padding: 50, maxZoom: 16 });
     }
-  }, [restaurants, center, mapReady]);
+  }, [restaurants, center, mapReady, distanceUnit]);
 
   // Fly to selected restaurant
   useEffect(() => {

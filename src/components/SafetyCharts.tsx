@@ -35,12 +35,13 @@ interface BoroughCrash {
   cyclistInjured: number;
 }
 
-export function CrashesByBoroughChart({ data }: { data: BoroughCrash[] }) {
+export function CrashesByBoroughChart({ data, lastUpdated }: { data: BoroughCrash[]; lastUpdated?: string }) {
   return (
     <ChartCard
       title="Crashes by Borough"
       subtitle="Total crashes + injuries · Last 12 months · NYPD"
       tag="LIVE"
+      lastUpdated={lastUpdated}
       whyItMatters="Brooklyn and Queens account for the most collisions, reflecting higher VMT and wider arterial networks."
     >
       <ResponsiveContainer width="100%" height="100%">
@@ -83,12 +84,13 @@ interface MonthlyTrend {
   killed: number;
 }
 
-export function CrashTrendChart({ data }: { data: MonthlyTrend[] }) {
+export function CrashTrendChart({ data, lastUpdated }: { data: MonthlyTrend[]; lastUpdated?: string }) {
   return (
     <ChartCard
       title="Monthly Crash Trend"
       subtitle="Crashes and fatalities · Last 24 months · NYPD"
       tag="LIVE"
+      lastUpdated={lastUpdated}
       whyItMatters="Summer months typically see more crashes due to higher traffic volume, construction, and outdoor activity."
     >
       <ResponsiveContainer width="100%" height="100%">
@@ -140,7 +142,7 @@ interface CrashFactor {
   count: number;
 }
 
-export function ContributingFactorsChart({ data }: { data: CrashFactor[] }) {
+export function ContributingFactorsChart({ data, lastUpdated }: { data: CrashFactor[]; lastUpdated?: string }) {
   // Shorten long factor names for readability
   const chartData = data.map((d) => ({
     ...d,
@@ -152,6 +154,7 @@ export function ContributingFactorsChart({ data }: { data: CrashFactor[] }) {
       title="Top Contributing Factors"
       subtitle="Most common cited factors · Last 12 months · NYPD"
       tag="LIVE"
+      lastUpdated={lastUpdated}
       tall
       whyItMatters="Driver inattention and failure to yield remain the leading causes, underscoring the need for traffic calming and enforcement."
     >

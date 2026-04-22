@@ -15,6 +15,7 @@ export const revalidate = 604800;
 
 export default async function FluPage() {
   const fluWw = await fetchFluWastewater();
+  const liveAt = new Date().toISOString();
 
   const jsonLd = datasetJsonLdString([
     {
@@ -76,7 +77,7 @@ export default async function FluPage() {
 
       {fluWw && fluWw.length > 0 && (
         <div className="mb-3">
-          <FluWastewaterChart data={fluWw} />
+          <FluWastewaterChart data={fluWw} lastUpdated={liveAt} />
         </div>
       )}
 

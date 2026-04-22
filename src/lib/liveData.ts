@@ -477,22 +477,35 @@ export async function fetchCitywideAirQuality(): Promise<{ pm25: number; period:
 
 export type AirNowAQI = { aqi: number; category: string; parameter: string; reportingArea: string };
 
+const AIRNOW_ZIPS = ["10001", "10451", "11201"]; // Manhattan, Bronx, Brooklyn — matches /api/airnow
+
 export async function fetchAirNowAQI(): Promise<AirNowAQI | null> {
   const key = process.env.AIRNOW_API_KEY;
   if (!key) return null;
   try {
-    const url = `${AIRNOW_BASE}?format=application/json&zipCode=10001&distance=15&API_KEY=${key}`;
-    const res = await fetchWithTimeout(url, { next: { revalidate: 3600 } });
-    if (!res.ok) return null;
-    const data = await res.json() as { AQI: number; Category: { Name: string }; ParameterName: string; ReportingArea: string }[];
-    // Find PM2.5 observation (preferred) or take first
-    const pm25 = data.find(d => d.ParameterName === "PM2.5") ?? data[0];
-    if (!pm25) return null;
+    const results = await Promise.all(
+      AIRNOW_ZIPS.map(zip =>
+        fetchWithTimeout(
+          `${AIRNOW_BASE}?format=application/json&zipCode=${zip}&distance=5&API_KEY=${key}`,
+          { next: { revalidate: 3600 } },
+        ).then(r => r.ok ? r.json() as Promise<{ AQI: number; Category: { Name: string }; ParameterName: string; ReportingArea: string }[]> : [])
+          .catch(() => [] as { AQI: number; Category: { Name: string }; ParameterName: string; ReportingArea: string }[])
+      )
+    );
+    const all = results.flat();
+    if (all.length === 0) return null;
+    const byParam = new Map<string, (typeof all)[0]>();
+    for (const obs of all) {
+      const existing = byParam.get(obs.ParameterName);
+      if (!existing || obs.AQI > existing.AQI) byParam.set(obs.ParameterName, obs);
+    }
+    const dominant = [...byParam.values()].sort((a, b) => b.AQI - a.AQI)[0];
+    if (!dominant) return null;
     return {
-      aqi: pm25.AQI,
-      category: pm25.Category?.Name ?? "Unknown",
-      parameter: pm25.ParameterName,
-      reportingArea: pm25.ReportingArea,
+      aqi: dominant.AQI,
+      category: dominant.Category?.Name ?? "Unknown",
+      parameter: dominant.ParameterName,
+      reportingArea: dominant.ReportingArea,
     };
   } catch { return null; }
 }

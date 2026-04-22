@@ -50,7 +50,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 // ─── Race / Ethnicity — stacked 100% bar ──────────────────────────────────────
 
-export function RacePctByBoroughChart({ data = STATIC_RACE }: { data?: RaceRow[] }) {
+export function RacePctByBoroughChart({ data = STATIC_RACE, lastUpdated }: { data?: RaceRow[]; lastUpdated?: string }) {
   const chartData = data.map(d => {
     const total = d.nhWhite + d.nhBlack + d.nhAsian + d.hispanic + d.other;
     const pct = (n: number) => parseFloat(((n / total) * 100).toFixed(1));
@@ -65,7 +65,7 @@ export function RacePctByBoroughChart({ data = STATIC_RACE }: { data?: RaceRow[]
   });
 
   return (
-    <ChartCard title="Race & Ethnicity by Borough" subtitle="% of borough population · ACS 2022" fullWidth tag="LIVE">
+    <ChartCard title="Race & Ethnicity by Borough" subtitle="% of borough population · ACS 2022" fullWidth tag="LIVE" lastUpdated={lastUpdated}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />
@@ -246,9 +246,9 @@ export function LifeExpByRaceChart({ data = STATIC_LIFE_EXP }: { data?: typeof S
 
 // ─── Poverty Rate by Borough (live Census ACS) ────────────────────────────────
 
-export function PovertyByBoroughChart({ data }: { data: { borough: string; pct: number }[] }) {
+export function PovertyByBoroughChart({ data, lastUpdated }: { data: { borough: string; pct: number }[]; lastUpdated?: string }) {
   return (
-    <ChartCard title="Poverty Rate by Borough" subtitle="% below federal poverty line · ACS 2022" tag="LIVE">
+    <ChartCard title="Poverty Rate by Borough" subtitle="% below federal poverty line · ACS 2022" tag="LIVE" lastUpdated={lastUpdated}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barGap={4}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />
@@ -267,9 +267,9 @@ export function PovertyByBoroughChart({ data }: { data: { borough: string; pct: 
 
 // ─── Median Household Income by Borough (live Census ACS) ─────────────────────
 
-export function MedianIncomeChart({ data }: { data: { borough: string; income: number }[] }) {
+export function MedianIncomeChart({ data, lastUpdated }: { data: { borough: string; income: number }[]; lastUpdated?: string }) {
   return (
-    <ChartCard title="Median Household Income by Borough" subtitle="Dollars · ACS 2022 5-year estimates" tag="LIVE">
+    <ChartCard title="Median Household Income by Borough" subtitle="Dollars · ACS 2022 5-year estimates" tag="LIVE" lastUpdated={lastUpdated}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barGap={4}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />
@@ -288,9 +288,9 @@ export function MedianIncomeChart({ data }: { data: { borough: string; income: n
 
 // ─── Uninsured Rate by Borough (live Census ACS S2701) ─────────────────────────
 
-export function UninsuredByBoroughChart({ data }: { data: { borough: string; pct: number; count: number }[] }) {
+export function UninsuredByBoroughChart({ data, lastUpdated }: { data: { borough: string; pct: number; count: number }[]; lastUpdated?: string }) {
   return (
-    <ChartCard title="Uninsured Rate by Borough" subtitle="% without health insurance · ACS 2022 5-year estimates" tag="LIVE">
+    <ChartCard title="Uninsured Rate by Borough" subtitle="% without health insurance · ACS 2022 5-year estimates" tag="LIVE" lastUpdated={lastUpdated}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barGap={4}>
           <CartesianGrid {...chartTheme.grid} vertical={false} />

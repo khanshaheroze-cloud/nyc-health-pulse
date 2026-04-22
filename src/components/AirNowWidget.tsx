@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CountUp } from "./CountUp";
 
 interface AqiObservation {
   ParameterName: string;
@@ -33,7 +34,31 @@ function aqiBg(category: number): string {
   return "rgba(167,139,250,.12)";
 }
 
-export function AirNowWidget() {
+function timeAgo(dateStr: string, hour: number): { text: string; stale: boolean } {
+  const parts = dateStr.split("/");
+  let observed: Date;
+  if (parts.length === 3) {
+    observed = new Date(+parts[2], +parts[0] - 1, +parts[1], hour);
+  } else {
+    observed = new Date(`${dateStr}T${String(hour).padStart(2, "0")}:00:00`);
+  }
+  const diffMs = Date.now() - observed.getTime();
+  if (diffMs < 0) return { text: "Just now", stale: false };
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 60) return { text: `Updated ${mins}m ago`, stale: false };
+  const hours = Math.floor(mins / 60);
+  const isStale = hours >= 2;
+  if (hours < 24) return { text: `Updated ${hours}h ago`, stale: isStale };
+  const days = Math.floor(hours / 24);
+  return { text: `Updated ${days}d ago`, stale: true };
+}
+
+interface AirNowWidgetProps {
+  serverAqi?: number | null;
+  serverCategory?: string | null;
+}
+
+export function AirNowWidget({ serverAqi, serverCategory }: AirNowWidgetProps = {}) {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +101,6 @@ export function AirNowWidget() {
     );
   }
 
-  // Deduplicate by parameter, take highest AQI per param
   const byParam = new Map<string, AqiObservation>();
   for (const obs of data.observations) {
     const existing = byParam.get(obs.ParameterName);
@@ -85,12 +109,17 @@ export function AirNowWidget() {
   const dominant = [...byParam.values()].sort((a, b) => b.AQI - a.AQI)[0];
   const { Category } = dominant;
 
+  const displayAqi = serverAqi ?? dominant.AQI;
+  const displayCategory = serverCategory ?? Category.Name;
+  const displayCatNum = serverAqi != null && serverAqi <= 50 ? 1 : serverAqi != null && serverAqi <= 100 ? 2 : serverAqi != null && serverAqi <= 150 ? 3 : Category.Number;
+  const freshness = timeAgo(dominant.DateObserved, dominant.HourObserved);
+
   return (
     <div
       className="rounded-3xl p-6 mb-4 border"
       style={{
-        background: aqiBg(Category.Number),
-        borderColor: aqiColor(Category.Number) + "44",
+        background: aqiBg(serverAqi != null ? displayCatNum : Category.Number),
+        borderColor: aqiColor(serverAqi != null ? displayCatNum : Category.Number) + "44",
       }}
     >
       <div className="flex items-start justify-between flex-wrap gap-3">
@@ -98,19 +127,26 @@ export function AirNowWidget() {
           <p className="text-[11px] font-bold uppercase tracking-widest text-dim mb-0.5">
             Live AQI — EPA AirNow
           </p>
-          <p className="text-[10px] text-muted mb-2">
-            {dominant.ReportingArea} · {dominant.DateObserved} {dominant.HourObserved}:00
-          </p>
+          <div className="flex items-center gap-2 mb-2">
+            <p className="text-[10px] text-muted">
+              {dominant.ReportingArea} · {freshness.text}
+            </p>
+            {freshness.stale && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border text-hp-yellow bg-hp-yellow/10 border-hp-yellow/20">
+                STALE
+              </span>
+            )}
+          </div>
           <div className="flex items-baseline gap-3">
             <span
               className="font-display font-bold text-5xl leading-none"
-              style={{ color: aqiColor(Category.Number) }}
+              style={{ color: aqiColor(serverAqi != null ? displayCatNum : Category.Number) }}
             >
-              {dominant.AQI}
+              <CountUp value={displayAqi} durationMs={700} storageKey="airnow-aqi" />
             </span>
             <div>
-              <p className="text-sm font-semibold" style={{ color: aqiColor(Category.Number) }}>
-                {Category.Name}
+              <p className="text-sm font-semibold" style={{ color: aqiColor(serverAqi != null ? displayCatNum : Category.Number) }}>
+                {displayCategory}
               </p>
               <p className="text-[11px] text-dim">Dominant: {dominant.ParameterName}</p>
             </div>
@@ -133,7 +169,7 @@ export function AirNowWidget() {
       </div>
 
       <p className="text-[10px] text-muted mt-3">
-        Updated hourly · AQI scale: 0–50 Good · 51–100 Moderate · 101–150 Unhealthy for Sensitive Groups · 151+ Unhealthy
+        {freshness.text} · AQI scale: 0–50 Good · 51–100 Moderate · 101–150 Unhealthy for Sensitive Groups · 151+ Unhealthy
       </p>
     </div>
   );
