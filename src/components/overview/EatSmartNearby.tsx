@@ -5,6 +5,13 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { CHAINS as EAT_SMART_CHAINS, getChainTopPicks } from "@/lib/eatSmartData";
 import { getHealthyTip, getMarkerIcon, getDirectionsUrl } from "@/lib/cuisineTips";
+import { getRestaurantMenu } from "@/lib/eat-smart/useRestaurantMenu";
+import { quickLogMenuItem, removeQuickLog } from "@/lib/eat-smart/quickLog";
+import { formatDistance } from "@/lib/eat-smart/distance";
+import { useDistanceUnit } from "@/lib/eat-smart/useDistanceUnit";
+import type { RestaurantMenu } from "@/lib/eat-smart/types";
+import { LazyMenuModal, preloadMenuModal } from "../eat-smart/LazyMenuModal";
+import { QuickLogToast } from "../eat-smart/QuickLogToast";
 import type { MiniMapRestaurant } from "./_EatSmartMiniMap";
 
 const MiniMapImpl = dynamic(() => import("./_EatSmartMiniMap"), { ssr: false });
@@ -41,6 +48,54 @@ export function EatSmartNearby() {
   const [mounted, setMounted] = useState(false);
   const [filter, setFilter] = useState<"all" | "chains" | "local">("all");
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [modalMenu, setModalMenu] = useState<{ menu: RestaurantMenu; distance?: string; grade?: string | null } | null>(null);
+  const [toastData, setToastData] = useState<{ itemName: string; restaurantName: string; calories: number; protein: number; logId: string } | null>(null);
+  const [distanceUnit] = useDistanceUnit();
+
+  // Listen for map popup button clicks (data-menu-open / data-quick-log)
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      const menuBtn = target.closest("[data-menu-open]") as HTMLElement | null;
+      const logBtn = target.closest("[data-quick-log]") as HTMLElement | null;
+
+      if (menuBtn) {
+        try {
+          const d = JSON.parse(menuBtn.getAttribute("data-menu-open") ?? "{}");
+          const menu = getRestaurantMenu(d.chainSlug, d.cuisine, d.name, d.name);
+          if (menu) setModalMenu({ menu, distance: d.distance, grade: d.grade });
+        } catch { /* ignore */ }
+      }
+
+      if (logBtn) {
+        try {
+          const d = JSON.parse(logBtn.getAttribute("data-quick-log") ?? "{}");
+          const menu = getRestaurantMenu(d.chainSlug, d.cuisine, d.name, d.name);
+          if (menu && menu.items.length > 0) {
+            const foodItems = menu.items.filter(i => !i.isDrink);
+            const topItem = [...(foodItems.length > 0 ? foodItems : menu.items)].sort((a, b) => b.pulseScore - a.pulseScore)[0];
+            const result = quickLogMenuItem({
+              item: topItem,
+              restaurantName: menu.restaurantName,
+              restaurantId: menu.restaurantId,
+              source: "map-quick-log",
+            });
+            logBtn.textContent = "✓ Logged";
+            logBtn.style.opacity = "0.7";
+            setToastData({
+              itemName: topItem.name,
+              restaurantName: menu.restaurantName,
+              calories: topItem.calories,
+              protein: topItem.protein,
+              logId: result.logId,
+            });
+          }
+        } catch { /* ignore */ }
+      }
+    }
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, []);
 
   const fetchNearby = useCallback(async (lat: number, lng: number) => {
     setLoading(true);
@@ -72,6 +127,7 @@ export function EatSmartNearby() {
       setResults(enriched);
       setUserLoc({ lat, lng });
       setHasLocation(true);
+      preloadMenuModal();
     } catch {
       // Fall back to showing top chain picks without map
       setHasLocation(false);
@@ -110,7 +166,7 @@ export function EatSmartNearby() {
 
   // Build map data
   const mapRestaurants: MiniMapRestaurant[] = results.slice(0, 30).map((r) => {
-    const distMi = (r.distance / 1609.34).toFixed(2);
+    const distLabel = formatDistance(r.distance, distanceUnit);
     let popupContent = "";
 
     if (r.isChain && r.bestPick) {
@@ -136,6 +192,7 @@ export function EatSmartNearby() {
       : "";
 
     const dirUrl = getDirectionsUrl(r.lat, r.lng, r.name);
+    const menuBtnData = JSON.stringify({ name: r.name, cuisine: r.cuisine, chainSlug: r.chainSlug, grade: r.grade, distance: distLabel }).replace(/"/g, "&quot;");
     return {
       name: r.name,
       cuisine: r.cuisine,
@@ -146,11 +203,15 @@ export function EatSmartNearby() {
       isChain: r.isChain,
       icon: r.icon,
       popupHtml: `
-        <div style="min-width:180px;font-family:system-ui,-apple-system,sans-serif;">
+        <div style="min-width:200px;font-family:system-ui,-apple-system,sans-serif;">
           <p style="font-size:13px;font-weight:700;margin:0 0 2px;">${r.name}</p>
-          <p style="font-size:11px;color:#666;margin:0;">${r.cuisine} · ${distMi} mi${gradeBadge}</p>
+          <p style="font-size:11px;color:#666;margin:0;">${r.cuisine} · ${distLabel}${gradeBadge}</p>
           ${popupContent}
-          <a href="${dirUrl}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;padding:6px 10px;border-radius:8px;background:#4A7C59;color:white;font-size:11px;font-weight:600;text-decoration:none;text-align:center;">🧭 Get Directions</a>
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <button data-menu-open="${menuBtnData}" style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid #ddd;background:white;color:#333;font-size:11px;font-weight:600;cursor:pointer;">See menu →</button>
+            <button data-quick-log="${menuBtnData}" style="flex:1;padding:6px 10px;border-radius:8px;border:none;background:#4A7C59;color:white;font-size:11px;font-weight:600;cursor:pointer;">+ I ate this</button>
+          </div>
+          <a href="${dirUrl}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px;padding:5px 10px;border-radius:8px;border:1px solid #e5e5e5;color:#666;font-size:10px;font-weight:500;text-decoration:none;text-align:center;">🧭 Directions</a>
         </div>
       `,
     };
@@ -352,6 +413,26 @@ export function EatSmartNearby() {
             </>
           )}
         </div>
+      )}
+
+      {/* Menu modal + undo toast (triggered from map popup buttons) */}
+      <LazyMenuModal
+        open={!!modalMenu}
+        menu={modalMenu?.menu ?? null}
+        distance={modalMenu?.distance}
+        grade={modalMenu?.grade}
+        onOpenChange={(o) => { if (!o) setModalMenu(null); }}
+      />
+      {toastData && (
+        <QuickLogToast
+          itemName={toastData.itemName}
+          restaurantName={toastData.restaurantName}
+          calories={toastData.calories}
+          protein={toastData.protein}
+          logId={toastData.logId}
+          onUndo={(logId) => { removeQuickLog(logId); setToastData(null); }}
+          onDismiss={() => setToastData(null)}
+        />
       )}
     </div>
   );

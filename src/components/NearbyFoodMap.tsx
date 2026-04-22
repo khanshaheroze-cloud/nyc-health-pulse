@@ -6,6 +6,13 @@ import Link from "next/link";
 import { CHAINS } from "@/lib/restaurantData";
 import { CHAINS as EAT_SMART_CHAINS, getChainTopPicks } from "@/lib/eatSmartData";
 import { getHealthyTip, getDirectionsUrl, type HealthyTip } from "@/lib/cuisineTips";
+import { getRestaurantMenu } from "@/lib/eat-smart/useRestaurantMenu";
+import { quickLogMenuItem, removeQuickLog } from "@/lib/eat-smart/quickLog";
+import { formatDistance } from "@/lib/eat-smart/distance";
+import { useDistanceUnit } from "@/lib/eat-smart/useDistanceUnit";
+import type { RestaurantMenu } from "@/lib/eat-smart/types";
+import { LazyMenuModal, preloadMenuModal } from "./eat-smart/LazyMenuModal";
+import { QuickLogToast } from "./eat-smart/QuickLogToast";
 
 const MapImpl = dynamic(() => import("./_NearbyFoodMapImpl"), { ssr: false });
 
@@ -37,6 +44,9 @@ export function NearbyFoodMap() {
   const [filter, setFilter] = useState<"all" | "chains" | "tips" | "gradeA">("all");
   const [showMap, setShowMap] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [modalMenu, setModalMenu] = useState<{ menu: RestaurantMenu; distance?: string; grade?: string | null } | null>(null);
+  const [toastData, setToastData] = useState<{ itemName: string; restaurantName: string; calories: number; protein: number; logId: string } | null>(null);
+  const [distanceUnit] = useDistanceUnit();
 
   const fetchNearby = useCallback(async (lat: number, lng: number) => {
     setLoading(true);
@@ -204,6 +214,7 @@ export function NearbyFoodMap() {
               restaurants={filtered}
               selectedIndex={selectedIdx}
               onMarkerClick={(i: number) => setSelectedIdx(i)}
+              distanceUnit={distanceUnit}
             />
             {/* Legend */}
             <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 shadow-sm border border-border/50 flex gap-3 z-10">
@@ -226,7 +237,7 @@ export function NearbyFoodMap() {
             )}
             {filtered.map((r, i) => {
               const chain = chainMatch(r.chainSlug);
-              const distMi = (r.distance / 1609.34).toFixed(2);
+              const distLabel = formatDistance(r.distance, distanceUnit);
               const dirUrl = getDirectionsUrl(r.lat, r.lng, r.name, r.address);
               return (
                 <div
@@ -254,7 +265,7 @@ export function NearbyFoodMap() {
                       )}
                     </div>
                     <p className="text-[10px] text-dim">
-                      {r.cuisine} · {distMi} mi · {r.address}
+                      {r.cuisine} · {distLabel} · {r.address}
                     </p>
 
                     {/* Chain best pick */}
@@ -274,14 +285,40 @@ export function NearbyFoodMap() {
                       </div>
                     )}
 
-                    {/* Directions + Full menu row */}
-                    <div className="flex items-center gap-2 mt-1.5">
+                    {/* Directions + Menu + Quick log row */}
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const menu = getRestaurantMenu(r.chainSlug, r.cuisine, r.name, r.name);
+                          if (menu) setModalMenu({ menu, distance: distLabel, grade: r.grade });
+                        }}
+                        onMouseEnter={preloadMenuModal}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-text bg-white border border-border rounded-full hover:bg-bg transition-colors"
+                      >
+                        See menu →
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const menu = getRestaurantMenu(r.chainSlug, r.cuisine, r.name, r.name);
+                          if (menu && menu.items.length > 0) {
+                            const foodItems = menu.items.filter(i => !i.isDrink);
+                            const topItem = [...(foodItems.length > 0 ? foodItems : menu.items)].sort((a, b) => b.pulseScore - a.pulseScore)[0];
+                            const result = quickLogMenuItem({ item: topItem, restaurantName: menu.restaurantName, restaurantId: menu.restaurantId, source: "map-quick-log" });
+                            setToastData({ itemName: topItem.name, restaurantName: menu.restaurantName, calories: topItem.calories, protein: topItem.protein, logId: result.logId });
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-white bg-accent rounded-full hover:bg-accent/90 transition-colors"
+                      >
+                        + I ate this
+                      </button>
                       <a
                         href={dirUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-accent bg-accent/5 rounded-full hover:bg-accent/10 transition-colors no-underline"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-dim bg-bg/50 border border-border/50 rounded-full hover:bg-bg transition-colors no-underline"
                       >
                         🧭 Directions
                       </a>
@@ -317,6 +354,26 @@ export function NearbyFoodMap() {
             </Link>
           </div>
         </div>
+      )}
+
+      {/* Menu modal + undo toast */}
+      <LazyMenuModal
+        open={!!modalMenu}
+        menu={modalMenu?.menu ?? null}
+        distance={modalMenu?.distance}
+        grade={modalMenu?.grade}
+        onOpenChange={(o) => { if (!o) setModalMenu(null); }}
+      />
+      {toastData && (
+        <QuickLogToast
+          itemName={toastData.itemName}
+          restaurantName={toastData.restaurantName}
+          calories={toastData.calories}
+          protein={toastData.protein}
+          logId={toastData.logId}
+          onUndo={(logId) => { removeQuickLog(logId); setToastData(null); }}
+          onDismiss={() => setToastData(null)}
+        />
       )}
     </div>
   );

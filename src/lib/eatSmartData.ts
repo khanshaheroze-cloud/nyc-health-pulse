@@ -29,42 +29,45 @@ export interface ChainData {
   swaps?: SmartSwap[];
 }
 
-/* ── PulseScore — protein-first scoring (0-100) ────────────────────── */
+/* ── PulseScore v2 — protein-first scoring (0-100) ─────────────────── */
 
 export function calculatePulseScore(item: MenuItem): number {
   let score = 0;
   const protein = item.protein ?? 0;
 
-  // Component 1: Protein Efficiency (0-50 pts)
-  // 10:1 rule — 1g protein per 10 cal is gold standard
+  // Protein efficiency (0-45)
   const ratio = protein > 0 ? item.calories / protein : Infinity;
-  if (ratio <= 10) score += 50;
-  else if (ratio <= 15) score += 40;
-  else if (ratio <= 20) score += 30;
-  else if (ratio <= 30) score += 20;
-  else if (ratio <= 50) score += 10;
+  if (ratio <= 10) score += 45;
+  else if (ratio <= 13) score += 38;
+  else if (ratio <= 17) score += 30;
+  else if (ratio <= 22) score += 20;
+  else if (ratio <= 35) score += 10;
 
-  // Component 2: Fiber Density (0-20 pts)
+  // Absolute protein bonus (0-10)
+  if (protein >= 40) score += 10;
+  else if (protein >= 30) score += 7;
+  else if (protein >= 20) score += 4;
+
+  // Fiber density (0-15)
   if (item.fiber != null && item.calories > 0) {
     const fiberPer100 = (item.fiber / item.calories) * 100;
-    if (fiberPer100 >= 3) score += 20;
-    else if (fiberPer100 >= 2) score += 15;
-    else if (fiberPer100 >= 1) score += 10;
-    else if (fiberPer100 >= 0.5) score += 5;
+    if (fiberPer100 >= 3) score += 15;
+    else if (fiberPer100 >= 2) score += 11;
+    else if (fiberPer100 >= 1) score += 7;
+    else if (fiberPer100 >= 0.5) score += 3;
   }
 
-  // Component 3: Calorie Reasonableness (0-20 pts)
-  if (item.calories <= 300) score += 20;
-  else if (item.calories <= 400) score += 15;
-  else if (item.calories <= 500) score += 12;
+  // Calorie reasonableness (0-15)
+  if (item.calories <= 300) score += 15;
+  else if (item.calories <= 450) score += 12;
   else if (item.calories <= 600) score += 8;
   else if (item.calories <= 800) score += 4;
 
-  // Component 4: Sodium Penalty (0 to -10 pts)
+  // Sodium penalty (0 to -10)
   if (item.sodium != null) {
-    if (item.sodium > 1500) score -= 10;
-    else if (item.sodium > 1000) score -= 5;
-    else if (item.sodium > 800) score -= 2;
+    if (item.sodium > 1800) score -= 10;
+    else if (item.sodium > 1200) score -= 6;
+    else if (item.sodium > 900) score -= 3;
   }
 
   return Math.max(0, Math.min(100, score));
