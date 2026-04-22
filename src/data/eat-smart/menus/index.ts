@@ -15,6 +15,7 @@ import { paneraMenu } from "./panera";
 import { pretMenu } from "./pret";
 import { dominosMenu } from "./dominos";
 import { jerseyMikesMenu } from "./jersey-mikes";
+import { bonchonMenu } from "./bonchon";
 
 /** All curated chain menus keyed by restaurantId (slug). */
 export const chainMenus: Record<string, RestaurantMenu> = {
@@ -33,6 +34,8 @@ export const chainMenus: Record<string, RestaurantMenu> = {
   pret: pretMenu,
   dominos: dominosMenu,
   "jersey-mikes": jerseyMikesMenu,
+  bonchon: bonchonMenu,
+  "bon-chon": bonchonMenu,
 };
 
 export const CHAIN_IDS = Object.keys(chainMenus);

@@ -29,32 +29,40 @@ export interface ChainData {
   swaps?: SmartSwap[];
 }
 
-/* ── PulseScore v2 — protein-first scoring (0-100) ─────────────────── */
+/* ── PulseScore v2.1 — protein-first scoring (0-100) ─────────────────── */
 
 export function calculatePulseScore(item: MenuItem): number {
   let score = 0;
   const protein = item.protein ?? 0;
 
-  // Protein efficiency (0-45)
+  // Protein efficiency (0-55)
   const ratio = protein > 0 ? item.calories / protein : Infinity;
-  if (ratio <= 10) score += 45;
-  else if (ratio <= 13) score += 38;
-  else if (ratio <= 17) score += 30;
-  else if (ratio <= 22) score += 20;
-  else if (ratio <= 35) score += 10;
+  if (ratio <= 7) score += 55;
+  else if (ratio <= 10) score += 50;
+  else if (ratio <= 14) score += 43;
+  else if (ratio <= 18) score += 32;
+  else if (ratio <= 25) score += 20;
+  else if (ratio <= 35) score += 12;
 
-  // Absolute protein bonus (0-10)
-  if (protein >= 40) score += 10;
-  else if (protein >= 30) score += 7;
-  else if (protein >= 20) score += 4;
+  // Protein density bonus (0-8)
+  const protCalPct = item.calories > 0 ? (protein * 4 / item.calories) * 100 : 0;
+  if (protCalPct >= 55) score += 8;
+  else if (protCalPct >= 35) score += 5;
+  else if (protCalPct >= 22) score += 2;
 
-  // Fiber density (0-15)
+  // Absolute protein (0-15)
+  if (protein >= 40) score += 15;
+  else if (protein >= 30) score += 12;
+  else if (protein >= 20) score += 6;
+  else if (protein >= 10) score += 3;
+
+  // Fiber density (0-18)
   if (item.fiber != null && item.calories > 0) {
     const fiberPer100 = (item.fiber / item.calories) * 100;
-    if (fiberPer100 >= 3) score += 15;
-    else if (fiberPer100 >= 2) score += 11;
-    else if (fiberPer100 >= 1) score += 7;
-    else if (fiberPer100 >= 0.5) score += 3;
+    if (fiberPer100 >= 2.5) score += 18;
+    else if (fiberPer100 >= 1.5) score += 14;
+    else if (fiberPer100 >= 0.8) score += 10;
+    else if (fiberPer100 >= 0.4) score += 4;
   }
 
   // Calorie reasonableness (0-15)
@@ -63,11 +71,11 @@ export function calculatePulseScore(item: MenuItem): number {
   else if (item.calories <= 600) score += 8;
   else if (item.calories <= 800) score += 4;
 
-  // Sodium penalty (0 to -10)
+  // Sodium penalty
   if (item.sodium != null) {
-    if (item.sodium > 1800) score -= 10;
-    else if (item.sodium > 1200) score -= 6;
-    else if (item.sodium > 900) score -= 3;
+    if (item.sodium > 1800) score -= 6;
+    else if (item.sodium > 1500) score -= 3;
+    else if (item.sodium > 1200) score -= 1;
   }
 
   return Math.max(0, Math.min(100, score));

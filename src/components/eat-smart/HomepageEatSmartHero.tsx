@@ -189,7 +189,8 @@ export function HomepageEatSmartHero() {
 
   // Filter cards based on active tab
   const displayCards = useMemo(() => {
-    if (!hasLocation) return cards.slice(0, 3);
+    // No geolocation: regenerate fallback cards per tab
+    if (!hasLocation) return getFallbackCards(activeTab).slice(0, 3);
 
     let filtered: EnrichedCard[];
     if (activeTab === "coffee") {

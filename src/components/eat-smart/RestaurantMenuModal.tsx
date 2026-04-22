@@ -64,15 +64,17 @@ export function RestaurantMenuModal({ menu, distance, grade, tabContext, open, o
       ? activeItems
       : activeItems.filter(i => i.category === activeCategory);
 
-    // Sort: best pick first, then middle-ground second, then by score
-    // Drinks use drinkScore, food uses pulseScore
+    // Sort: best pick pinned #1, then food by PulseScore, then drinks by DrinkScore
+    // In the "drinks" category tab, all items are drinks so the food/drink split is moot
+    const isDrinksTab = activeCategory === "drinks";
     return [...items].sort((a, b) => {
       if (a.isBestPick && !b.isBestPick) return -1;
       if (!a.isBestPick && b.isBestPick) return 1;
-      const aMG = a.isMiddleGround;
-      const bMG = b.isMiddleGround;
-      if (aMG && !bMG) return -1;
-      if (!aMG && bMG) return 1;
+      // In "all" tab: food above drinks (scores aren't comparable)
+      if (!isDrinksTab) {
+        if (!a.isDrink && b.isDrink) return -1;
+        if (a.isDrink && !b.isDrink) return 1;
+      }
       const aScore = a.isDrink ? (a.drinkScore ?? a.pulseScore) : a.pulseScore;
       const bScore = b.isDrink ? (b.drinkScore ?? b.pulseScore) : b.pulseScore;
       return bScore - aScore;
