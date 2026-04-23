@@ -44,7 +44,7 @@ export function OverviewBoroughCharts({ chronicOutcomes, inactivityData }: Props
               <YAxis {...chartTheme.axis} unit="%" />
               <Tooltip
                 {...chartTheme.tooltip}
-                formatter={(v: number | undefined) => v != null ? [`${v}%`] : [""]}
+                formatter={(v: any) => v != null ? [`${v}%`] : [""]}
               />
               <Legend wrapperStyle={{ fontSize: 10, paddingTop: 4 }} iconSize={8} />
               {boroughs.map((b, i) => (
@@ -72,7 +72,7 @@ export function OverviewBoroughCharts({ chronicOutcomes, inactivityData }: Props
               <YAxis type="category" dataKey="borough" {...chartTheme.axis} width={80} tick={{ ...chartTheme.axis.tick, fontSize: 11 }} />
               <Tooltip
                 {...chartTheme.tooltip}
-                formatter={(v: number | undefined) => v != null ? [`${v}%`, "Inactive"] : [""]}
+                formatter={(v: any) => v != null ? [`${v}%`, "Inactive"] : [""]}
               />
               <ReferenceLine x={28.8} stroke="#f59e42" strokeDasharray="4 3" label={{ value: "NYC avg", position: "top", fontSize: 9, fill: "#f59e42" }} />
               <Bar dataKey="pct" radius={[0, 4, 4, 0]}>

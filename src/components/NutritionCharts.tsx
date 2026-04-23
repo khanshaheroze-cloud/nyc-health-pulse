@@ -35,7 +35,7 @@ export function VitaminDChart() {
           <YAxis type="category" dataKey="group" width={160} {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v}%`, "Deficient"] : [""]}
+            formatter={(v: any) => v != null ? [`${v}%`, "Deficient"] : [""]}
           />
           <Bar dataKey="deficient" name="Vitamin D Deficient" radius={[0, 3, 3, 0]}>
             {vitaminDByRace.map((entry) => (
@@ -72,7 +72,7 @@ export function DeficiencyRiskChart() {
           <YAxis type="category" dataKey="group" width={180} {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined, _name: string | undefined, props: { payload?: { nutrient?: string } }) =>
+            formatter={(v: any, _name: any, props: { payload?: { nutrient?: string } }) =>
               v != null ? [`${v}%`, props.payload?.nutrient ?? "Deficiency risk"] : [""]
             }
           />

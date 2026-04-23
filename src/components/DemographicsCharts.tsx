@@ -73,7 +73,7 @@ export function RacePctByBoroughChart({ data = STATIC_RACE, lastUpdated }: { dat
           <YAxis {...chartTheme.axis} tickFormatter={v => `${v}%`} domain={[0, 100]} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(value: number | undefined) => [`${value}%`]}
+            formatter={(value: any) => [`${value}%`]}
           />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
           {(Object.keys(RACE_COLORS) as (keyof typeof RACE_COLORS)[]).map(key => (
@@ -142,7 +142,7 @@ export function AsianSubgroupsChart({ data = STATIC_ASIAN }: { data?: typeof STA
           <YAxis type="category" dataKey="group" {...chartTheme.axis} width={130} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(value: number | undefined) => [value?.toLocaleString() ?? "—", "Population"]}
+            formatter={(value: any) => [value?.toLocaleString() ?? "—", "Population"]}
           />
           <Bar dataKey="count" radius={[0, 3, 3, 0]}>
             {sorted.map((entry, i) => (
@@ -176,7 +176,7 @@ export function AgeByBoroughChart({ data = STATIC_AGE }: { data?: typeof STATIC_
           <YAxis {...chartTheme.axis} tickFormatter={v => `${v}%`} domain={[0, 100]} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(value: number | undefined) => [`${value}%`]}
+            formatter={(value: any) => [`${value}%`]}
           />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
           {(Object.keys(AGE_COLORS) as (keyof typeof AGE_COLORS)[]).map(key => (
@@ -200,7 +200,7 @@ export function HealthDisparitiesChart({ data = STATIC_DISPARITIES }: { data?: t
           <YAxis {...chartTheme.axis} tickFormatter={v => `${v}%`} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(value: number | undefined) => [`${value}%`]}
+            formatter={(value: any) => [`${value}%`]}
           />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
           {(Object.keys(DISPARITY_COLORS) as (keyof typeof DISPARITY_COLORS)[]).map((key, i) => (
@@ -231,7 +231,7 @@ export function LifeExpByRaceChart({ data = STATIC_LIFE_EXP }: { data?: typeof S
           <YAxis type="category" dataKey="group" {...chartTheme.axis} width={80} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(value: number | undefined) => [`${value} years`, "Life Expectancy"]}
+            formatter={(value: any) => [`${value} years`, "Life Expectancy"]}
           />
           <Bar dataKey="years" radius={[0, 3, 3, 0]}>
             {data.map((entry, i) => (
@@ -256,7 +256,7 @@ export function PovertyByBoroughChart({ data, lastUpdated }: { data: { borough: 
           <YAxis {...chartTheme.axis} unit="%" domain={[0, 35]} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v}%`, "Poverty rate"] : [""]}
+            formatter={(v: any) => v != null ? [`${v}%`, "Poverty rate"] : [""]}
           />
           <Bar dataKey="pct" name="Poverty %" fill="#f07070cc" radius={[3, 3, 0, 0]} />
         </BarChart>
@@ -277,7 +277,7 @@ export function MedianIncomeChart({ data, lastUpdated }: { data: { borough: stri
           <YAxis {...chartTheme.axis} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}K`} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`$${(v as number).toLocaleString()}`, "Median income"] : [""]}
+            formatter={(v: any) => v != null ? [`$${(v as number).toLocaleString()}`, "Median income"] : [""]}
           />
           <Bar dataKey="income" name="Median Income" fill="#5b9cf5cc" radius={[3, 3, 0, 0]} />
         </BarChart>
@@ -298,7 +298,7 @@ export function UninsuredByBoroughChart({ data, lastUpdated }: { data: { borough
           <YAxis {...chartTheme.axis} unit="%" domain={[0, 12]} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined, name: string | undefined) =>
+            formatter={(v: any, name: any) =>
               v != null ? [name === "pct" ? `${v}%` : v.toLocaleString(), name === "pct" ? "Uninsured %" : "Uninsured count"] : [""]
             }
           />

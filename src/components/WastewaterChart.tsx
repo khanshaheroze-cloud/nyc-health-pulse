@@ -38,7 +38,7 @@ export function WastewaterTrendChart({ data, lastUpdated }: { data: WastewaterCi
           />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v.toLocaleString()} copies/L`, "Viral Load"] : [""]}
+            formatter={(v: any) => v != null ? [`${v.toLocaleString()} copies/L`, "Viral Load"] : [""]}
           />
           <Line
             type="monotone"

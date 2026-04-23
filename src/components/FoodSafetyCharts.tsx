@@ -82,7 +82,7 @@ export function GradeDistributionChart({ data }: { data?: GradeRow[] }) {
               <Cell key={entry.name} fill={entry.fill} />
             ))}
           </Pie>
-          <Tooltip {...chartTheme.tooltip} formatter={(v: number | undefined) => v != null ? [v, "Restaurants"] : [""]} />
+          <Tooltip {...chartTheme.tooltip} formatter={(v: any) => v != null ? [v, "Restaurants"] : [""]} />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
         </PieChart>
       </ResponsiveContainer>

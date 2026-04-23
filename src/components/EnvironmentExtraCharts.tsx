@@ -40,7 +40,7 @@ export function DogBiteChart({ data, lastUpdated }: { data: DogBiteByBorough[]; 
           <YAxis {...chartTheme.axis} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined, _name: string | undefined, props: { payload?: DogBiteByBorough }) => {
+            formatter={(v: any, _name: any, props: { payload?: DogBiteByBorough }) => {
               if (v == null) return [""];
               const breed = props.payload?.topBreed ?? "";
               return [`${v.toLocaleString()} reports${breed ? ` · Top breed: ${breed}` : ""}`, "Bites"];
@@ -79,7 +79,7 @@ export function EmsResponseChart({ data, lastUpdated }: { data: EmsResponseBorou
           <YAxis {...chartTheme.axis} unit=" min" />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined, _name: string | undefined, props: { payload?: typeof chartData[number] }) => {
+            formatter={(v: any, _name: any, props: { payload?: typeof chartData[number] }) => {
               if (v == null) return [""];
               const mins = Math.floor(v);
               const secs = Math.round((v - mins) * 60);
@@ -129,7 +129,7 @@ export function BeachWaterChart({ data, lastUpdated }: { data: BeachWaterRow[]; 
           />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined, _name: string | undefined, props: { payload?: BeachWaterRow }) => {
+            formatter={(v: any, _name: any, props: { payload?: BeachWaterRow }) => {
               if (v == null) return [""];
               const row = props.payload;
               const status = v > EPA_LIMIT ? "Above EPA limit" : "Within safe range";

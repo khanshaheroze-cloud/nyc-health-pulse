@@ -94,7 +94,7 @@ export function NoiseByTypeChart({ data = STATIC_NOISE_TYPE, lastUpdated }: { da
           </Pie>
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined, name: string | undefined) =>
+            formatter={(v: any, name: any) =>
               v != null ? [`${v} (${Math.round((v / total) * 100)}%)`, name] : [""]
             }
           />
@@ -115,7 +115,7 @@ export function FoodDesertChart() {
           <CartesianGrid {...chartTheme.grid} vertical={false} />
           <XAxis dataKey="borough" {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
           <YAxis domain={[0, 35]} {...chartTheme.axis} unit="%" />
-          <Tooltip {...chartTheme.tooltip} formatter={(v: number | undefined) => v != null ? [`${v}%`, "Low-access tracts"] : [""]} />
+          <Tooltip {...chartTheme.tooltip} formatter={(v: any) => v != null ? [`${v}%`, "Low-access tracts"] : [""]} />
           <Bar dataKey="pct" name="Low-Access %" fill={COLORS.orange + "cc"} radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>

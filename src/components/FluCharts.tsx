@@ -54,7 +54,7 @@ export function IliFullChart() {
           <YAxis {...chartTheme.axis} unit="%" />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v}%`] : [""]}
+            formatter={(v: any) => v != null ? [`${v}%`] : [""]}
           />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
           {iliLines.map(({ key, color, dash }) => (
@@ -95,7 +95,7 @@ export function FluVaccinationChart() {
           <YAxis type="category" dataKey="borough" width={90} {...chartTheme.axis} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v}%`, "Vaccination rate"] : [""]}
+            formatter={(v: any) => v != null ? [`${v}%`, "Vaccination rate"] : [""]}
           />
           <Bar dataKey="pct" name="Vaccination %" fill={COLORS.green + "cc"} radius={[0, 3, 3, 0]} />
         </BarChart>

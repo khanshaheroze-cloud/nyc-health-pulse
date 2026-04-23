@@ -47,7 +47,7 @@ export function MaternalMortalityCauseChart({ data, lastUpdated }: { data: Mater
           <YAxis type="category" dataKey="cause" width={140} {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [v, "Deaths"] : [""]}
+            formatter={(v: any) => v != null ? [v, "Deaths"] : [""]}
           />
           <Bar dataKey="deaths" name="Deaths" fill={COLORS.pink + "cc"} radius={[0, 3, 3, 0]} />
         </BarChart>
@@ -92,7 +92,7 @@ export function MaternalMortalityRaceChart({ data, lastUpdated }: { data: Matern
           <YAxis {...chartTheme.axis} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [v, "Deaths"] : [""]}
+            formatter={(v: any) => v != null ? [v, "Deaths"] : [""]}
           />
           <Bar dataKey="deaths" name="Deaths" radius={[3, 3, 0, 0]}>
             {chartData.map((entry) => (
@@ -122,7 +122,7 @@ export function CSectionChart({ data, lastUpdated }: { data: CSectionRow[]; last
           <YAxis {...chartTheme.axis} unit="%" domain={[0, 50]} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined, name: string | undefined) =>
+            formatter={(v: any, name: any) =>
               v != null
                 ? [name === "csectionPct" ? `${v}%` : v.toLocaleString(), name === "csectionPct" ? "C-Section %" : "Births"]
                 : [""]
@@ -153,7 +153,7 @@ export function InfantMortalityChart({ data, lastUpdated }: { data: InfantMortal
           <YAxis {...chartTheme.axis} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined, name: string | undefined) =>
+            formatter={(v: any, name: any) =>
               v != null
                 ? [`${v} per 1,000`, name === "infantRate" ? "Infant Mortality" : "Neonatal"]
                 : [""]

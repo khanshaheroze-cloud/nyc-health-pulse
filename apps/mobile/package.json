@@ -1,0 +1,43 @@
+{
+  "name": "pulsenyc-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "@pulsenyc/core": "workspace:*",
+    "@supabase/supabase-js": "^2.103.0",
+    "expo": "~53.0.0",
+    "expo-camera": "~16.1.0",
+    "expo-constants": "~17.1.0",
+    "expo-dev-client": "~5.1.0",
+    "expo-font": "~13.3.0",
+    "expo-linking": "~7.1.0",
+    "expo-location": "~18.1.0",
+    "expo-notifications": "~0.31.0",
+    "expo-router": "~5.0.0",
+    "expo-secure-store": "~14.1.0",
+    "expo-splash-screen": "~0.30.0",
+    "expo-status-bar": "~2.2.0",
+    "react": "19.0.0",
+    "react-native": "0.79.2",
+    "react-native-gesture-handler": "~2.24.0",
+    "react-native-maps": "1.20.1",
+    "react-native-reanimated": "~3.17.0",
+    "react-native-safe-area-context": "~5.4.0",
+    "react-native-screens": "~4.10.0",
+    "react-native-svg": "~15.11.0",
+    "@react-native-async-storage/async-storage": "2.1.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@types/react": "~19.0.0",
+    "typescript": "^5.7.0"
+  }
+}

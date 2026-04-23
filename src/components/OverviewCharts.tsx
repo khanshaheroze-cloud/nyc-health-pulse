@@ -119,7 +119,7 @@ export function IliChart() {
           <CartesianGrid {...chartTheme.grid} vertical={false} />
           <XAxis dataKey="week" {...chartTheme.axis} interval={2} />
           <YAxis {...chartTheme.axis} unit="%" />
-          <Tooltip {...chartTheme.tooltip} formatter={(v: number | undefined) => v != null ? `${v}%` : ""} />
+          <Tooltip {...chartTheme.tooltip} formatter={(v: any) => v != null ? `${v}%` : ""} />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
           {iliLines.map(({ key, color, dash }) => (
             <Line
@@ -159,7 +159,7 @@ export function ChronicChart() {
           <YAxis {...chartTheme.axis} unit="%" />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? `${v}%` : ""}
+            formatter={(v: any) => v != null ? `${v}%` : ""}
           />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
           {boroughs.map((b, i) => (

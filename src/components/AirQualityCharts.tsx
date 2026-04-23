@@ -46,7 +46,7 @@ export function Pm25NeighborhoodChart({ data }: { data?: Pm25Row[] }) {
           <YAxis type="category" dataKey="name" width={130} {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${Number(v).toFixed(1)} μg/m³`, "PM2.5"] : [""]}
+            formatter={(v: any) => v != null ? [`${Number(v).toFixed(1)} μg/m³`, "PM2.5"] : [""]}
           />
           <ReferenceLine x={5} stroke={COLORS.red + "66"} strokeDasharray="4 4" label={{ value: "WHO", fill: COLORS.red + "99", fontSize: 9, position: "insideTopRight" }} />
           <Bar dataKey="value" radius={[0, 3, 3, 0]}>
@@ -76,7 +76,7 @@ export function PollutantsByBoroughChart({ data }: { data?: PollutantRow[] }) {
           <CartesianGrid {...chartTheme.grid} vertical={false} />
           <XAxis dataKey="borough" {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
           <YAxis {...chartTheme.axis} />
-          <Tooltip {...chartTheme.tooltip} formatter={(v: number | undefined) => v != null ? Number(v).toFixed(1) : ""} />
+          <Tooltip {...chartTheme.tooltip} formatter={(v: any) => v != null ? Number(v).toFixed(1) : ""} />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
           <Bar dataKey="pm25" name="PM2.5" unit=" μg/m³" fill={COLORS.orange + "cc"} radius={[3, 3, 0, 0]} />
           <Bar dataKey="no2"  name="NO₂"   unit=" ppb"   fill={COLORS.red   + "cc"} radius={[3, 3, 0, 0]} />
@@ -101,7 +101,7 @@ export function Pm25TrendChart() {
           <CartesianGrid {...chartTheme.grid} vertical={false} />
           <XAxis dataKey="year" {...chartTheme.axis} />
           <YAxis domain={[4, 9]} {...chartTheme.axis} />
-          <Tooltip {...chartTheme.tooltip} formatter={(v: number | undefined) => v != null ? [`${Number(v).toFixed(1)} μg/m³`, "PM2.5"] : [""]} />
+          <Tooltip {...chartTheme.tooltip} formatter={(v: any) => v != null ? [`${Number(v).toFixed(1)} μg/m³`, "PM2.5"] : [""]} />
           <ReferenceLine
             y={5}
             stroke={COLORS.red + "66"}

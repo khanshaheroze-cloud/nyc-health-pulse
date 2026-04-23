@@ -178,7 +178,7 @@ export default function WeeklyTrends() {
                 fontSize: "13px",
                 boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               }}
-              formatter={(value: number | undefined) => [
+              formatter={(value: any) => [
                 `${Number(value ?? 0).toLocaleString()} ${config.unit}`,
                 config.label,
               ]}

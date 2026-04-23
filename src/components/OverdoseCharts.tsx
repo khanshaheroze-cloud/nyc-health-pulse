@@ -33,7 +33,7 @@ export function OverdoseTrendChart() {
           <YAxis domain={[1000, 3500]} {...chartTheme.axis} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [v.toLocaleString(), "Deaths"] : [""]}
+            formatter={(v: any) => v != null ? [v.toLocaleString(), "Deaths"] : [""]}
           />
           <Line
             type="monotone"
@@ -66,7 +66,7 @@ export function OverdoseBoroughChart() {
           <YAxis {...chartTheme.axis} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [v.toLocaleString(), "Deaths"] : [""]}
+            formatter={(v: any) => v != null ? [v.toLocaleString(), "Deaths"] : [""]}
           />
           <Bar dataKey="deaths" name="Deaths" fill={COLORS.yellow + "cc"} radius={[3, 3, 0, 0]} />
         </BarChart>
@@ -91,7 +91,7 @@ export function LeadTrendChart() {
           <YAxis domain={[0, 9]} {...chartTheme.axis} unit="%" />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v}%`, "Elevated BLL"] : [""]}
+            formatter={(v: any) => v != null ? [`${v}%`, "Elevated BLL"] : [""]}
           />
           <Line
             type="monotone"
@@ -124,7 +124,7 @@ export function LeadBoroughChart() {
           <YAxis domain={[0, 4]} {...chartTheme.axis} unit="%" />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v}%`, "Elevated BLL"] : [""]}
+            formatter={(v: any) => v != null ? [`${v}%`, "Elevated BLL"] : [""]}
           />
           <Bar dataKey="pct" name="Elevated BLL %" fill={COLORS.red + "cc"} radius={[3, 3, 0, 0]} />
         </BarChart>

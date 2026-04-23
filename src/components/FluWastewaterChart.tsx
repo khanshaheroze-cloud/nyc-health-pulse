@@ -45,7 +45,7 @@ export function FluWastewaterChart({ data, lastUpdated }: { data: FluWastewaterR
           />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) =>
+            formatter={(v: any) =>
               v != null ? [`${v.toLocaleString()} copies/L`, "Influenza A"] : [""]
             }
           />

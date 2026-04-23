@@ -57,7 +57,7 @@ export function CrashesByBoroughChart({ data, lastUpdated }: { data: BoroughCras
           />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined, name: string | undefined) => {
+            formatter={(v: any, name: any) => {
               if (v == null) return [""];
               return [v.toLocaleString("en-US"), name === "crashes" ? "Crashes" : "Injured"];
             }}
@@ -105,7 +105,7 @@ export function CrashTrendChart({ data, lastUpdated }: { data: MonthlyTrend[]; l
           <YAxis {...chartTheme.axis} tickFormatter={(v: number) => v.toLocaleString("en-US")} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined, name: string | undefined) => {
+            formatter={(v: any, name: any) => {
               if (v == null) return [""];
               return [v.toLocaleString("en-US"), name === "crashes" ? "Crashes" : "Fatalities"];
             }}
@@ -171,7 +171,7 @@ export function ContributingFactorsChart({ data, lastUpdated }: { data: CrashFac
           />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => {
+            formatter={(v: any) => {
               if (v == null) return [""];
               return [v.toLocaleString("en-US"), "Crashes"];
             }}

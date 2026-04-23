@@ -49,7 +49,7 @@ export function HealthOutcomesChart() {
           <YAxis {...chartTheme.axis} unit="%" />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v}%`] : [""]}
+            formatter={(v: any) => v != null ? [`${v}%`] : [""]}
           />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
           {boroughs.map((b, i) => (
@@ -77,7 +77,7 @@ export function HealthBehaviorsChart() {
           <YAxis {...chartTheme.axis} unit="%" />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v}%`] : [""]}
+            formatter={(v: any) => v != null ? [`${v}%`] : [""]}
           />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
           {boroughs.map((b, i) => (
@@ -110,7 +110,7 @@ export function ErCausesChart() {
           <YAxis type="category" dataKey="cause" width={150} {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [v.toLocaleString(), "Visits"] : [""]}
+            formatter={(v: any) => v != null ? [v.toLocaleString(), "Visits"] : [""]}
           />
           <Bar dataKey="visits" name="ER Visits" fill={COLORS.red + "cc"} radius={[0, 3, 3, 0]} />
         </BarChart>
@@ -135,7 +135,7 @@ export function AsthmaByBoroughChart() {
           <YAxis {...chartTheme.axis} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v} per 10K`] : [""]}
+            formatter={(v: any) => v != null ? [`${v} per 10K`] : [""]}
           />
           <Bar dataKey="rate" name="ED Rate" fill={COLORS.orange + "cc"} radius={[3, 3, 0, 0]} />
         </BarChart>
@@ -160,7 +160,7 @@ export function LifeExpectancyChart() {
           <YAxis domain={[75, 85]} {...chartTheme.axis} unit=" yr" />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v} years`] : [""]}
+            formatter={(v: any) => v != null ? [`${v} years`] : [""]}
           />
           <ReferenceLine y={82} stroke={COLORS.green + "55"} strokeDasharray="4 4" label={{ value: "NYC avg", fill: COLORS.green + "88", fontSize: 10 }} />
           <Bar dataKey="years" name="Life Expectancy" fill={COLORS.purple + "cc"} radius={[3, 3, 0, 0]} />
@@ -186,7 +186,7 @@ export function PreTermBirthChart() {
           <YAxis domain={[0, 15]} {...chartTheme.axis} unit="%" />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v}%`] : [""]}
+            formatter={(v: any) => v != null ? [`${v}%`] : [""]}
           />
           <Bar dataKey="pct" name="Preterm %" fill={COLORS.pink + "cc"} radius={[3, 3, 0, 0]} />
         </BarChart>
@@ -211,7 +211,7 @@ export function ChildhoodObesityChart() {
           <YAxis domain={[0, 60]} {...chartTheme.axis} unit="%" />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v}%`] : [""]}
+            formatter={(v: any) => v != null ? [`${v}%`] : [""]}
           />
           <Bar dataKey="pct" name="Obese/Overweight %" fill={COLORS.red + "cc"} radius={[3, 3, 0, 0]} />
         </BarChart>
@@ -236,7 +236,7 @@ export function MentalHealthEdTrendChart() {
           <YAxis domain={[280, 470]} {...chartTheme.axis} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v} per 100K`] : [""]}
+            formatter={(v: any) => v != null ? [`${v} per 100K`] : [""]}
           />
           <Line
             type="monotone"
@@ -277,7 +277,7 @@ export function LeadingCausesChart({ data, lastUpdated }: { data: CauseOfDeath[]
           <YAxis type="category" dataKey="cause" width={170} {...chartTheme.axis} tick={{ ...chartTheme.axis.tick, fontSize: 10 }} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [v.toLocaleString(), "Deaths"] : [""]}
+            formatter={(v: any) => v != null ? [v.toLocaleString(), "Deaths"] : [""]}
           />
           <Bar dataKey="deaths" name="Deaths" fill={COLORS.red + "cc"} radius={[0, 3, 3, 0]} />
         </BarChart>
@@ -304,7 +304,7 @@ export function HivByBoroughChart({ data, lastUpdated }: { data: HivBoroughRow[]
           <YAxis {...chartTheme.axis} />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined, name: string | undefined) =>
+            formatter={(v: any, name: any) =>
               v != null ? [name === "rate" ? `${v} per 100K` : v.toLocaleString(), name === "rate" ? "Rate" : "Diagnoses"] : [""]
             }
           />
@@ -353,7 +353,7 @@ export function CdcPlacesOutcomesChart({ data, lastUpdated }: { data: CdcPlacesB
           <YAxis {...chartTheme.axis} unit="%" />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v}%`] : [""]}
+            formatter={(v: any) => v != null ? [`${v}%`] : [""]}
           />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
           {(Object.keys(MEASURE_COLORS) as string[]).map(key => (
@@ -393,7 +393,7 @@ export function CdcPlacesBehaviorsChart({ data, lastUpdated }: { data: CdcPlaces
           <YAxis {...chartTheme.axis} unit="%" />
           <Tooltip
             {...chartTheme.tooltip}
-            formatter={(v: number | undefined) => v != null ? [`${v}%`] : [""]}
+            formatter={(v: any) => v != null ? [`${v}%`] : [""]}
           />
           <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconSize={10} />
           {(Object.keys(MEASURE_COLORS) as string[]).map(key => (
