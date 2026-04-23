@@ -3,7 +3,7 @@
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { ROUTES } from "@/lib/routes";
+import { ROUTES } from "@/lib/curatedRoutes";
 
 const BOROUGH_COLORS: Record<string, string> = {
   Manhattan: "#2850AD",

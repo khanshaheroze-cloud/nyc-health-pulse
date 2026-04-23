@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { Route } from "@/lib/routes";
-import { ROUTES } from "@/lib/routes";
+import type { Route } from "@/lib/curatedRoutes";
+import { ROUTES } from "@/lib/curatedRoutes";
 
 export type { Route };
 export { ROUTES };

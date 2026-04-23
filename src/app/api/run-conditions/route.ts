@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ROUTES } from "@/lib/routes";
+import { ROUTES } from "@/lib/curatedRoutes";
 import { scoreAllRoutes, cityRunScore, type RunConditions } from "@/lib/runScoring";
 import { fetchAirNowAQI, fetchWeatherUV, fetchPollenForecast } from "@/lib/liveData";
 

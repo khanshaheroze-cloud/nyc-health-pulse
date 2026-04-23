@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
-import type { Route } from "@/lib/routes";
+import type { Route } from "@/lib/curatedRoutes";
 import { HomepageWorkoutWidget } from "@/components/workout-tracker/HomepageWorkoutWidget";
 
 /* ── Count-up hook ─────────────────────────────────────────────────────── */

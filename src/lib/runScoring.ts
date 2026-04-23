@@ -5,7 +5,7 @@
  *   Air Quality (0-25), Street Safety (0-25), Scenery (0-25), Terrain (0-25)
  */
 
-import type { Route } from "./routes";
+import type { Route } from "./curatedRoutes";
 
 export interface RunConditions {
   aqi: number | null;
