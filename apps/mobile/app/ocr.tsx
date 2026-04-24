@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { calculateFoodPulseScore, type MenuItem } from "@pulsenyc/core";
+import { calculateFoodPulseScore, type MenuItem } from "../lib/core";
 import { apiFetch } from "../lib/api";
 
 interface ParsedMenuItem {

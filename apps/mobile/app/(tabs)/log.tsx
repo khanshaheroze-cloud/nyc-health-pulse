@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl,
 } from "react-native";
-import { calculateRemaining, type DailyLog, type LoggedFood, type NutritionGoals } from "@pulsenyc/core";
+import { calculateRemaining, type DailyLog, type LoggedFood, type NutritionGoals } from "../../lib/core";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { flushQueue } from "../../lib/offlineQueue";
 import { readHealthData, calculateCalorieBoost, type HealthData } from "../../lib/healthKit";

@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
-import { detectMealSlot, type MenuItem } from "@pulsenyc/core";
+import { detectMealSlot, type MenuItem } from "../../lib/core";
 import { apiFetch } from "../../lib/api";
 
 interface NearbyRestaurant {

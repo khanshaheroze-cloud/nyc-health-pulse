@@ -4,7 +4,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { calculateFoodPulseScore, detectMealSlot, type MenuItem } from "@pulsenyc/core";
+import { calculateFoodPulseScore, detectMealSlot, type MenuItem } from "../lib/core";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { enqueue } from "../lib/offlineQueue";
 
