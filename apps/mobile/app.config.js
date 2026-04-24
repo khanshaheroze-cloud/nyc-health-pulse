@@ -1,6 +1,4 @@
-import { ExpoConfig, ConfigContext } from "expo/config";
-
-export default ({ config }: ConfigContext): ExpoConfig => ({
+module.exports = ({ config }) => ({
   ...config,
   name: "Pulse NYC",
   slug: "pulsenyc",
