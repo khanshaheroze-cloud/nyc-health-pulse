@@ -114,35 +114,37 @@ async function readiOS(): Promise<HealthData | null> {
 
   const [energy, steps, hr, weight, workouts] = await Promise.all([
     new Promise<number>((resolve) => {
-      mod!.default.getActiveEnergyBurned(options, (err: string, results: { value: number }[]) => {
-        resolve(err ? 0 : results.reduce((sum, r) => sum + r.value, 0));
+      mod!.default.getActiveEnergyBurned(options, (err: string, results: any) => {
+        if (err || !Array.isArray(results)) return resolve(0);
+        resolve(results.reduce((sum: number, r: any) => sum + (r.value ?? 0), 0));
       });
     }),
     new Promise<number>((resolve) => {
-      mod!.default.getStepCount(options, (err: string, results: { value: number }[]) => {
-        resolve(err ? 0 : results.reduce((sum, r) => sum + r.value, 0));
+      mod!.default.getStepCount(options, (err: string, results: any) => {
+        if (err || !Array.isArray(results)) return resolve(0);
+        resolve(results.reduce((sum: number, r: any) => sum + (r.value ?? 0), 0));
       });
     }),
     new Promise<number | null>((resolve) => {
-      mod!.default.getHeartRateSamples(options, (err: string, results: { value: number }[]) => {
-        if (err || results.length === 0) return resolve(null);
-        resolve(Math.round(results.reduce((s, r) => s + r.value, 0) / results.length));
+      mod!.default.getHeartRateSamples(options, (err: string, results: any) => {
+        if (err || !Array.isArray(results) || results.length === 0) return resolve(null);
+        resolve(Math.round(results.reduce((s: number, r: any) => s + (r.value ?? 0), 0) / results.length));
       });
     }),
     new Promise<number | null>((resolve) => {
-      mod!.default.getLatestWeight(undefined, (err: string, results: { value: number }) => {
+      mod!.default.getLatestWeight({} as any, (err: string, results: any) => {
         resolve(err ? null : results?.value ?? null);
       });
     }),
     new Promise<WorkoutEntry[]>((resolve) => {
       mod!.default.getSamples({
         ...options,
-        type: mod!.default.Constants.Permissions.Workout,
-      }, (err: string, results: { activityName: string; duration: number; calories: number; start: string }[]) => {
-        if (err) return resolve([]);
-        resolve(results.map((w) => ({
+        type: mod!.default.Constants.Permissions.Workout as any,
+      }, (err: string, results: any) => {
+        if (err || !Array.isArray(results)) return resolve([]);
+        resolve(results.map((w: any) => ({
           type: w.activityName || "Workout",
-          durationMinutes: Math.round(w.duration / 60),
+          durationMinutes: Math.round((w.duration ?? 0) / 60),
           caloriesBurned: Math.round(w.calories || 0),
           date: w.start,
         })));
