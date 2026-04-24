@@ -33,7 +33,10 @@
     "react-native-safe-area-context": "~5.4.0",
     "react-native-screens": "~4.10.0",
     "react-native-svg": "~15.11.0",
-    "@react-native-async-storage/async-storage": "2.1.2"
+    "@react-native-async-storage/async-storage": "2.1.2",
+    "expo-device": "~7.1.0",
+    "react-native-health": "^1.19.0",
+    "react-native-health-connect": "^3.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",

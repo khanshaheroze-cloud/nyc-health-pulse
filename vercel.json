@@ -11,6 +11,18 @@
     {
       "path": "/api/eat-smart/menu-drift",
       "schedule": "0 6 * * 0"
+    },
+    {
+      "path": "/api/push/meal-nudge",
+      "schedule": "45 16 * * *"
+    },
+    {
+      "path": "/api/push/meal-nudge",
+      "schedule": "30 23 * * *"
+    },
+    {
+      "path": "/api/push/aqi-alert",
+      "schedule": "0 14 * * *"
     }
   ]
 }

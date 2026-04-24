@@ -23,6 +23,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       NSLocationWhenInUseUsageDescription: "Show healthy food options near your current location.",
       NSHealthShareUsageDescription: "Read your workouts so your macro budget adjusts with your training. We never write to your health data.",
     },
+    entitlements: {
+      "com.apple.developer.healthkit": true,
+      "com.apple.developer.healthkit.access": [],
+    },
   },
   android: {
     adaptiveIcon: {
@@ -57,6 +61,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         icon: "./assets/notification-icon.png",
         color: "#2dd4a0",
+      },
+    ],
+    [
+      "react-native-health-connect",
+      {
+        permissions: [
+          "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
+          "android.permission.health.READ_STEPS",
+          "android.permission.health.READ_HEART_RATE",
+          "android.permission.health.READ_WEIGHT",
+          "android.permission.health.READ_EXERCISE",
+        ],
       },
     ],
   ],

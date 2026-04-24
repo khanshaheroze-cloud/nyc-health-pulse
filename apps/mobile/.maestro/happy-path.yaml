@@ -1,0 +1,64 @@
+appId: app.pulsenyc.mobile
+name: "Happy Path: Sign In → Scan → Log → View"
+---
+
+# Launch app
+- launchApp
+
+# Sign in screen
+- tapOn: "Sign In"
+- tapOn:
+    id: "email-input"
+- inputText: "test@pulsenyc.app"
+- tapOn:
+    id: "password-input"
+- inputText: "TestPassword123!"
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+
+# We should be on the Eat Smart tab (home)
+- assertVisible: "Eat Smart Near You"
+
+# Navigate to Scan
+- tapOn: "Scan Barcode"
+- waitForAnimationToEnd
+
+# Camera permission will appear in real device
+# For CI, we handle the permission dialog:
+- runFlow:
+    when:
+      visible: "Allow Camera"
+    commands:
+      - tapOn: "Allow Camera"
+
+# Barcode scanner should be visible
+- assertVisible: "Point at a barcode"
+
+# Go back to main screen
+- tapOn: "✕"
+- waitForAnimationToEnd
+
+# Navigate to Log tab
+- tapOn: "Log"
+- waitForAnimationToEnd
+
+# Verify log screen
+- assertVisible: "Today's Log"
+- assertVisible: "Calories"
+- assertVisible: "Protein"
+
+# Navigate to Health tab
+- tapOn: "Health"
+- waitForAnimationToEnd
+
+# Verify neighborhood screen loads (may show loading or permission)
+- assertVisible:
+    anyOf:
+      - "Loading neighborhood data..."
+      - "Location needed"
+      - "Health Score"
+
+# Navigate to Profile tab
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- assertVisible: "test@pulsenyc.app"
