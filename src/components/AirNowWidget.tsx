@@ -47,7 +47,7 @@ function timeAgo(dateStr: string, hour: number): { text: string; stale: boolean 
   const mins = Math.floor(diffMs / 60000);
   if (mins < 60) return { text: `Updated ${mins}m ago`, stale: false };
   const hours = Math.floor(mins / 60);
-  const isStale = hours >= 2;
+  const isStale = hours >= 6;
   if (hours < 24) return { text: `Updated ${hours}h ago`, stale: isStale };
   const days = Math.floor(hours / 24);
   return { text: `Updated ${days}d ago`, stale: true };

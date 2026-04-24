@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CountUp } from "./CountUp";
 import type { HealthSubScore } from "@/lib/neighborhoodData";
 
 interface Props {
@@ -40,7 +41,7 @@ export function HealthScoreBreakdown({ grade, score, rank, gradeColor, subScores
           >
             {grade}
           </div>
-          <span className="text-[11px] font-semibold text-dim mt-1.5">{score}/100</span>
+          <span className="text-[11px] font-semibold text-dim mt-1.5"><CountUp value={score} durationMs={700} storageKey={`hs-${grade}`} />/100</span>
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[15px] font-bold text-text">

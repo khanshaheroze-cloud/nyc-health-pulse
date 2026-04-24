@@ -10,6 +10,7 @@ import { NeighborhoodRanking, type RankedNeighborhood } from "@/components/Neigh
 import { fetchRodentByBorough, fetchNoiseByBorough, fetchNeighborhoodPm25, fetchHivByNeighborhood, fetchLeadByNeighborhood, fetchHeatVulnerabilityByNeighborhood } from "@/lib/liveData";
 import { CHAINS } from "@/lib/eatSmartData";
 import { SubwayBullet, BOROUGH_LINE } from "@/components/SubwayBullet";
+import { CountUp } from "@/components/CountUp";
 
 export const revalidate = 3600;
 
@@ -287,7 +288,7 @@ export default async function NeighborhoodPage({ params }: Props) {
             >
               {moveScore.grade}
             </div>
-            <span className="text-[11px] font-semibold text-dim mt-1.5">{moveScore.score}/100</span>
+            <span className="text-[11px] font-semibold text-dim mt-1.5"><CountUp value={moveScore.score} durationMs={700} storageKey={`ms-${moveScore.grade}`} />/100</span>
           </div>
           <div className="min-w-0">
             <p className="text-[15px] font-bold text-text">

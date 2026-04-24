@@ -68,6 +68,31 @@ function getRecommendations(aqi: number): string[] {
   ];
 }
 
+/* ── Animated decimal value ──────────────────── */
+function CountUpValue({ value, decimals = 1 }: { value: number; decimals?: number }) {
+  const safeVal = isNaN(value) ? 0 : value;
+  const [display, setDisplay] = useState(safeVal.toFixed(decimals));
+  const prevRef = useRef(safeVal);
+  const rafRef2 = useRef<number>(0);
+
+  useEffect(() => {
+    if (safeVal === prevRef.current) return;
+    const from = prevRef.current;
+    prevRef.current = safeVal;
+    const startTime = performance.now();
+    function step(now: number) {
+      const p = Math.min((now - startTime) / 800, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplay((from + (safeVal - from) * eased).toFixed(decimals));
+      if (p < 1) rafRef2.current = requestAnimationFrame(step);
+    }
+    rafRef2.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef2.current);
+  }, [safeVal, decimals]);
+
+  return <>{display}</>;
+}
+
 /* ── Pollutant data ──────────────────────────── */
 interface PollutantInfo {
   name: string;
@@ -194,7 +219,7 @@ export function AirQualityHero({ aqi, category, pm25, no2, o3, period }: AirQual
                 <span className="text-[13px] font-bold text-text">{p.name}</span>
               </div>
               <p className="font-display text-[28px] font-bold leading-none" style={{ color: p.color }}>
-                {p.value.toFixed(1)}
+                <CountUpValue value={p.value} decimals={1} />
                 <span className="text-[13px] font-sans font-normal text-muted ml-1">{p.unit}</span>
               </p>
               {/* Bar indicator */}
