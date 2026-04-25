@@ -7,18 +7,23 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "pnpm": "10.33.1",
       "ios": {
         "simulator": true
       }
     },
     "preview": {
       "distribution": "internal",
+      "pnpm": "10.33.1",
+      "prebuildCommand": "cd ../.. && pnpm install && cd apps/mobile",
       "ios": {
         "simulator": false
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "pnpm": "10.33.1",
+      "prebuildCommand": "cd ../.. && pnpm install && cd apps/mobile"
     }
   },
   "submit": {
