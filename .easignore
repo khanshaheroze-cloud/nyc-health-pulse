@@ -1,17 +1,8 @@
-# Web app source (not needed for mobile build)
-src
-public
-packages
+# Exclude everything at root level
+/*
 
-# Build artifacts & local deps
-node_modules
-.next
-
-# Capacitor (web-based mobile, not used for EAS)
-android
-ios
-
-# Monorepo config (avoid pnpm detection)
-pnpm-workspace.yaml
-pnpm-lock.yaml
-.npmrc
+# Keep apps/mobile
+!/apps
+/apps/*
+!/apps/mobile
+!/apps/mobile/**
