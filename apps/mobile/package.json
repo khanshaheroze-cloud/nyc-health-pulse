@@ -9,8 +9,7 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx",
-    "eas-build-pre-install": "corepack enable && corepack prepare pnpm@10.33.1 --activate",
-    "eas-build-post-install": "cd ../.. && corepack enable && pnpm install && cd apps/mobile && node scripts/inject-plugins.js"
+    "eas-build-post-install": "node scripts/inject-plugins.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.0",

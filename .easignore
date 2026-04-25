@@ -1,0 +1,10 @@
+src/
+public/
+packages/
+node_modules/
+.next/
+android/
+ios/
+pnpm-workspace.yaml
+pnpm-lock.yaml
+.npmrc
