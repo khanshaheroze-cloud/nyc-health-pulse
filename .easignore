@@ -1,10 +1,18 @@
-src/
-public/
-packages/
-node_modules/
-.next/
-android/
-ios/
-pnpm-workspace.yaml
-pnpm-lock.yaml
-.npmrc
+# Hide root package.json so EAS uses apps/mobile/package.json
+/package.json
+/pnpm-workspace.yaml
+/pnpm-lock.yaml
+/.npmrc
+
+# Web app source
+/src/
+/public/
+/packages/
+
+# Build artifacts
+/node_modules/
+/.next/
+
+# Capacitor (web-based mobile, not used for EAS)
+/android/
+/ios/
