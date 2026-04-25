@@ -1,6 +1,27 @@
 const fs = require("fs");
 const path = require("path");
 
+// Debug: what does EAS see?
+console.log("=== EAS DEBUG ===");
+console.log("cwd:", process.cwd());
+console.log("__dirname:", __dirname);
+console.log("node_modules exists:", fs.existsSync(path.join(process.cwd(), "node_modules")));
+console.log("expo exists:", fs.existsSync(path.join(process.cwd(), "node_modules", "expo")));
+console.log("package.json exists:", fs.existsSync(path.join(process.cwd(), "package.json")));
+try {
+  const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), "package.json"), "utf8"));
+  console.log("package name:", pkg.name);
+  console.log("has expo dep:", !!pkg.dependencies?.expo);
+} catch(e) { console.log("cant read package.json:", e.message); }
+// Check parent dirs
+console.log("parent package.json:", fs.existsSync(path.join(process.cwd(), "..", "..", "package.json")));
+console.log("parent node_modules:", fs.existsSync(path.join(process.cwd(), "..", "..", "node_modules")));
+try {
+  const files = fs.readdirSync(path.join(process.cwd(), "..",".."));
+  console.log("root dir files:", files.filter(f => !f.startsWith(".")).join(", "));
+} catch(e) { console.log("cant read root:", e.message); }
+console.log("=== END DEBUG ===");
+
 const appJsonPath = path.join(__dirname, "..", "app.json");
 const config = JSON.parse(fs.readFileSync(appJsonPath, "utf8"));
 

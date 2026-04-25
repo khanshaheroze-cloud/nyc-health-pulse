@@ -1,8 +1,2 @@
-# Exclude everything at root level
-/*
-
-# Keep apps/mobile
-!/apps
-/apps/*
-!/apps/mobile
-!/apps/mobile/**
+node_modules
+.next
