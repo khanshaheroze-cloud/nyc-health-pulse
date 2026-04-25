@@ -14,23 +14,32 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#2dd4a0",
-        tabBarInactiveTintColor: "#8ba89c",
+        tabBarActiveTintColor: "#4A7C59",
+        tabBarInactiveTintColor: "#8A918A",
         tabBarStyle: {
-          backgroundColor: "#ffffff",
-          borderTopColor: "#e2e8e4",
-          height: 85,
+          backgroundColor: "#FFFFFF",
+          borderTopWidth: 1,
+          borderTopColor: "#F0ECE6",
+          height: 88,
           paddingBottom: 28,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: "600",
+          fontFamily: "PlusJakartaSans_600SemiBold",
         },
       }}
     >
       <Tabs.Screen
         name="index"
+        options={{
+          title: "Health",
+          tabBarIcon: ({ focused }) => <TabIcon icon="🏠" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="eat-smart"
         options={{
           title: "Eat Smart",
           tabBarIcon: ({ focused }) => <TabIcon icon="🍽️" focused={focused} />,
@@ -44,17 +53,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="neighborhood"
-        options={{
-          title: "Health",
-          tabBarIcon: ({ focused }) => <TabIcon icon="🏙️" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
           tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="neighborhood"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

@@ -1,12 +1,38 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl,
+  View, Text, ScrollView, StyleSheet, RefreshControl,
 } from "react-native";
-import { calculateRemaining, type DailyLog, type LoggedFood, type NutritionGoals } from "../../lib/core";
+import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { flushQueue } from "../../lib/offlineQueue";
-import { readHealthData, calculateCalorieBoost, type HealthData } from "../../lib/healthKit";
-import { MacroRing } from "../../components/MacroRing";
+import { colors, fonts, radius } from "../../theme/tokens";
+import { PageTitle } from "../../components/ui/PageTitle";
+import { SectionLabel } from "../../components/ui/SectionLabel";
+import { Card } from "../../components/ui/Card";
+import { RingGauge } from "../../components/ui/RingGauge";
+import { MacroBar } from "../../components/ui/MacroBar";
+import { ButtonPrimary } from "../../components/ui/ButtonPrimary";
+import { ButtonOutline } from "../../components/ui/ButtonOutline";
+
+/* ------------------------------------------------------------------ */
+/*  Types & helpers                                                    */
+/* ------------------------------------------------------------------ */
+
+interface LogEntry {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  mealSlot: "breakfast" | "lunch" | "dinner" | "snack";
+}
+
+interface NutritionGoals {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
 
 const DEFAULT_GOALS: NutritionGoals = {
   calories: 2000,
@@ -19,132 +45,314 @@ function todayKey(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-export default function LogScreen() {
-  const [log, setLog] = useState<DailyLog>({
-    date: todayKey(),
-    entries: [],
-    goals: DEFAULT_GOALS,
-  });
-  const [refreshing, setRefreshing] = useState(false);
-  const [health, setHealth] = useState<HealthData | null>(null);
+function formatDate(): string {
+  const d = new Date();
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+  return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
+}
 
+/* ------------------------------------------------------------------ */
+/*  Screen                                                             */
+/* ------------------------------------------------------------------ */
+
+export default function LogScreen() {
+  const router = useRouter();
+  const [entries, setEntries] = useState<LogEntry[]>([]);
+  const [goals] = useState<NutritionGoals>(DEFAULT_GOALS);
+  const [refreshing, setRefreshing] = useState(false);
+
+  /* Load log from AsyncStorage */
   const loadLog = useCallback(async () => {
-    const key = `pulse-log-${todayKey()}`;
-    const raw = await AsyncStorage.getItem(key);
-    if (raw) {
-      setLog(JSON.parse(raw));
+    try {
+      const key = `pulse-log-${todayKey()}`;
+      const raw = await AsyncStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Support both old shape { entries: [...] } and plain array
+        const items: LogEntry[] = Array.isArray(parsed) ? parsed : parsed.entries ?? [];
+        setEntries(items);
+      } else {
+        setEntries([]);
+      }
+    } catch {
+      setEntries([]);
     }
   }, []);
 
   useEffect(() => {
     loadLog();
-    readHealthData().then((d) => { if (d) setHealth(d); }).catch(() => {});
   }, [loadLog]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await flushQueue();
     await loadLog();
     setRefreshing(false);
   }, [loadLog]);
 
-  const calorieBoost = health ? calculateCalorieBoost(health.activeEnergy) : 0;
-  const adjustedLog: DailyLog = calorieBoost > 0
-    ? { ...log, goals: { ...log.goals, calories: log.goals.calories + calorieBoost } }
-    : log;
-  const budget = calculateRemaining(adjustedLog);
+  /* Compute totals */
+  const totals = entries.reduce(
+    (acc, e) => ({
+      calories: acc.calories + e.calories,
+      protein: acc.protein + e.protein,
+      carbs: acc.carbs + e.carbs,
+      fat: acc.fat + e.fat,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 },
+  );
+
+  const proteinPct = goals.protein > 0 ? Math.round((totals.protein / goals.protein) * 100) : 0;
+  const carbsPct = goals.carbs > 0 ? Math.round((totals.carbs / goals.carbs) * 100) : 0;
+  const fatPct = goals.fat > 0 ? Math.round((totals.fat / goals.fat) * 100) : 0;
+
+  /* Partition entries by meal */
+  const breakfast = entries.filter((e) => e.mealSlot === "breakfast");
+  const lunch = entries.filter((e) => e.mealSlot === "lunch");
+  const dinnerSnacks = entries.filter((e) => e.mealSlot === "dinner" || e.mealSlot === "snack");
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Today's Log</Text>
-        <Text style={styles.subtitle}>{budget.percentComplete}% of daily goal</Text>
-      </View>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentSage} />
+      }
+    >
+      {/* Header */}
+      <PageTitle>Today's Log</PageTitle>
+      <Text style={styles.subtitle}>
+        {formatDate()} {"·"} {totals.calories} / {goals.calories.toLocaleString()} cal
+      </Text>
 
-      <View style={styles.macroRow}>
-        <MacroRing label="Calories" value={budget.remainingCal} total={adjustedLog.goals.calories} unit="cal" color="#2dd4a0" />
-        <MacroRing label="Protein" value={budget.remainingProtein} total={adjustedLog.goals.protein} unit="g" color="#5b9cf5" />
-        <MacroRing label="Carbs" value={budget.remainingCarbs} total={adjustedLog.goals.carbs} unit="g" color="#f59e42" />
-        <MacroRing label="Fat" value={budget.remainingFat} total={adjustedLog.goals.fat} unit="g" color="#a78bfa" />
-      </View>
-
-      {health && health.activeEnergy > 0 && (
-        <View style={styles.healthBanner}>
-          <Text style={styles.healthIcon}>⌚</Text>
-          <View style={styles.healthInfo}>
-            <Text style={styles.healthText}>
-              {health.activeEnergy} cal burned · {health.steps.toLocaleString()} steps
+      {/* Macro summary card */}
+      <Card tone="sage" style={styles.macroCard}>
+        <View style={styles.macroRow}>
+          {/* Left: calorie ring */}
+          <View style={styles.ringWrap}>
+            <RingGauge
+              value={totals.calories}
+              max={goals.calories}
+              color={colors.accentSage}
+              size={72}
+              label="Cal"
+            />
+            <Text style={styles.ringGoal}>
+              {totals.calories}/{goals.calories.toLocaleString()}
             </Text>
-            {calorieBoost > 0 && (
-              <Text style={styles.healthBoost}>+{calorieBoost} cal added to today's budget</Text>
-            )}
+          </View>
+
+          {/* Right: macro bars */}
+          <View style={styles.macroBars}>
+            {/* Protein */}
+            <View style={styles.macroBarRow}>
+              <View style={styles.macroLabelRow}>
+                <Text style={styles.macroLabel}>Protein</Text>
+                <Text style={styles.macroValues}>{totals.protein}/{goals.protein}g</Text>
+                <Text style={styles.macroPct}>{proteinPct}%</Text>
+              </View>
+              <MacroBar value={totals.protein} max={goals.protein} />
+            </View>
+
+            {/* Carbs */}
+            <View style={styles.macroBarRow}>
+              <View style={styles.macroLabelRow}>
+                <Text style={styles.macroLabel}>Carbs</Text>
+                <Text style={styles.macroValues}>{totals.carbs}/{goals.carbs}g</Text>
+                <Text style={styles.macroPct}>{carbsPct}%</Text>
+              </View>
+              <MacroBar value={totals.carbs} max={goals.carbs} />
+            </View>
+
+            {/* Fat */}
+            <View style={styles.macroBarRow}>
+              <View style={styles.macroLabelRow}>
+                <Text style={styles.macroLabel}>Fat</Text>
+                <Text style={styles.macroValues}>{totals.fat}/{goals.fat}g</Text>
+                <Text style={styles.macroPct}>{fatPct}%</Text>
+              </View>
+              <MacroBar value={totals.fat} max={goals.fat} />
+            </View>
           </View>
         </View>
-      )}
+      </Card>
 
-      <ScrollView
-        style={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2dd4a0" />
-        }
-      >
-        {log.entries.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>🍽️</Text>
-            <Text style={styles.emptyText}>No food logged yet today</Text>
-            <Text style={styles.emptyHint}>Scan a barcode or pick from Smart Menu to start</Text>
-          </View>
-        ) : (
-          log.entries.map((entry, i) => (
-            <View key={entry.id} style={styles.entryCard}>
-              <View style={styles.entryHeader}>
-                <Text style={styles.entryName}>{entry.name}</Text>
-                <Text style={styles.entrySlot}>{entry.mealSlot}</Text>
-              </View>
-              <Text style={styles.entryMacros}>
-                {entry.calories} cal · {entry.protein}g P · {entry.carbs}g C · {entry.fat}g F
-              </Text>
-              {entry.pulseScore != null && (
-                <Text style={styles.entryScore}>Smart Score: {entry.pulseScore}</Text>
-              )}
-            </View>
-          ))
-        )}
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
+      {/* BREAKFAST */}
+      <SectionLabel icon={"☀"}>BREAKFAST</SectionLabel>
+      <MealCard entries={breakfast} />
+
+      {/* LUNCH */}
+      <SectionLabel icon={"🌤"}>LUNCH</SectionLabel>
+      <MealCard entries={lunch} />
+
+      {/* DINNER & SNACKS */}
+      <SectionLabel icon={"🌙"}>DINNER & SNACKS</SectionLabel>
+      <MealCard entries={dinnerSnacks} />
+
+      {/* Action buttons */}
+      <View style={styles.buttonsWrap}>
+        <ButtonPrimary
+          label="+ Log Food"
+          onPress={() => router.push("/scan")}
+        />
+        <ButtonOutline
+          label="+ Log Workout"
+          onPress={() => router.push("/scan")}
+          style={{ marginTop: 10 }}
+        />
+      </View>
+
+      {/* Bottom spacer */}
+      <View style={{ height: 40 }} />
+    </ScrollView>
   );
 }
 
+/* ------------------------------------------------------------------ */
+/*  Meal card sub-component                                            */
+/* ------------------------------------------------------------------ */
+
+function MealCard({ entries }: { entries: LogEntry[] }) {
+  if (entries.length === 0) {
+    return (
+      <Card>
+        <Text style={styles.emptyText}>Nothing logged yet</Text>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      {entries.map((entry, idx) => (
+        <View key={entry.id}>
+          {idx > 0 && <View style={styles.entryDivider} />}
+          <View style={styles.entryRow}>
+            <Text style={styles.entryName}>{entry.name}</Text>
+            <Text style={styles.entryCal}>{entry.calories}</Text>
+          </View>
+          <Text style={styles.entryMacros}>
+            {entry.protein}g P {"·"} {entry.carbs}g C {"·"} {entry.fat}g F
+          </Text>
+        </View>
+      ))}
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Styles                                                             */
+/* ------------------------------------------------------------------ */
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafb" },
-  header: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 16 },
-  title: { fontSize: 28, fontWeight: "800", color: "#1e2d2a" },
-  subtitle: { fontSize: 14, color: "#5a7a6e", marginTop: 4 },
+  screen: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  content: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontFamily: `${fonts.body}_400Regular`,
+    marginTop: 4,
+    marginBottom: 18,
+  },
+
+  /* Macro summary card */
+  macroCard: {
+    marginBottom: 4,
+  },
   macroRow: {
-    flexDirection: "row", justifyContent: "space-around",
-    paddingHorizontal: 16, paddingBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
   },
-healthBanner: {
-    flexDirection: "row", alignItems: "center", marginHorizontal: 20,
-    marginBottom: 12, backgroundColor: "#d1fae5", borderRadius: 12, padding: 12,
+  ringWrap: {
+    alignItems: "center",
+    marginRight: 18,
   },
-  healthIcon: { fontSize: 20, marginRight: 10 },
-  healthInfo: { flex: 1 },
-  healthText: { fontSize: 12, fontWeight: "600", color: "#065f46" },
-  healthBoost: { fontSize: 11, color: "#047857", marginTop: 2 },
-  list: { flex: 1, paddingHorizontal: 20 },
-  empty: { alignItems: "center", paddingTop: 60 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyText: { fontSize: 16, fontWeight: "600", color: "#1e2d2a" },
-  emptyHint: { fontSize: 13, color: "#8ba89c", marginTop: 4, textAlign: "center" },
-  entryCard: {
-    backgroundColor: "#ffffff", borderRadius: 12, padding: 14,
-    marginBottom: 8, borderWidth: 1, borderColor: "#e2e8e4",
+  ringGoal: {
+    fontSize: 10,
+    color: colors.textTertiary,
+    fontFamily: `${fonts.body}_400Regular`,
+    marginTop: 4,
   },
-  entryHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  entryName: { fontSize: 14, fontWeight: "600", color: "#1e2d2a", flex: 1 },
-  entrySlot: { fontSize: 10, color: "#8ba89c", textTransform: "uppercase", fontWeight: "600" },
-  entryMacros: { fontSize: 12, color: "#5a7a6e", marginTop: 4 },
-  entryScore: { fontSize: 11, color: "#2dd4a0", fontWeight: "600", marginTop: 4 },
+  macroBars: {
+    flex: 1,
+    gap: 10,
+  },
+  macroBarRow: {
+    width: "100%",
+  },
+  macroLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  macroLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+    fontFamily: `${fonts.body}_600SemiBold`,
+    marginRight: 6,
+  },
+  macroValues: {
+    fontSize: 11,
+    color: colors.textTertiary,
+    fontFamily: `${fonts.body}_400Regular`,
+    flex: 1,
+  },
+  macroPct: {
+    fontSize: 11,
+    color: colors.textTertiary,
+    fontFamily: `${fonts.body}_500Medium`,
+  },
+
+  /* Empty state */
+  emptyText: {
+    fontSize: 13,
+    color: colors.textTertiary,
+    fontFamily: `${fonts.body}_400Regular`,
+    textAlign: "center",
+    paddingVertical: 12,
+  },
+
+  /* Entry rows */
+  entryDivider: {
+    height: 1,
+    backgroundColor: colors.borderLight,
+    marginVertical: 10,
+  },
+  entryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  entryName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    fontFamily: `${fonts.body}_600SemiBold`,
+    flex: 1,
+  },
+  entryCal: {
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontFamily: `${fonts.display}_400Regular`,
+  },
+  entryMacros: {
+    fontSize: 11,
+    color: colors.textTertiary,
+    fontFamily: `${fonts.body}_400Regular`,
+    marginTop: 3,
+  },
+
+  /* Buttons */
+  buttonsWrap: {
+    marginTop: 24,
+  },
 });

@@ -1,191 +1,639 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, TouchableOpacity, ActivityIndicator,
-  RefreshControl, StyleSheet,
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
 } from "react-native";
-import { useRouter } from "expo-router";
-import * as Location from "expo-location";
-import { detectMealSlot, type MenuItem } from "../../lib/core";
-import { apiFetch } from "../../lib/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { colors, radius, fonts } from "../../theme/tokens";
+import { Card } from "../../components/ui/Card";
+import { SectionLabel } from "../../components/ui/SectionLabel";
+import { Chip } from "../../components/ui/Chip";
+import { RingGauge } from "../../components/ui/RingGauge";
+import { MacroBar } from "../../components/ui/MacroBar";
+import { ButtonPrimary } from "../../components/ui/ButtonPrimary";
+import { ButtonOutline } from "../../components/ui/ButtonOutline";
 
-interface NearbyRestaurant {
-  restaurantId: string;
-  restaurantName: string;
-  cuisine: string;
-  distance: number;
-  walkMinutes: number;
-  topPicks: MenuItem[];
+// ---------- types ----------
+
+interface WorkoutRoutine {
+  name: string;
+  exercises: string[];
+  lastWorkout?: string; // ISO date string
 }
 
-export default function EatSmartScreen() {
-  const router = useRouter();
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [restaurants, setRestaurants] = useState<NearbyRestaurant[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const mealSlot = detectMealSlot();
+interface NutritionEntry {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
 
-  const fetchNearby = useCallback(async (lat: number, lng: number) => {
+interface NutritionGoals {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+interface SavedNeighborhood {
+  name: string;
+  borough: string;
+  aqi?: number;
+  lifeExp?: number;
+  walkScore?: number;
+}
+
+// ---------- helpers ----------
+
+const DAYS = [
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+];
+
+const MONTHS = [
+  "JAN",
+  "FEB",
+  "MAR",
+  "APR",
+  "MAY",
+  "JUN",
+  "JUL",
+  "AUG",
+  "SEP",
+  "OCT",
+  "NOV",
+  "DEC",
+];
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function getFormattedDate(): string {
+  const d = new Date();
+  return `${DAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
+}
+
+function aqiColor(val: number): string {
+  if (val <= 50) return colors.accentSage;
+  if (val <= 100) return colors.caution;
+  return colors.alert;
+}
+
+function daysAgoText(isoDate: string | undefined): string {
+  if (!isoDate) return "";
+  const diff = Math.floor(
+    (Date.now() - new Date(isoDate).getTime()) / 86400000
+  );
+  if (diff === 0) return "Today";
+  if (diff === 1) return "1 day ago";
+  return `${diff} days ago`;
+}
+
+const DEFAULT_GOALS: NutritionGoals = {
+  calories: 2000,
+  protein: 150,
+  carbs: 200,
+  fat: 65,
+};
+
+// ---------- component ----------
+
+export default function HealthScreen() {
+  const [refreshing, setRefreshing] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [routine, setRoutine] = useState<WorkoutRoutine | null>(null);
+  const [nutritionTotals, setNutritionTotals] = useState<NutritionEntry>({
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+  });
+  const [nutritionGoals, setNutritionGoals] =
+    useState<NutritionGoals>(DEFAULT_GOALS);
+  const [neighborhood, setNeighborhood] = useState<SavedNeighborhood | null>(
+    null
+  );
+
+  const loadData = useCallback(async () => {
     try {
-      const data = await apiFetch<{ restaurants: NearbyRestaurant[] }>(
-        `/api/smart-menu/near-me?lat=${lat}&lng=${lng}&meal=${mealSlot}`,
-      );
-      setRestaurants(data.restaurants ?? []);
-      setError(null);
-    } catch (e: any) {
-      setError(e.message);
+      const [name, routineRaw, logRaw, goalsRaw, hoodRaw] = await Promise.all([
+        AsyncStorage.getItem("pulse-user-name"),
+        AsyncStorage.getItem("pulse-workout-routine"),
+        AsyncStorage.getItem("pulse-nutrition-log"),
+        AsyncStorage.getItem("pulse-nutrition-goals"),
+        AsyncStorage.getItem("pulse-neighborhood"),
+      ]);
+
+      setUserName(name ?? "");
+
+      if (routineRaw) {
+        setRoutine(JSON.parse(routineRaw));
+      } else {
+        setRoutine(null);
+      }
+
+      // Sum today's nutrition entries
+      if (logRaw) {
+        const entries: NutritionEntry[] = JSON.parse(logRaw);
+        const totals = entries.reduce(
+          (acc, e) => ({
+            calories: acc.calories + e.calories,
+            protein: acc.protein + e.protein,
+            carbs: acc.carbs + e.carbs,
+            fat: acc.fat + e.fat,
+          }),
+          { calories: 0, protein: 0, carbs: 0, fat: 0 }
+        );
+        setNutritionTotals(totals);
+      } else {
+        setNutritionTotals({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+      }
+
+      if (goalsRaw) {
+        setNutritionGoals(JSON.parse(goalsRaw));
+      }
+
+      if (hoodRaw) {
+        setNeighborhood(JSON.parse(hoodRaw));
+      }
+    } catch {
+      // silently fail — defaults are fine
     }
-  }, [mealSlot]);
+  }, []);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          setError("Location permission needed to find food near you.");
-          setLoading(false);
-          return;
-        }
-        const loc = await Promise.race([
-          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("Location timed out — try enabling GPS in emulator settings.")), 8000),
-          ),
-        ]);
-        const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
-        setLocation(coords);
-        await fetchNearby(coords.lat, coords.lng);
-      } catch (e: any) {
-        setError(e.message);
-      }
-      setLoading(false);
-    })();
-  }, [fetchNearby]);
+    loadData();
+  }, [loadData]);
 
   const onRefresh = useCallback(async () => {
-    if (!location) return;
     setRefreshing(true);
-    await fetchNearby(location.lat, location.lng);
+    await loadData();
     setRefreshing(false);
-  }, [location, fetchNearby]);
+  }, [loadData]);
+
+  const aqiValue = 43;
+  const greeting = getGreeting();
+  const dateStr = getFormattedDate();
+  const greetingLine = userName ? `${greeting}, ${userName}` : greeting;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Eat Smart Near You</Text>
-        <Text style={styles.subtitle}>
-          {mealSlot.charAt(0).toUpperCase() + mealSlot.slice(1)} picks scored for your goals
-        </Text>
-      </View>
-
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.scanButton}
-          onPress={() => router.push("/scan")}
-        >
-          <Text style={styles.scanIcon}>📷</Text>
-          <Text style={styles.scanLabel}>Scan Barcode</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.scanButton}
-          onPress={() => router.push("/ocr")}
-        >
-          <Text style={styles.scanIcon}>🔍</Text>
-          <Text style={styles.scanLabel}>Read Menu</Text>
-        </TouchableOpacity>
-      </View>
-
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#2dd4a0" />
-          <Text style={styles.loadingText}>Finding food near you...</Text>
-        </View>
-      ) : error ? (
-        <View style={styles.center}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : (
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      {/* ==================== 1. STATUS TICKER ==================== */}
+      <View style={styles.tickerContainer}>
         <ScrollView
-          style={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2dd4a0" />
-          }
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tickerScroll}
         >
-          {restaurants.map((r) => (
-            <View key={r.restaurantId} style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.restaurantName}>{r.restaurantName}</Text>
-                <Text style={styles.distance}>
-                  {r.walkMinutes}min walk
-                </Text>
-              </View>
-              <Text style={styles.cuisine}>{r.cuisine}</Text>
-              {r.topPicks.map((item) => (
-                <View key={item.id} style={styles.menuItem}>
-                  <View style={styles.menuItemLeft}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemMacros}>
-                      {item.calories} cal · {item.protein}g protein
-                    </Text>
-                  </View>
-                  <View style={[
-                    styles.scoreBadge,
-                    { backgroundColor: item.pulseScore >= 70 ? "#d1fae5" : item.pulseScore >= 50 ? "#fef3c7" : "#fee2e2" },
-                  ]}>
-                    <Text style={[
-                      styles.scoreText,
-                      { color: item.pulseScore >= 70 ? "#065f46" : item.pulseScore >= 50 ? "#92400e" : "#991b1b" },
-                    ]}>
-                      {item.pulseScore}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ))}
-          <View style={{ height: 40 }} />
+          <Chip label="COVID Low" variant="good" />
+          <View style={styles.tickerGap} />
+          <Chip label="Flu Declining" variant="good" />
+          <View style={styles.tickerGap} />
+          <Chip label="Water Safe" variant="good" />
+          <View style={styles.tickerGap} />
+          <Chip label="Pollen Moderate" variant="warn" />
         </ScrollView>
-      )}
-    </View>
+      </View>
+
+      {/* ==================== 2. GREETING HERO + AQI ==================== */}
+      <View style={styles.heroRow}>
+        <View style={styles.heroText}>
+          <Text style={styles.dateText}>{dateStr}</Text>
+          <Text style={styles.greetingText}>{greetingLine}</Text>
+          <Text style={styles.locationText}>
+            {"📍"} Long Island City {"·"} 53{"°"} Partly
+            Cloudy
+          </Text>
+        </View>
+        <RingGauge
+          value={aqiValue}
+          max={200}
+          color={aqiColor(aqiValue)}
+          size={64}
+          label="AQI"
+        />
+      </View>
+
+      {/* ==================== 3. TODAY'S WORKOUT ==================== */}
+      <Card accent style={styles.sectionCard}>
+        <SectionLabel icon={"🏋️"}>
+          TODAY&apos;S WORKOUT
+        </SectionLabel>
+
+        {routine ? (
+          <>
+            <Text style={styles.workoutTitle}>{routine.name}</Text>
+            {routine.exercises.map((ex, i) => (
+              <Text key={i} style={styles.exerciseItem}>
+                {"•"} {ex}
+              </Text>
+            ))}
+            <ButtonPrimary
+              label={"▶  Start Workout"}
+              onPress={() => {}}
+              style={styles.workoutButton}
+            />
+            {routine.lastWorkout ? (
+              <Text style={styles.lastWorkoutText}>
+                Last workout: {daysAgoText(routine.lastWorkout)}
+              </Text>
+            ) : null}
+          </>
+        ) : (
+          <ButtonOutline
+            label="Choose a routine →"
+            onPress={() => {}}
+            style={styles.workoutButton}
+          />
+        )}
+      </Card>
+
+      {/* ==================== 4. TODAY'S NUTRITION ==================== */}
+      <Card style={styles.sectionCard}>
+        <SectionLabel icon={"🍽"}>TODAY&apos;S NUTRITION</SectionLabel>
+
+        <View style={styles.nutritionRow}>
+          <View style={styles.nutritionRing}>
+            <RingGauge
+              value={nutritionTotals.calories}
+              max={nutritionGoals.calories}
+              color={colors.accentSage}
+              size={72}
+              unit="CAL"
+            />
+            <Text style={styles.calGoalText}>
+              /{nutritionGoals.calories.toLocaleString()}
+            </Text>
+          </View>
+
+          <View style={styles.macroBars}>
+            <View style={styles.macroRow}>
+              <Text style={styles.macroLabel}>Protein</Text>
+              <Text style={styles.macroValue}>{nutritionTotals.protein}g</Text>
+              <View style={styles.macroBarWrap}>
+                <MacroBar
+                  value={nutritionTotals.protein}
+                  max={nutritionGoals.protein}
+                />
+              </View>
+              <Text style={styles.macroPct}>
+                {nutritionGoals.protein > 0
+                  ? Math.round(
+                      (nutritionTotals.protein / nutritionGoals.protein) * 100
+                    )
+                  : 0}
+                %
+              </Text>
+            </View>
+
+            <View style={styles.macroRow}>
+              <Text style={styles.macroLabel}>Carbs</Text>
+              <Text style={styles.macroValue}>{nutritionTotals.carbs}g</Text>
+              <View style={styles.macroBarWrap}>
+                <MacroBar
+                  value={nutritionTotals.carbs}
+                  max={nutritionGoals.carbs}
+                />
+              </View>
+              <Text style={styles.macroPct}>
+                {nutritionGoals.carbs > 0
+                  ? Math.round(
+                      (nutritionTotals.carbs / nutritionGoals.carbs) * 100
+                    )
+                  : 0}
+                %
+              </Text>
+            </View>
+
+            <View style={styles.macroRow}>
+              <Text style={styles.macroLabel}>Fat</Text>
+              <Text style={styles.macroValue}>{nutritionTotals.fat}g</Text>
+              <View style={styles.macroBarWrap}>
+                <MacroBar
+                  value={nutritionTotals.fat}
+                  max={nutritionGoals.fat}
+                />
+              </View>
+              <Text style={styles.macroPct}>
+                {nutritionGoals.fat > 0
+                  ? Math.round(
+                      (nutritionTotals.fat / nutritionGoals.fat) * 100
+                    )
+                  : 0}
+                %
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <ButtonOutline
+          label="+ Log Food"
+          onPress={() => {}}
+          style={styles.logFoodButton}
+        />
+      </Card>
+
+      {/* ==================== 5. YOUR NEIGHBORHOOD ==================== */}
+      <View style={styles.neighborhoodCard}>
+        <SectionLabel icon={"📍"}>YOUR NEIGHBORHOOD</SectionLabel>
+
+        {neighborhood ? (
+          <>
+            <Text style={styles.hoodName}>{neighborhood.name}</Text>
+            <Text style={styles.hoodBorough}>{neighborhood.borough}</Text>
+
+            <View style={styles.hoodDivider} />
+
+            <View style={styles.hoodStatsRow}>
+              <View style={styles.hoodStat}>
+                <Text style={styles.hoodStatValue}>
+                  {neighborhood.aqi ?? "--"}
+                </Text>
+                <Text style={styles.hoodStatLabel}>AQI</Text>
+              </View>
+              <View style={styles.hoodStat}>
+                <Text style={styles.hoodStatValue}>
+                  {neighborhood.lifeExp ?? "--"}
+                </Text>
+                <Text style={styles.hoodStatLabel}>LIFE EXP</Text>
+              </View>
+              <View style={styles.hoodStat}>
+                <Text style={styles.hoodStatValue}>
+                  {neighborhood.walkScore ?? "--"}
+                </Text>
+                <Text style={styles.hoodStatLabel}>WALK</Text>
+              </View>
+            </View>
+          </>
+        ) : (
+          <TouchableOpacity onPress={() => {}} activeOpacity={0.8}>
+            <Text style={styles.hoodPrompt}>
+              Set your neighborhood {"→"}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* ==================== 6. NYC HEALTH STATUS ==================== */}
+      <Card style={styles.sectionCard}>
+        <SectionLabel icon={"📊"}>NYC HEALTH STATUS</SectionLabel>
+
+        <View style={styles.chipWrap}>
+          <View style={styles.chipItem}>
+            <Chip label="COVID Low" variant="good" />
+          </View>
+          <View style={styles.chipItem}>
+            <Chip label="Flu Declining" variant="good" />
+          </View>
+          <View style={styles.chipItem}>
+            <Chip label="Water Safe" variant="good" />
+          </View>
+          <View style={styles.chipItem}>
+            <Chip label="Pollen Moderate" variant="warn" />
+          </View>
+          <View style={styles.chipItem}>
+            <Chip label="Rats High" variant="alert" />
+          </View>
+        </View>
+      </Card>
+
+      {/* bottom spacer for tab bar */}
+      <View style={styles.bottomSpacer} />
+    </ScrollView>
   );
 }
 
+// ---------- styles ----------
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafb" },
-  header: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 12 },
-  title: { fontSize: 28, fontWeight: "800", color: "#1e2d2a" },
-  subtitle: { fontSize: 14, color: "#5a7a6e", marginTop: 4 },
-  actions: { flexDirection: "row", gap: 12, paddingHorizontal: 20, marginBottom: 16 },
-  scanButton: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 8, backgroundColor: "#ffffff", borderRadius: 16, padding: 14,
-    borderWidth: 1, borderColor: "#e2e8e4",
+  scroll: {
+    flex: 1,
+    backgroundColor: colors.bg,
   },
-  scanIcon: { fontSize: 20 },
-  scanLabel: { fontSize: 13, fontWeight: "600", color: "#1e2d2a" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 40 },
-  loadingText: { marginTop: 12, fontSize: 14, color: "#5a7a6e" },
-  errorText: { fontSize: 14, color: "#f07070", textAlign: "center" },
-  list: { flex: 1, paddingHorizontal: 20 },
-  card: {
-    backgroundColor: "#ffffff", borderRadius: 16, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: "#e2e8e4",
+  scrollContent: {
+    paddingTop: 60,
+    paddingBottom: 32,
   },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  restaurantName: { fontSize: 17, fontWeight: "700", color: "#1e2d2a" },
-  distance: { fontSize: 12, color: "#8ba89c", fontWeight: "500" },
-  cuisine: { fontSize: 12, color: "#5a7a6e", marginTop: 2, marginBottom: 12 },
-  menuItem: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingVertical: 8, borderTopWidth: 1, borderTopColor: "#f0f4f2",
+
+  // -- 1. ticker --
+  tickerContainer: {
+    backgroundColor: colors.surfaceWarm,
+    borderRadius: 999,
+    marginHorizontal: 20,
+    padding: 6,
+    marginBottom: 20,
   },
-  menuItemLeft: { flex: 1 },
-  itemName: { fontSize: 14, fontWeight: "600", color: "#1e2d2a" },
-  itemMacros: { fontSize: 11, color: "#8ba89c", marginTop: 2 },
-  scoreBadge: {
-    width: 40, height: 40, borderRadius: 20,
-    justifyContent: "center", alignItems: "center",
+  tickerScroll: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  scoreText: { fontSize: 16, fontWeight: "800" },
+  tickerGap: {
+    width: 6,
+  },
+
+  // -- 2. hero --
+  heroRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  heroText: {
+    flex: 1,
+    marginRight: 16,
+  },
+  dateText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.textTertiary,
+    fontFamily: "PlusJakartaSans_700Bold",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  greetingText: {
+    fontSize: 28,
+    color: colors.textPrimary,
+    fontFamily: "DMSerifDisplay_400Regular",
+    marginBottom: 6,
+  },
+  locationText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontFamily: "PlusJakartaSans_400Regular",
+  },
+
+  // -- 3. workout --
+  sectionCard: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  workoutTitle: {
+    fontSize: 20,
+    color: colors.textPrimary,
+    fontFamily: "DMSerifDisplay_400Regular",
+    marginBottom: 8,
+  },
+  exerciseItem: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontFamily: "PlusJakartaSans_400Regular",
+    lineHeight: 22,
+    paddingLeft: 4,
+  },
+  workoutButton: {
+    marginTop: 14,
+  },
+  lastWorkoutText: {
+    fontSize: 11,
+    color: colors.textTertiary,
+    fontFamily: "PlusJakartaSans_400Regular",
+    textAlign: "center",
+    marginTop: 8,
+  },
+
+  // -- 4. nutrition --
+  nutritionRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginTop: 4,
+  },
+  nutritionRing: {
+    alignItems: "center",
+    marginRight: 18,
+  },
+  calGoalText: {
+    fontSize: 10,
+    color: colors.textTertiary,
+    fontFamily: "PlusJakartaSans_400Regular",
+    marginTop: 2,
+  },
+  macroBars: {
+    flex: 1,
+    justifyContent: "center",
+    gap: 10,
+  },
+  macroRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  macroLabel: {
+    width: 50,
+    fontSize: 11,
+    fontWeight: "600",
+    color: colors.textSecondary,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+  },
+  macroValue: {
+    width: 36,
+    fontSize: 11,
+    color: colors.textPrimary,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    textAlign: "right",
+    marginRight: 8,
+  },
+  macroBarWrap: {
+    flex: 1,
+  },
+  macroPct: {
+    width: 32,
+    fontSize: 10,
+    color: colors.textTertiary,
+    fontFamily: "PlusJakartaSans_400Regular",
+    textAlign: "right",
+    marginLeft: 6,
+  },
+  logFoodButton: {
+    marginTop: 14,
+  },
+
+  // -- 5. neighborhood --
+  neighborhoodCard: {
+    backgroundColor: colors.accentSage,
+    borderRadius: radius.md,
+    padding: 18,
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  hoodName: {
+    fontSize: 22,
+    color: "#FFFFFF",
+    fontFamily: "DMSerifDisplay_400Regular",
+    marginBottom: 2,
+  },
+  hoodBorough: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.85)",
+    fontFamily: "PlusJakartaSans_500Medium",
+    marginBottom: 12,
+  },
+  hoodDivider: {
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    marginBottom: 12,
+  },
+  hoodStatsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  hoodStat: {
+    alignItems: "center",
+  },
+  hoodStatValue: {
+    fontSize: 20,
+    color: "#FFFFFF",
+    fontFamily: "DMSerifDisplay_400Regular",
+  },
+  hoodStatLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.7)",
+    fontFamily: "PlusJakartaSans_700Bold",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    marginTop: 2,
+  },
+  hoodPrompt: {
+    fontSize: 15,
+    color: "#FFFFFF",
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    marginTop: 4,
+  },
+
+  // -- 6. health status --
+  chipWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 4,
+  },
+  chipItem: {
+    // chip already has alignSelf flex-start
+  },
+
+  // -- bottom --
+  bottomSpacer: {
+    height: 24,
+  },
 });
