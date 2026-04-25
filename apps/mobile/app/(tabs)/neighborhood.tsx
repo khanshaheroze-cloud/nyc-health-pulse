@@ -29,9 +29,12 @@ export default function NeighborhoodScreen() {
           setLoading(false);
           return;
         }
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
+        const loc = await Promise.race([
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Location timed out — try enabling GPS in emulator settings.")), 8000),
+          ),
+        ]);
         const result = await apiFetch<NeighborhoodData>(
           `/api/neighborhood-health?lat=${loc.coords.latitude}&lng=${loc.coords.longitude}`,
         );

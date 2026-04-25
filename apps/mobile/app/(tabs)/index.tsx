@@ -40,18 +40,25 @@ export default function EatSmartScreen() {
 
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setError("Location permission needed to find food near you.");
-        setLoading(false);
-        return;
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setError("Location permission needed to find food near you.");
+          setLoading(false);
+          return;
+        }
+        const loc = await Promise.race([
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Location timed out — try enabling GPS in emulator settings.")), 8000),
+          ),
+        ]);
+        const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+        setLocation(coords);
+        await fetchNearby(coords.lat, coords.lng);
+      } catch (e: any) {
+        setError(e.message);
       }
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
-      setLocation(coords);
-      await fetchNearby(coords.lat, coords.lng);
       setLoading(false);
     })();
   }, [fetchNearby]);
