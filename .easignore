@@ -1,18 +1,17 @@
-# Hide root package.json so EAS uses apps/mobile/package.json
-/package.json
-/pnpm-workspace.yaml
-/pnpm-lock.yaml
-/.npmrc
+# Web app source (not needed for mobile build)
+src
+public
+packages
 
-# Web app source
-/src/
-/public/
-/packages/
-
-# Build artifacts
-/node_modules/
-/.next/
+# Build artifacts & local deps
+node_modules
+.next
 
 # Capacitor (web-based mobile, not used for EAS)
-/android/
-/ios/
+android
+ios
+
+# Monorepo config (avoid pnpm detection)
+pnpm-workspace.yaml
+pnpm-lock.yaml
+.npmrc
