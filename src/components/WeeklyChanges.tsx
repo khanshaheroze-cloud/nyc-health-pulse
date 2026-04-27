@@ -147,7 +147,7 @@ export function WeeklyChanges(props: WeeklyChangesProps) {
   const changes = buildChanges(props);
 
   return (
-    <div>
+    <section role="region" aria-label="What's happening this week in NYC health">
       {/* Section header */}
       <div className="flex items-end justify-between mb-3">
         <div>
@@ -205,6 +205,6 @@ export function WeeklyChanges(props: WeeklyChangesProps) {
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }

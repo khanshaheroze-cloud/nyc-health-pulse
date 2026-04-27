@@ -76,7 +76,6 @@ export function HealthScoreBreakdown({ grade, score, rank, gradeColor, subScores
                   <span className="text-[12px] font-semibold text-text">{sub.label}</span>
                   <span className="text-[11px] text-dim">
                     {sub.score}/100
-                    <span className="text-muted ml-1">({Math.round(sub.weight * 100)}%)</span>
                   </span>
                 </div>
                 <div className="h-1.5 bg-border-light rounded-full overflow-hidden">

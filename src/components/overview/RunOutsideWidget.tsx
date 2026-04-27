@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { CountUp } from "../CountUp";
 
 interface CityScore {
   score: number;
@@ -69,7 +70,7 @@ export function RunOutsideWidget({ serverAqi, serverUV }: RunOutsideWidgetProps 
         </div>
         {score !== null && (
           <div className="text-right">
-            <p className="font-display text-[28px] text-text leading-none">{score}</p>
+            <p className="font-display text-[28px] text-text leading-none"><CountUp value={score} durationMs={500} storageKey="run-score" /></p>
             <p className="text-[9px] text-muted mt-0.5">/ 100</p>
           </div>
         )}

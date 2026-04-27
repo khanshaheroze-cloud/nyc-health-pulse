@@ -94,6 +94,9 @@ export function DailyHealthCheck({ airLabel, airAqi, covidLabel, totalHosp, iliR
     <div
       className="ticker-container mt-7 bg-surface border border-border-light rounded-2xl px-4 sm:px-5 py-3 sm:py-3.5 flex items-center animate-fade-in-up border-l-[3px] border-l-hp-green"
       style={{ animationDelay: "100ms" }}
+      role="status"
+      aria-live="polite"
+      aria-label="Today in NYC — live health status ticker"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >

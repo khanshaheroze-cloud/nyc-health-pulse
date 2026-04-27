@@ -302,10 +302,12 @@ export function HomepageEatSmartHero() {
           </p>
 
           {/* Meal tabs */}
-          <div className="flex gap-2 mt-4 mb-3">
+          <div className="flex gap-2 mt-4 mb-3" role="tablist" aria-label="Meal type">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
+                role="tab"
+                aria-selected={activeTab === tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-colors ${
                   activeTab === tab.id
@@ -321,7 +323,7 @@ export function HomepageEatSmartHero() {
         </div>
 
         {/* Cards */}
-        <div className="px-6 pb-6">
+        <div className="px-6 pb-6" role="tabpanel" aria-live="polite" aria-label="Restaurant recommendations">
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[0, 1, 2].map((i) => (
