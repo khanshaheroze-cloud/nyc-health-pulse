@@ -7,6 +7,10 @@ import {
   Alert,
   ScrollView,
   RefreshControl,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -40,6 +44,19 @@ interface Neighborhood {
   name: string;
   borough: string;
 }
+
+interface WorkoutExercise {
+  name: string;
+  sets: string;
+  reps: string;
+}
+
+interface WorkoutRoutine {
+  name: string;
+  exercises: WorkoutExercise[];
+}
+
+type ActiveModal = "goals" | "neighborhood" | "workout" | null;
 
 /* ── Menu row data with icon config ── */
 interface MenuRow {
@@ -79,6 +96,116 @@ export default function ProfileScreen() {
   const [height, setHeight] = useState<string | null>(null);
   const [weight, setWeight] = useState<string | null>(null);
   const [calGoal, setCalGoal] = useState<string>("2,000");
+
+  /* ── Modal state ── */
+  const [activeModal, setActiveModal] = useState<ActiveModal>(null);
+  const [goalCalories, setGoalCalories] = useState("2000");
+  const [goalProtein, setGoalProtein] = useState("150");
+  const [goalCarbs, setGoalCarbs] = useState("200");
+  const [goalFat, setGoalFat] = useState("65");
+  const [hoodName, setHoodName] = useState("");
+  const [hoodBorough, setHoodBorough] = useState("");
+  const [workoutName, setWorkoutName] = useState("");
+  const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>([
+    { name: "", sets: "", reps: "" },
+  ]);
+
+  const openModal = async (modal: ActiveModal) => {
+    if (modal === "goals") {
+      const raw = await AsyncStorage.getItem(KEY_NUTRITION);
+      if (raw) {
+        try {
+          const p = JSON.parse(raw);
+          setGoalCalories(String(p.calories ?? 2000));
+          setGoalProtein(String(p.protein ?? 150));
+          setGoalCarbs(String(p.carbs ?? 200));
+          setGoalFat(String(p.fat ?? 65));
+        } catch {}
+      }
+    } else if (modal === "neighborhood") {
+      const raw = await AsyncStorage.getItem(KEY_NEIGHBORHOOD);
+      if (raw) {
+        try {
+          const p = JSON.parse(raw);
+          setHoodName(p.name ?? "");
+          setHoodBorough(p.borough ?? "");
+        } catch {}
+      }
+    } else if (modal === "workout") {
+      const raw = await AsyncStorage.getItem("pulse-workout-routine");
+      if (raw) {
+        try {
+          const p = JSON.parse(raw);
+          setWorkoutName(p.name ?? "");
+          setWorkoutExercises(
+            p.exercises?.length
+              ? p.exercises.map((e: any) => ({
+                  name: e.name ?? "",
+                  sets: String(e.sets ?? ""),
+                  reps: String(e.reps ?? ""),
+                }))
+              : [{ name: "", sets: "", reps: "" }]
+          );
+        } catch {}
+      }
+    }
+    setActiveModal(modal);
+  };
+
+  const saveGoals = async () => {
+    const data = {
+      calories: Number(goalCalories) || 2000,
+      protein: Number(goalProtein) || 150,
+      carbs: Number(goalCarbs) || 200,
+      fat: Number(goalFat) || 65,
+    };
+    await AsyncStorage.setItem(KEY_NUTRITION, JSON.stringify(data));
+    setCalGoal(data.calories.toLocaleString());
+    setActiveModal(null);
+  };
+
+  const saveNeighborhood = async () => {
+    if (!hoodName.trim()) {
+      Alert.alert("Required", "Please enter a neighborhood name.");
+      return;
+    }
+    const data = { name: hoodName.trim(), borough: hoodBorough.trim() };
+    await AsyncStorage.setItem(KEY_NEIGHBORHOOD, JSON.stringify(data));
+    setNeighborhood(data);
+    setActiveModal(null);
+  };
+
+  const saveWorkout = async () => {
+    if (!workoutName.trim()) {
+      Alert.alert("Required", "Please enter a routine name.");
+      return;
+    }
+    const validExercises = workoutExercises
+      .filter((e) => e.name.trim())
+      .map((e) => ({
+        name: e.name.trim(),
+        sets: Number(e.sets) || 3,
+        reps: Number(e.reps) || 10,
+      }));
+    const data = { name: workoutName.trim(), exercises: validExercises };
+    await AsyncStorage.setItem("pulse-workout-routine", JSON.stringify(data));
+    setActiveModal(null);
+  };
+
+  const addExerciseRow = () => {
+    setWorkoutExercises([...workoutExercises, { name: "", sets: "", reps: "" }]);
+  };
+
+  const updateExercise = (index: number, field: keyof WorkoutExercise, value: string) => {
+    const updated = [...workoutExercises];
+    updated[index] = { ...updated[index], [field]: value };
+    setWorkoutExercises(updated);
+  };
+
+  const removeExercise = (index: number) => {
+    if (workoutExercises.length <= 1) return;
+    setWorkoutExercises(workoutExercises.filter((_, i) => i !== index));
+  };
 
   const loadProfile = useCallback(async () => {
     const [sName, sHood, sH, sW, sGoals] = await Promise.all([
@@ -147,6 +274,13 @@ export default function ProfileScreen() {
     const onPress = () => {
       if (item.isSignOut) handleSignOut();
       else if (item.isSignIn) router.push("/signin");
+      else if (item.label === "Goals & Targets") openModal("goals");
+      else if (item.label === "Neighborhood") openModal("neighborhood");
+      else if (item.label === "Workout Plan") openModal("workout");
+      else if (item.label === "Notifications")
+        Alert.alert("Coming Soon", "Push notifications coming soon!");
+      else if (item.label === "Connected Apps")
+        Alert.alert("Coming Soon", "Health Connect integration coming soon!");
     };
 
     const iconColor = item.isSignOut ? colors.alert : colors.textSecondary;
@@ -227,6 +361,223 @@ export default function ProfileScreen() {
       </Card>
 
       <View style={{ height: 100 }} />
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/*  MODALS                                                       */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+
+      {/* ── Goals & Targets ── */}
+      <Modal
+        visible={activeModal === "goals"}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setActiveModal(null)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setActiveModal(null)}
+          />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Goals & Targets</Text>
+
+            <Text style={styles.inputLabel}>Daily Calories</Text>
+            <TextInput
+              style={styles.input}
+              value={goalCalories}
+              onChangeText={setGoalCalories}
+              keyboardType="numeric"
+              placeholder="2000"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <Text style={styles.inputLabel}>Protein (g)</Text>
+            <TextInput
+              style={styles.input}
+              value={goalProtein}
+              onChangeText={setGoalProtein}
+              keyboardType="numeric"
+              placeholder="150"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <Text style={styles.inputLabel}>Carbs (g)</Text>
+            <TextInput
+              style={styles.input}
+              value={goalCarbs}
+              onChangeText={setGoalCarbs}
+              keyboardType="numeric"
+              placeholder="200"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <Text style={styles.inputLabel}>Fat (g)</Text>
+            <TextInput
+              style={styles.input}
+              value={goalFat}
+              onChangeText={setGoalFat}
+              keyboardType="numeric"
+              placeholder="65"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <TouchableOpacity style={styles.saveBtn} onPress={saveGoals} activeOpacity={0.8}>
+              <Text style={styles.saveBtnText}>Save</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => setActiveModal(null)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ── Neighborhood ── */}
+      <Modal
+        visible={activeModal === "neighborhood"}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setActiveModal(null)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setActiveModal(null)}
+          />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Neighborhood</Text>
+
+            <Text style={styles.inputLabel}>Neighborhood Name</Text>
+            <TextInput
+              style={styles.input}
+              value={hoodName}
+              onChangeText={setHoodName}
+              placeholder="e.g. Astoria"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <Text style={styles.inputLabel}>Borough</Text>
+            <TextInput
+              style={styles.input}
+              value={hoodBorough}
+              onChangeText={setHoodBorough}
+              placeholder="e.g. Queens"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <TouchableOpacity style={styles.saveBtn} onPress={saveNeighborhood} activeOpacity={0.8}>
+              <Text style={styles.saveBtnText}>Save</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => setActiveModal(null)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ── Workout Plan ── */}
+      <Modal
+        visible={activeModal === "workout"}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setActiveModal(null)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setActiveModal(null)}
+          />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Workout Plan</Text>
+
+            <Text style={styles.inputLabel}>Routine Name</Text>
+            <TextInput
+              style={styles.input}
+              value={workoutName}
+              onChangeText={setWorkoutName}
+              placeholder="e.g. Push Day"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 8 }]}>Exercises</Text>
+            <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+              {workoutExercises.map((ex, i) => (
+                <View key={i} style={styles.exerciseRow}>
+                  <TextInput
+                    style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                    value={ex.name}
+                    onChangeText={(v) => updateExercise(i, "name", v)}
+                    placeholder="Exercise"
+                    placeholderTextColor={colors.textTertiary}
+                  />
+                  <TextInput
+                    style={[styles.input, styles.smallInput]}
+                    value={ex.sets}
+                    onChangeText={(v) => updateExercise(i, "sets", v)}
+                    keyboardType="numeric"
+                    placeholder="Sets"
+                    placeholderTextColor={colors.textTertiary}
+                  />
+                  <TextInput
+                    style={[styles.input, styles.smallInput]}
+                    value={ex.reps}
+                    onChangeText={(v) => updateExercise(i, "reps", v)}
+                    keyboardType="numeric"
+                    placeholder="Reps"
+                    placeholderTextColor={colors.textTertiary}
+                  />
+                  {workoutExercises.length > 1 && (
+                    <TouchableOpacity
+                      onPress={() => removeExercise(i)}
+                      style={styles.removeExBtn}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.removeExText}>x</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity onPress={addExerciseRow} activeOpacity={0.7} style={styles.addExBtn}>
+              <Text style={styles.addExText}>+ Add Exercise</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.saveBtn} onPress={saveWorkout} activeOpacity={0.8}>
+              <Text style={styles.saveBtnText}>Save</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => setActiveModal(null)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScrollView>
   );
 }
@@ -331,5 +682,118 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: colors.textPrimary,
     marginLeft: 12,
+  },
+
+  /* ── Modals ── */
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.borderLight,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: `${fonts.display}_400Regular`,
+    color: colors.textPrimary,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontFamily: `${fonts.body}_600SemiBold`,
+    fontWeight: "600",
+    color: colors.textSecondary,
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  input: {
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: radius.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    fontFamily: `${fonts.body}_400Regular`,
+    color: colors.textPrimary,
+    marginBottom: 14,
+  },
+  saveBtn: {
+    backgroundColor: colors.accentSage,
+    borderRadius: radius.sm,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  saveBtnText: {
+    fontSize: 15,
+    fontFamily: `${fonts.body}_700Bold`,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  cancelBtn: {
+    paddingVertical: 12,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  cancelBtnText: {
+    fontSize: 14,
+    fontFamily: `${fonts.body}_500Medium`,
+    fontWeight: "500",
+    color: colors.textTertiary,
+  },
+  exerciseRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  smallInput: {
+    width: 56,
+    flex: 0,
+    textAlign: "center",
+    marginBottom: 0,
+  },
+  removeExBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.borderLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  removeExText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textTertiary,
+  },
+  addExBtn: {
+    paddingVertical: 10,
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  addExText: {
+    fontSize: 13,
+    fontFamily: `${fonts.body}_600SemiBold`,
+    fontWeight: "600",
+    color: colors.accentSage,
   },
 });

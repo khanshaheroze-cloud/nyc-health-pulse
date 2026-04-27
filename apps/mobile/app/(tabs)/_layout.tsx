@@ -78,7 +78,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Health",
+          title: "Overview",
           tabBarIcon: ({ focused }) => (
             <TabBarIcon Icon={IconActivity} focused={focused} />
           ),

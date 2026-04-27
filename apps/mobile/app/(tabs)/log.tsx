@@ -1,6 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
-import { View, Text, ScrollView, StyleSheet, RefreshControl } from "react-native";
-import { useRouter } from "expo-router";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  RefreshControl,
+  Modal,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Svg, { Circle } from "react-native-svg";
@@ -87,12 +98,29 @@ function CalorieRing({ cal, goal }: { cal: number; goal: number }) {
 /*  Screen                                                             */
 /* ------------------------------------------------------------------ */
 
+type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
+const MEAL_SLOTS: MealSlot[] = ["breakfast", "lunch", "dinner", "snack"];
+const MEAL_LABELS: Record<MealSlot, string> = {
+  breakfast: "Breakfast",
+  lunch: "Lunch",
+  dinner: "Dinner",
+  snack: "Snack",
+};
+
 export default function LogScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [goals] = useState<NutritionGoals>(DEFAULT_GOALS);
   const [refreshing, setRefreshing] = useState(false);
+
+  /* ── Food log modal state ── */
+  const [showFoodModal, setShowFoodModal] = useState(false);
+  const [foodName, setFoodName] = useState("");
+  const [foodCal, setFoodCal] = useState("");
+  const [foodProtein, setFoodProtein] = useState("");
+  const [foodCarbs, setFoodCarbs] = useState("");
+  const [foodFat, setFoodFat] = useState("");
+  const [foodSlot, setFoodSlot] = useState<MealSlot>("breakfast");
 
   const loadLog = useCallback(async () => {
     try {
@@ -115,6 +143,47 @@ export default function LogScreen() {
     await loadLog();
     setRefreshing(false);
   }, [loadLog]);
+
+  const openFoodModal = () => {
+    setFoodName("");
+    setFoodCal("");
+    setFoodProtein("");
+    setFoodCarbs("");
+    setFoodFat("");
+    const h = new Date().getHours();
+    if (h < 11) setFoodSlot("breakfast");
+    else if (h < 15) setFoodSlot("lunch");
+    else if (h < 20) setFoodSlot("dinner");
+    else setFoodSlot("snack");
+    setShowFoodModal(true);
+  };
+
+  const saveFoodEntry = async () => {
+    if (!foodName.trim()) {
+      Alert.alert("Required", "Please enter a food name.");
+      return;
+    }
+    const entry: LogEntry = {
+      id: Date.now().toString(),
+      name: foodName.trim(),
+      calories: Number(foodCal) || 0,
+      protein: Number(foodProtein) || 0,
+      carbs: Number(foodCarbs) || 0,
+      fat: Number(foodFat) || 0,
+      mealSlot: foodSlot,
+    };
+    const key = `pulse-log-${todayKey()}`;
+    try {
+      const raw = await AsyncStorage.getItem(key);
+      const existing: LogEntry[] = raw
+        ? (() => { try { const p = JSON.parse(raw); return Array.isArray(p) ? p : p.entries ?? []; } catch { return []; } })()
+        : [];
+      existing.push(entry);
+      await AsyncStorage.setItem(key, JSON.stringify(existing));
+    } catch {}
+    setShowFoodModal(false);
+    await loadLog();
+  };
 
   const totals = entries.reduce(
     (a, e) => ({
@@ -194,11 +263,122 @@ export default function LogScreen() {
 
       {/* ── Buttons ── */}
       <View style={{ marginTop: 24 }}>
-        <ButtonPrimary label="+ Log Food" onPress={() => router.push("/scan")} />
-        <ButtonOutline label="+ Log Workout" onPress={() => router.push("/scan")} style={{ marginTop: 10 }} />
+        <ButtonPrimary label="+ Log Food" onPress={openFoodModal} />
+        <ButtonOutline
+          label="+ Log Workout"
+          onPress={() => Alert.alert("Coming Soon", "Workout logging coming soon!")}
+          style={{ marginTop: 10 }}
+        />
       </View>
 
       <View style={{ height: 100 }} />
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/*  FOOD LOG MODAL                                               */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <Modal
+        visible={showFoodModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowFoodModal(false)}
+      >
+        <KeyboardAvoidingView
+          style={s.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <TouchableOpacity
+            style={s.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowFoodModal(false)}
+          />
+          <View style={s.modalContent}>
+            <View style={s.modalHandle} />
+            <Text style={s.modalTitle}>Log Food</Text>
+
+            <Text style={s.inputLabel}>Food Name</Text>
+            <TextInput
+              style={s.input}
+              value={foodName}
+              onChangeText={setFoodName}
+              placeholder="e.g. Grilled Chicken Bowl"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <Text style={s.inputLabel}>Calories</Text>
+            <TextInput
+              style={s.input}
+              value={foodCal}
+              onChangeText={setFoodCal}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <View style={s.macroInputRow}>
+              <View style={s.macroInputCol}>
+                <Text style={s.inputLabel}>Protein (g)</Text>
+                <TextInput
+                  style={s.input}
+                  value={foodProtein}
+                  onChangeText={setFoodProtein}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={colors.textTertiary}
+                />
+              </View>
+              <View style={s.macroInputCol}>
+                <Text style={s.inputLabel}>Carbs (g)</Text>
+                <TextInput
+                  style={s.input}
+                  value={foodCarbs}
+                  onChangeText={setFoodCarbs}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={colors.textTertiary}
+                />
+              </View>
+              <View style={s.macroInputCol}>
+                <Text style={s.inputLabel}>Fat (g)</Text>
+                <TextInput
+                  style={s.input}
+                  value={foodFat}
+                  onChangeText={setFoodFat}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={colors.textTertiary}
+                />
+              </View>
+            </View>
+
+            <Text style={s.inputLabel}>Meal</Text>
+            <View style={s.slotRow}>
+              {MEAL_SLOTS.map((slot) => (
+                <TouchableOpacity
+                  key={slot}
+                  style={[s.slotBtn, foodSlot === slot && s.slotBtnActive]}
+                  onPress={() => setFoodSlot(slot)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[s.slotBtnText, foodSlot === slot && s.slotBtnTextActive]}>
+                    {MEAL_LABELS[slot]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity style={s.saveBtn} onPress={saveFoodEntry} activeOpacity={0.8}>
+              <Text style={s.saveBtnText}>Save</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.cancelBtn}
+              onPress={() => setShowFoodModal(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={s.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScrollView>
   );
 }
@@ -291,5 +471,116 @@ const s = StyleSheet.create({
   entryMacros: {
     fontSize: 11, color: colors.textTertiary,
     fontFamily: `${fonts.body}_400Regular`, marginTop: 3,
+  },
+
+  /* ── Modal ── */
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end" as const,
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.borderLight,
+    alignSelf: "center" as const,
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: `${fonts.display}_400Regular`,
+    color: colors.textPrimary,
+    marginBottom: 20,
+    textAlign: "center" as const,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontFamily: `${fonts.body}_600SemiBold`,
+    fontWeight: "600" as const,
+    color: colors.textSecondary,
+    marginBottom: 6,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
+  },
+  input: {
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: radius.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    fontFamily: `${fonts.body}_400Regular`,
+    color: colors.textPrimary,
+    marginBottom: 14,
+  },
+  macroInputRow: {
+    flexDirection: "row" as const,
+    gap: 10,
+  },
+  macroInputCol: {
+    flex: 1,
+  },
+  slotRow: {
+    flexDirection: "row" as const,
+    gap: 8,
+    marginBottom: 18,
+  },
+  slotBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.bg,
+    alignItems: "center" as const,
+  },
+  slotBtnActive: {
+    backgroundColor: colors.accentSage,
+    borderColor: colors.accentSage,
+  },
+  slotBtnText: {
+    fontSize: 12,
+    fontFamily: `${fonts.body}_600SemiBold`,
+    fontWeight: "600" as const,
+    color: colors.textSecondary,
+  },
+  slotBtnTextActive: {
+    color: "#FFFFFF",
+  },
+  saveBtn: {
+    backgroundColor: colors.accentSage,
+    borderRadius: radius.sm,
+    paddingVertical: 14,
+    alignItems: "center" as const,
+    marginTop: 4,
+  },
+  saveBtnText: {
+    fontSize: 15,
+    fontFamily: `${fonts.body}_700Bold`,
+    fontWeight: "700" as const,
+    color: "#FFFFFF",
+  },
+  cancelBtn: {
+    paddingVertical: 12,
+    alignItems: "center" as const,
+    marginTop: 4,
+  },
+  cancelBtnText: {
+    fontSize: 14,
+    fontFamily: `${fonts.body}_500Medium`,
+    fontWeight: "500" as const,
+    color: colors.textTertiary,
   },
 });

@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import MapView, { Marker } from "react-native-maps";
 import { colors, fonts, radius } from "../../theme/tokens";
 import { IconCamera, IconFileText, IconMap, IconBookmark } from "../../components/ui/Icons";
 import { PageTitle } from "../../components/ui/PageTitle";
@@ -34,6 +35,8 @@ interface Pick {
   protein: number;
   distance: string;
   badges: Array<"protein" | "fiber" | "smart">;
+  lat?: number;
+  lng?: number;
 }
 
 const BADGE_LABELS: Record<string, string> = {
@@ -43,11 +46,11 @@ const BADGE_LABELS: Record<string, string> = {
 };
 
 const MOCK_PICKS: Pick[] = [
-  { medal: "🥇", name: "Chipotle", cuisine: "🌯", item: "Chicken Bowl", score: 86, cal: 510, protein: 42, distance: "0.3 mi", badges: ["protein", "smart"] },
-  { medal: "🥈", name: "Cava", cuisine: "🥙", item: "Grilled Chicken Bowl", score: 83, cal: 440, protein: 35, distance: "0.5 mi", badges: ["protein"] },
-  { medal: "🥉", name: "Sweetgreen", cuisine: "🥗", item: "Harvest Bowl", score: 79, cal: 380, protein: 28, distance: "0.4 mi", badges: ["fiber"] },
-  { medal: "4", name: "Just Salad", cuisine: "🥗", item: "Buffalo Chicken", score: 76, cal: 420, protein: 32, distance: "0.6 mi", badges: ["smart"] },
-  { medal: "5", name: "Dig", cuisine: "🍗", item: "Charred Chicken Plate", score: 74, cal: 490, protein: 38, distance: "0.7 mi", badges: ["protein"] },
+  { medal: "🥇", name: "Chipotle", cuisine: "🌯", item: "Chicken Bowl", score: 86, cal: 510, protein: 42, distance: "0.3 mi", badges: ["protein", "smart"], lat: 40.7614, lng: -73.9776 },
+  { medal: "🥈", name: "Cava", cuisine: "🥙", item: "Grilled Chicken Bowl", score: 83, cal: 440, protein: 35, distance: "0.5 mi", badges: ["protein"], lat: 40.7590, lng: -73.9845 },
+  { medal: "🥉", name: "Sweetgreen", cuisine: "🥗", item: "Harvest Bowl", score: 79, cal: 380, protein: 28, distance: "0.4 mi", badges: ["fiber"], lat: 40.7555, lng: -73.9870 },
+  { medal: "4", name: "Just Salad", cuisine: "🥗", item: "Buffalo Chicken", score: 76, cal: 420, protein: 32, distance: "0.6 mi", badges: ["smart"], lat: 40.7530, lng: -73.9810 },
+  { medal: "5", name: "Dig", cuisine: "🍗", item: "Charred Chicken Plate", score: 74, cal: 490, protein: 38, distance: "0.7 mi", badges: ["protein"], lat: 40.7600, lng: -73.9900 },
 ];
 
 const ALL_CHAINS: Pick[] = [
@@ -161,13 +164,32 @@ export default function EatSmartScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ── Map placeholder ── */}
+      {/* ── Map ── */}
       {activeTab === "near" && (
         <Card style={{ padding: 0, overflow: "hidden", marginBottom: 14 }}>
-          <View style={styles.mapPlaceholder}>
-            <IconMap size={28} color={colors.textTertiary} />
-            <Text style={styles.mapPlaceholderText}>Map available with API key</Text>
-          </View>
+          <MapView
+            style={styles.mapView}
+            initialRegion={{
+              latitude: 40.7580,
+              longitude: -73.9855,
+              latitudeDelta: 0.04,
+              longitudeDelta: 0.04,
+            }}
+            scrollEnabled={false}
+            zoomEnabled={false}
+            pitchEnabled={false}
+            rotateEnabled={false}
+          >
+            {MOCK_PICKS.filter((p) => p.lat && p.lng).map((pick) => (
+              <Marker
+                key={pick.name}
+                coordinate={{ latitude: pick.lat!, longitude: pick.lng! }}
+                title={pick.name}
+                description={`${pick.item} — ${pick.cal} cal`}
+                pinColor={colors.accentSage}
+              />
+            ))}
+          </MapView>
         </Card>
       )}
 
@@ -301,12 +323,8 @@ const styles = StyleSheet.create({
   },
 
   /* Map */
-  mapPlaceholder: {
-    height: 160, backgroundColor: colors.surfaceWarm,
-    alignItems: "center", justifyContent: "center", gap: 8,
-  },
-  mapPlaceholderText: {
-    fontSize: 12, color: colors.textTertiary, fontFamily: `${fonts.body}_400Regular`,
+  mapView: {
+    height: 180, borderRadius: radius.sm,
   },
 
   /* Loading / empty */

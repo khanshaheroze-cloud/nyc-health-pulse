@@ -6,6 +6,7 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -276,7 +277,7 @@ export default function HealthTab() {
               • {ex.name} — {ex.sets}×{ex.reps}
             </Text>
           ))}
-          <ButtonPrimary label="▶ Start Workout" onPress={() => {}} style={{ marginTop: 14 }} />
+          <ButtonPrimary label="▶ Start Workout" onPress={() => Alert.alert("Coming Soon", "Workout tracking is being built!")} style={{ marginTop: 14 }} />
           {workoutDaysAgo && (
             <Text style={styles.workoutLast}>Last workout: {workoutDaysAgo}</Text>
           )}
@@ -320,7 +321,7 @@ export default function HealthTab() {
             </View>
           </View>
         </View>
-        <ButtonOutline label="+ Log Food" onPress={() => router.push("/scan" as any)} style={{ marginTop: 14 }} />
+        <ButtonOutline label="+ Log Food" onPress={() => router.push("/log" as any)} style={{ marginTop: 14 }} />
       </Card>
 
       {/* ── 5. YOUR NEIGHBORHOOD ── */}
