@@ -8,6 +8,7 @@ import { quickLogMenuItem, removeQuickLog, countTodayLogs } from "@/lib/eat-smar
 import { getRestaurantMenu } from "@/lib/eat-smart/useRestaurantMenu";
 import { formatDistance } from "@/lib/eat-smart/distance";
 import { useDistanceUnit } from "@/lib/eat-smart/useDistanceUnit";
+import { useUserLocation } from "@/hooks/useUserLocation";
 import { QuickLogToast } from "./QuickLogToast";
 import { LazyMenuModal, preloadMenuModal } from "./LazyMenuModal";
 import { BlocksOnboardingToast } from "./BlocksOnboardingToast";
@@ -120,12 +121,13 @@ export function HomepageEatSmartHero() {
   const [activeTab, setActiveTab] = useState<MealTab>("lunch");
   const [cards, setCards] = useState<EnrichedCard[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasLocation, setHasLocation] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [modalMenu, setModalMenu] = useState<{ menu: RestaurantMenu; distance?: string; grade?: string | null; tabContext?: MealTab } | null>(null);
   const [loggedIds, setLoggedIds] = useState<Set<string>>(new Set());
   const [distanceUnit] = useDistanceUnit();
+  const location = useUserLocation();
+  const hasLocation = location.source !== "default";
 
   // Auto-select tab based on NYC time
   useEffect(() => {
@@ -159,33 +161,22 @@ export function HomepageEatSmartHero() {
       }
 
       setCards(enriched);
-      setHasLocation(true);
     } catch {
       setCards(getFallbackCards(detectMealTab()));
     }
     setLoading(false);
   }, [distanceUnit]);
 
-  // Try geolocation on mount — fetch once, filter per tab client-side
+  // Fetch nearby when location resolves
   useEffect(() => {
     if (!mounted) return;
-
-    const fallback = () => {
+    if (location.source === "default") {
       setCards(getFallbackCards(detectMealTab()));
       setLoading(false);
-    };
-
-    navigator.permissions?.query({ name: "geolocation" }).then((perm) => {
-      if (perm.state === "granted") {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => fetchNearby(pos.coords.latitude, pos.coords.longitude),
-          fallback,
-        );
-      } else {
-        fallback();
-      }
-    }).catch(fallback);
-  }, [mounted, fetchNearby]);
+      return;
+    }
+    fetchNearby(location.coords.lat, location.coords.lng);
+  }, [mounted, location.coords.lat, location.coords.lng, location.source, fetchNearby]);
 
   // Filter cards based on active tab
   const displayCards = useMemo(() => {
@@ -270,10 +261,7 @@ export function HomepageEatSmartHero() {
   }, []);
 
   const requestLocation = () => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => fetchNearby(pos.coords.latitude, pos.coords.longitude),
-      () => {},
-    );
+    location.retry();
   };
 
   if (!mounted) {
