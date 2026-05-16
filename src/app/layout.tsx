@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -23,6 +23,13 @@ const dmSerifDisplay = DM_Serif_Display({
   weight: ["400"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#FAFAF7",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://pulsenyc.app"),
   title: {
@@ -36,9 +43,6 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "Pulse NYC",
-  },
-  other: {
-    "theme-color": "#FAFAF7",
   },
   openGraph: {
     title: "Pulse NYC",
@@ -68,7 +72,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${plusJakarta.variable} ${dmSerifDisplay.variable}`}>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         {/* Prevent flash of wrong theme — runs before paint */}
         <script
           dangerouslySetInnerHTML={{
