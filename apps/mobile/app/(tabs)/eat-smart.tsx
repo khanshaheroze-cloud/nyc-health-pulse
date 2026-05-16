@@ -12,7 +12,6 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import MapView, { Marker } from "react-native-maps";
 import { colors, fonts, radius } from "../../theme/tokens";
 import { IconCamera, IconFileText, IconMap, IconBookmark } from "../../components/ui/Icons";
 import { PageTitle } from "../../components/ui/PageTitle";
@@ -164,32 +163,17 @@ export default function EatSmartScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ── Map ── */}
+      {/* ── Map placeholder ── */}
       {activeTab === "near" && (
         <Card style={{ padding: 0, overflow: "hidden", marginBottom: 14 }}>
-          <MapView
-            style={styles.mapView}
-            initialRegion={{
-              latitude: 40.7580,
-              longitude: -73.9855,
-              latitudeDelta: 0.04,
-              longitudeDelta: 0.04,
-            }}
-            scrollEnabled={false}
-            zoomEnabled={false}
-            pitchEnabled={false}
-            rotateEnabled={false}
-          >
-            {MOCK_PICKS.filter((p) => p.lat && p.lng).map((pick) => (
-              <Marker
-                key={pick.name}
-                coordinate={{ latitude: pick.lat!, longitude: pick.lng! }}
-                title={pick.name}
-                description={`${pick.item} — ${pick.cal} cal`}
-                pinColor={colors.accentSage}
-              />
-            ))}
-          </MapView>
+          <View style={styles.mapView}>
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#e8f4f0" }}>
+              <Text style={{ fontSize: 28, marginBottom: 4 }}>📍</Text>
+              <Text style={{ fontSize: 12, fontWeight: "600", color: colors.textSecondary }}>
+                {MOCK_PICKS.length} picks within 5 blocks
+              </Text>
+            </View>
+          </View>
         </Card>
       )}
 

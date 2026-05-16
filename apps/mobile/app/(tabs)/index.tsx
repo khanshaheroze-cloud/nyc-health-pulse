@@ -19,6 +19,10 @@ import { Chip } from "../../components/ui/Chip";
 import { MacroBar } from "../../components/ui/MacroBar";
 import { ButtonPrimary } from "../../components/ui/ButtonPrimary";
 import { ButtonOutline } from "../../components/ui/ButtonOutline";
+import { DynamicSky } from "../../components/DynamicSky";
+import { CommitmentRings } from "../../components/CommitmentRings";
+import { PicksNearYouCarousel } from "../../components/PicksNearYouCarousel";
+import { useEnvironment } from "../../lib/useEnvironment";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -224,6 +228,8 @@ export default function HealthTab() {
     setRefreshing(false);
   }, [loadData]);
 
+  const env = useEnvironment();
+
   const greetingName = userName ? `, ${userName}` : "";
   const proteinPct = goals.protein > 0 ? Math.round((todayProtein / goals.protein) * 100) : 0;
   const carbsPct = goals.carbs > 0 ? Math.round((todayCarbs / goals.carbs) * 100) : 0;
@@ -244,7 +250,21 @@ export default function HealthTab() {
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentSage} />}
     >
-      {/* ── 1. TODAY TICKER ── */}
+      {/* ── 1. DYNAMIC SKY HERO ── */}
+      <DynamicSky env={env}>
+        <View style={styles.skyContent}>
+          <Text style={styles.heroDate}>{formatDateHeader()}</Text>
+          <Text style={styles.heroGreeting}>{getGreeting()}{greetingName}</Text>
+          <Text style={styles.heroSub}>
+            {neighborhood ? `📍 ${neighborhood.name} · ` : ""}{env.tempLabel} {env.weather === "clear" ? "Clear" : env.weather === "cloudy" ? "Cloudy" : env.weather === "rain" ? "Rain" : env.weather === "snow" ? "Snow" : "Foggy"}
+          </Text>
+          <View style={styles.skyAqi}>
+            <AQIRing value={aqi} size={52} />
+          </View>
+        </View>
+      </DynamicSky>
+
+      {/* ── 1b. LIVE TICKER ── */}
       <View style={styles.ticker}>
         <View style={styles.tickerLive}>
           <View style={styles.tickerDot} />
@@ -255,17 +275,16 @@ export default function HealthTab() {
         </Text>
       </View>
 
-      {/* ── 2. GREETING HERO ── */}
-      <View style={styles.heroRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.heroDate}>{formatDateHeader()}</Text>
-          <Text style={styles.heroGreeting}>{getGreeting()}{greetingName}</Text>
-          <Text style={styles.heroSub}>
-            {neighborhood ? `📍 ${neighborhood.name} · ` : ""}53° Partly Cloudy
-          </Text>
-        </View>
-        <AQIRing value={aqi} />
-      </View>
+      {/* ── 2. TODAY'S PROGRESS (3-ring widget) ── */}
+      <SectionLabel icon="🎯">TODAY'S PROGRESS</SectionLabel>
+      <CommitmentRings
+        calories={todayCal}
+        calorieGoal={goals.calories}
+        workoutMin={0}
+        outdoorMin={0}
+        streak={0}
+        bestStreak={0}
+      />
 
       {/* ── 3. TODAY'S WORKOUT ── */}
       <SectionLabel icon="🏋️">TODAY'S WORKOUT</SectionLabel>
@@ -324,7 +343,10 @@ export default function HealthTab() {
         <ButtonOutline label="+ Log Food" onPress={() => router.push("/log" as any)} style={{ marginTop: 14 }} />
       </Card>
 
-      {/* ── 5. YOUR NEIGHBORHOOD ── */}
+      {/* ── 5. PICKS NEAR YOU ── */}
+      <PicksNearYouCarousel />
+
+      {/* ── 6. YOUR NEIGHBORHOOD ── */}
       {neighborhood && (
         <>
           <SectionLabel icon="📍">YOUR NEIGHBORHOOD</SectionLabel>
@@ -416,6 +438,19 @@ const styles = StyleSheet.create({
     fontFamily: `${fonts.body}_500Medium`,
   },
 
+  /* Sky hero content */
+  skyContent: {
+    flex: 1,
+    justifyContent: "flex-end",
+    padding: 20,
+    paddingBottom: 24,
+  },
+  skyAqi: {
+    position: "absolute",
+    right: 20,
+    bottom: 24,
+  },
+
   /* Hero */
   heroRow: {
     flexDirection: "row",
@@ -425,19 +460,19 @@ const styles = StyleSheet.create({
   heroDate: {
     fontSize: 11,
     fontWeight: "700",
-    color: colors.textTertiary,
+    color: "rgba(255,255,255,0.8)",
     fontFamily: `${fonts.body}_700Bold`,
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   heroGreeting: {
     fontSize: 28,
-    color: colors.textPrimary,
+    color: "#FFFFFF",
     fontFamily: `${fonts.display}_400Regular`,
   },
   heroSub: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: "rgba(255,255,255,0.85)",
     fontFamily: `${fonts.body}_400Regular`,
     marginTop: 4,
   },
