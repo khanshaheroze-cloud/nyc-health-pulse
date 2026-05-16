@@ -5,6 +5,7 @@ import type { ChainData } from "@/lib/eatSmartData";
 import { getChainTopPicks, calculatePulseScore, getBadges } from "@/lib/eatSmartData";
 import { chainMenus } from "@/data/eat-smart/menus";
 import type { MenuItem, RestaurantMenu } from "@/lib/eat-smart/types";
+import { selectTop5Picks } from "@/lib/eat-smart/top-picks";
 import { LazyMenuModal, preloadMenuModal } from "./eat-smart/LazyMenuModal";
 
 function scoreBadge(score: number) {
@@ -58,20 +59,21 @@ export function EatSmartChainCard({ chain, featured }: { chain: ChainData; featu
 
   const badge = scoreBadge(bestScore);
 
-  // Build items list for expanded view
+  // Build items list for expanded view — Top 5 venue-aware picks
   const displayItems: { name: string; calories: number; protein?: number; fiber?: number; sodium?: number; pulseScore: number; badges: string[] }[] = curatedMenu
-    ? [...curatedMenu.items].sort((a, b) => b.pulseScore - a.pulseScore).map(i => ({
+    ? selectTop5Picks(curatedMenu).map(i => ({
         name: i.name,
         calories: i.calories,
         protein: i.protein,
         fiber: i.fiber,
         sodium: i.sodium,
-        pulseScore: i.pulseScore,
+        pulseScore: i.isDrink ? (i.drinkScore ?? i.pulseScore) : i.pulseScore,
         badges: i.badges,
       }))
     : chain.items
         .map(item => ({ ...item, pulseScore: calculatePulseScore(item), badges: getBadges(item) }))
-        .sort((a, b) => b.pulseScore - a.pulseScore);
+        .sort((a, b) => b.pulseScore - a.pulseScore)
+        .slice(0, 5);
 
   return (
     <>
@@ -132,8 +134,9 @@ export function EatSmartChainCard({ chain, featured }: { chain: ChainData; featu
               </div>
             )}
 
-            {/* Top scored items */}
-            <div className="mt-3 space-y-2">
+            {/* Top 5 Picks */}
+            <p className="mt-3 text-[10px] font-bold text-hp-green uppercase tracking-widest mb-1.5">Top 5 Picks</p>
+            <div className="space-y-2">
               {displayItems.map((item, i) => {
                 const s = scoreBadge(item.pulseScore);
                 const ratio = proteinRatio(item.calories, item.protein);

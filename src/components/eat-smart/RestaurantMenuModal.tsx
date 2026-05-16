@@ -5,6 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import type { MenuItem, MenuCategoryId, RestaurantMenu, AvailabilityStatus, MealTab } from "@/lib/eat-smart/types";
 import { quickLogMenuItem, removeQuickLog, countTodayLogs } from "@/lib/eat-smart/quickLog";
 import type { QuickLogSource } from "@/lib/eat-smart/quickLog";
+import { selectTop5Picks } from "@/lib/eat-smart/top-picks";
 import { CategoryPills } from "./CategoryPills";
 import { MenuItemCard } from "./MenuItemCard";
 import { QuickLogToast } from "./QuickLogToast";
@@ -80,6 +81,12 @@ export function RestaurantMenuModal({ menu, distance, grade, tabContext, open, o
       return bScore - aScore;
     });
   }, [activeItems, activeCategory]);
+
+  // Top 5 venue-aware picks
+  const top5 = useMemo(() => {
+    if (!menu) return [];
+    return selectTop5Picks(menu);
+  }, [menu]);
 
   // Oldest verification date across all items with source data
   const oldestVerified = useMemo(() => {
@@ -216,6 +223,25 @@ export function RestaurantMenuModal({ menu, distance, grade, tabContext, open, o
 
             {/* Items list */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+              {/* Top 5 Picks */}
+              {!showReportForm && !reportSubmitted && activeCategory === "all" && top5.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-[11px] font-bold tracking-[1.5px] uppercase text-hp-green mb-2">Top 5 Picks</p>
+                  <div className="space-y-2">
+                    {top5.map((item, i) => (
+                      <MenuItemCard
+                        key={`top5-${item.id}`}
+                        item={item}
+                        rank={i + 1}
+                        onLog={handleLog}
+                        isLogged={loggedIds.has(item.id)}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-3 border-t border-border-light" />
+                </div>
+              )}
+
               {showReportForm ? (
                 <MenuErrorReport
                   items={activeItems}
