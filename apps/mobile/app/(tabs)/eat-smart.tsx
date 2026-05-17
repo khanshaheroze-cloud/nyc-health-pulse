@@ -293,19 +293,17 @@ export default function EatSmartScreen() {
         </View>
       )}
 
-      {/* ── Location error ── */}
+      {/* ── Location error banner ── */}
       {!loading && locationError && activeTab === "near" && (
-        <Card style={{ marginBottom: 14 }}>
-          <Text style={styles.locErrorText}>Enable location to see picks within 5 blocks</Text>
-          <ButtonOutline
-            label="Enable Location"
-            onPress={async () => {
-              const { status } = await Location.requestForegroundPermissionsAsync();
-              if (status === "granted") setLocationError(false);
-            }}
-            style={{ marginTop: 10 }}
-          />
-        </Card>
+        <View style={styles.permBanner}>
+          <Text style={styles.permBannerText}>Location denied. Enable it to find food near you.</Text>
+          <TouchableOpacity
+            onPress={() => { Haptics.selectionAsync(); Location.requestForegroundPermissionsAsync().then(({ status }) => { if (status === "granted") setLocationError(false); }); }}
+            style={styles.permBtn}
+          >
+            <Text style={styles.permBtnText}>Open Settings</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {/* ── Empty saved state ── */}
@@ -440,6 +438,13 @@ const styles = StyleSheet.create({
   loadingWrap: { alignItems: "center", paddingVertical: 40 },
   loadingText: { marginTop: 12, fontSize: 13, color: colors.textSecondary, fontFamily: `${fonts.body}_400Regular` },
   locErrorText: { fontSize: 13, color: colors.textSecondary, fontFamily: `${fonts.body}_500Medium`, textAlign: "center" },
+  permBanner: {
+    backgroundColor: "#FEF3CD", borderRadius: radius.sm, padding: 14,
+    marginBottom: 14, flexDirection: "row", alignItems: "center", gap: 10,
+  },
+  permBannerText: { flex: 1, fontSize: 12, color: "#856404", fontFamily: `${fonts.body}_500Medium` },
+  permBtn: { backgroundColor: "#856404", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+  permBtnText: { fontSize: 11, fontWeight: "700", color: "#FFF" },
   emptyText: { fontSize: 13, color: colors.textTertiary, fontFamily: `${fonts.body}_400Regular`, textAlign: "center", paddingVertical: 12 },
 
   /* Picks */
