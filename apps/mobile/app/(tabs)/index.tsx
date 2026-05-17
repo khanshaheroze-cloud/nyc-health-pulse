@@ -304,9 +304,18 @@ export default function HealthTab() {
         <View style={styles.skyContent}>
           <Text style={styles.heroDate}>{formatDateHeader()}</Text>
           <Text style={styles.heroGreeting}>{getGreeting()}{greetingName}</Text>
-          <Text style={styles.heroSub}>
-            {neighborhood ? `📍 ${neighborhood.name} · ` : ""}{env.tempLabel} {env.weather === "clear" ? "Clear" : env.weather === "cloudy" ? "Cloudy" : env.weather === "rain" ? "Rain" : env.weather === "snow" ? "Snow" : "Foggy"}
-          </Text>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onLongPress={() => {
+              if (env.debug) {
+                Alert.alert("Weather Debug", `URL: ${env.debug.apiUrl}\nField: ${env.debug.field}\nValue: ${env.debug.rawValue}\nFetched: ${env.debug.fetchedAt}`);
+              }
+            }}
+          >
+            <Text style={styles.heroSub}>
+              {neighborhood ? `📍 ${neighborhood.name} · ` : ""}{env.tempLabel} {env.weather === "clear" ? "Clear" : env.weather === "cloudy" ? "Cloudy" : env.weather === "rain" ? "Rain" : env.weather === "snow" ? "Snow" : "Foggy"}
+            </Text>
+          </TouchableOpacity>
           <View style={styles.skyAqi}>
             <PulsingAQIRing value={aqi} size={52} accent={timeTheme.ringStroke} />
           </View>

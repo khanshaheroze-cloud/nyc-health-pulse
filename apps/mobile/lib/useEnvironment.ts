@@ -59,18 +59,22 @@ function getAqiBand(aqi: number): AqiBand {
   return "unhealthy";
 }
 
-async function fetchWeather(
-  lat: number,
-  lng: number,
-): Promise<{ weather: WeatherCondition; tempF: number; aqi: number }> {
+interface WeatherFetchResult {
+  weather: WeatherCondition;
+  tempF: number | null;
+  aqi: number;
+  debug: WeatherDebug;
+}
+
+async function fetchWeather(lat: number, lng: number): Promise<WeatherFetchResult> {
+  const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America%2FNew_York`;
   try {
-    const res = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America%2FNew_York`,
-    );
-    if (!res.ok) throw new Error("weather fetch failed");
+    const res = await fetch(apiUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const code: number = data.current?.weather_code ?? 0;
-    const tempF: number = Math.round(data.current?.temperature_2m ?? 55);
+    const rawTemp = data.current?.temperature_2m;
+    const tempF: number | null = rawTemp != null ? Math.round(rawTemp) : null;
 
     let weather: WeatherCondition = "clear";
     if ([45, 48].includes(code)) weather = "fog";
@@ -79,9 +83,29 @@ async function fetchWeather(
     else if ([71, 73, 75, 77, 85, 86].includes(code)) weather = "snow";
     else if ([1, 2, 3].includes(code)) weather = "cloudy";
 
-    return { weather, tempF, aqi: 43 };
+    return {
+      weather,
+      tempF,
+      aqi: 43,
+      debug: {
+        apiUrl,
+        field: "current.temperature_2m",
+        rawValue: String(rawTemp ?? "null"),
+        fetchedAt: new Date().toISOString(),
+      },
+    };
   } catch {
-    return { weather: "clear", tempF: 55, aqi: 43 };
+    return {
+      weather: "clear",
+      tempF: null,
+      aqi: 43,
+      debug: {
+        apiUrl,
+        field: "current.temperature_2m",
+        rawValue: "FETCH_FAILED",
+        fetchedAt: new Date().toISOString(),
+      },
+    };
   }
 }
 
@@ -116,8 +140,16 @@ function getSunTimes(): { sunrise: Date; sunset: Date } {
   return { sunrise, sunset };
 }
 
-export function useEnvironment(lat = 40.7128, lng = -74.006): Environment {
+export interface WeatherDebug {
+  apiUrl: string;
+  field: string;
+  rawValue: string;
+  fetchedAt: string;
+}
+
+export function useEnvironment(lat = 40.7128, lng = -74.006): Environment & { debug: WeatherDebug | null } {
   const fetched = useRef(false);
+  const [debug, setDebug] = useState<WeatherDebug | null>(null);
 
   const [env, setEnv] = useState<Environment>(() => {
     const h = new Date().getHours();
@@ -132,7 +164,7 @@ export function useEnvironment(lat = 40.7128, lng = -74.006): Environment {
       sunset,
       isNight: bucket === "night" || bucket === "dusk",
       tempF: 0,
-      tempLabel: "",
+      tempLabel: "—°",
     };
   });
 
@@ -172,13 +204,17 @@ export function useEnvironment(lat = 40.7128, lng = -74.006): Environment {
       const bucket = getTimeBucket(h);
       const { sunrise, sunset } = getSunTimes();
       const finalAqi = aqi || weatherData.aqi;
+      const temp = weatherData.tempF;
 
-      await setCachedWeather({
-        weather: weatherData.weather,
-        tempF: weatherData.tempF,
-        aqi: finalAqi,
-      });
+      if (temp != null) {
+        await setCachedWeather({
+          weather: weatherData.weather,
+          tempF: temp,
+          aqi: finalAqi,
+        });
+      }
 
+      setDebug(weatherData.debug);
       setEnv({
         timeBucket: bucket,
         weather: weatherData.weather,
@@ -187,8 +223,8 @@ export function useEnvironment(lat = 40.7128, lng = -74.006): Environment {
         sunrise,
         sunset,
         isNight: bucket === "night" || bucket === "dusk",
-        tempF: weatherData.tempF,
-        tempLabel: `${weatherData.tempF}°`,
+        tempF: temp ?? 0,
+        tempLabel: temp != null ? `${temp}°` : "—°",
       });
       fetched.current = true;
     })();
@@ -209,5 +245,5 @@ export function useEnvironment(lat = 40.7128, lng = -74.006): Environment {
     };
   }, [lat, lng]);
 
-  return env;
+  return { ...env, debug };
 }
