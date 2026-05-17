@@ -19,6 +19,7 @@ import { SectionLabel } from "../../components/ui/SectionLabel";
 import { Card } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
 import { ButtonOutline } from "../../components/ui/ButtonOutline";
+import { RestaurantsMap, type MapPin } from "../../components/eat-smart/RestaurantsMap";
 
 /* ------------------------------------------------------------------ */
 /*  Data                                                               */
@@ -74,6 +75,8 @@ export default function EatSmartScreen() {
   const [locationError, setLocationError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [saved, setSaved] = useState<string[]>([]);
+  const [userLat, setUserLat] = useState(40.7580);
+  const [userLng, setUserLng] = useState(-73.9855);
 
   const loadSaved = useCallback(async () => {
     const raw = await AsyncStorage.getItem("pulse-eat-saved");
@@ -99,11 +102,16 @@ export default function EatSmartScreen() {
           if (!cancelled) { setLocationError(true); setPicks(MOCK_PICKS); setLoading(false); }
           return;
         }
-        await Promise.race([
+        const loc = await Promise.race([
           Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
           new Promise<never>((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000)),
         ]);
-        if (!cancelled) { setPicks(MOCK_PICKS); setLoading(false); }
+        if (!cancelled) {
+          setUserLat(loc.coords.latitude);
+          setUserLng(loc.coords.longitude);
+          setPicks(MOCK_PICKS);
+          setLoading(false);
+        }
       } catch {
         if (!cancelled) { setLocationError(true); setPicks(MOCK_PICKS); setLoading(false); }
       }
@@ -163,17 +171,22 @@ export default function EatSmartScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ── Map placeholder ── */}
+      {/* ── Mapbox map ── */}
       {activeTab === "near" && (
         <Card style={{ padding: 0, overflow: "hidden", marginBottom: 14 }}>
-          <View style={styles.mapView}>
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#e8f4f0" }}>
-              <Text style={{ fontSize: 28, marginBottom: 4 }}>📍</Text>
-              <Text style={{ fontSize: 12, fontWeight: "600", color: colors.textSecondary }}>
-                {MOCK_PICKS.length} picks within 5 blocks
-              </Text>
-            </View>
-          </View>
+          <RestaurantsMap
+            userLat={userLat}
+            userLng={userLng}
+            pins={picks
+              .filter((p) => p.lat && p.lng)
+              .map((p) => ({
+                id: p.name,
+                lat: p.lat!,
+                lng: p.lng!,
+                score: p.score,
+                name: p.name,
+              }))}
+          />
         </Card>
       )}
 
