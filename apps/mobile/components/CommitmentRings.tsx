@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Svg, { Circle } from "react-native-svg";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withDelay,
+} from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
 import { colors, fonts, radius } from "../theme/tokens";
 
 /* ── Ring config ────────────────────────────────────────── */
@@ -72,22 +79,34 @@ export function CommitmentRings({
     outdoorGoal > 0 ? Math.min(outdoorMin / outdoorGoal, 1) : 0,
   ];
 
-  // Animate fractions from 0 to target over ~600ms using state ticks
   const [animated, setAnimated] = useState([0, 0, 0]);
+  const ringScale = useSharedValue(0.9);
 
   useEffect(() => {
+    ringScale.value = withSpring(1, { damping: 12, stiffness: 120 });
+
     let frame: number;
     const start = Date.now();
-    const duration = 600;
+    const duration = 800;
     const tick = () => {
       const t = Math.min((Date.now() - start) / duration, 1);
       const ease = 1 - Math.pow(1 - t, 3);
       setAnimated(fractions.map((f) => f * ease));
       if (t < 1) frame = requestAnimationFrame(tick);
+      else {
+        const allClosed = fractions.every((f) => f >= 0.95);
+        if (allClosed) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      }
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [fractions[0], fractions[1], fractions[2]]);
+
+  const ringAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: ringScale.value }],
+  }));
 
   const displayCopy =
     microcopy ??
@@ -103,7 +122,7 @@ export function CommitmentRings({
     <View style={styles.card}>
       <View style={styles.row}>
         {/* ── Rings ─────────────── */}
-        <View style={styles.ringContainer}>
+        <Animated.View style={[styles.ringContainer, ringAnimStyle]}>
           <Svg width={RING_SIZE} height={RING_SIZE}>
             {RINGS.map((ring, i) => {
               const circumference = 2 * Math.PI * ring.r;
@@ -127,7 +146,7 @@ export function CommitmentRings({
               );
             })}
           </Svg>
-        </View>
+        </Animated.View>
 
         {/* ── Right column ──────── */}
         <View style={styles.info}>

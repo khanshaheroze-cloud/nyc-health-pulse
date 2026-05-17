@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Haptics from "expo-haptics";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
 import { colors } from "../../theme/tokens";
 import {
   IconActivity,
@@ -18,20 +24,36 @@ function TabBarIcon({
   focused: boolean;
 }) {
   const color = focused ? colors.accentSage : colors.textTertiary;
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    if (focused) {
+      scale.value = withSpring(1.1, { damping: 10, stiffness: 200 });
+    } else {
+      scale.value = withSpring(1, { damping: 10, stiffness: 200 });
+    }
+  }, [focused]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   return (
-    <View
-      style={{
-        alignItems: "center",
-        justifyContent: "center",
-        width: 44,
-        height: 28,
-        backgroundColor: focused ? "#E8F0EA" : "transparent",
-        borderRadius: 14,
-      }}
+    <Animated.View
+      style={[
+        {
+          alignItems: "center",
+          justifyContent: "center",
+          width: 44,
+          height: 28,
+          backgroundColor: focused ? "#E8F0EA" : "transparent",
+          borderRadius: 14,
+        },
+        animStyle,
+      ]}
     >
       <Icon size={20} color={color} />
-    </View>
+    </Animated.View>
   );
 }
 
@@ -53,6 +75,11 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      screenListeners={{
+        tabPress: () => {
+          Haptics.selectionAsync();
+        },
+      }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.accentSage,

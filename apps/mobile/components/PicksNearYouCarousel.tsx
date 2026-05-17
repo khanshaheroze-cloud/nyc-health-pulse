@@ -2,8 +2,11 @@ import React, { useState, useEffect } from "react";
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, Dimensions,
 } from "react-native";
+import * as Haptics from "expo-haptics";
+import Animated, { FadeInRight } from "react-native-reanimated";
 import { colors, fonts, radius } from "../theme/tokens";
 import { ScoreBadge } from "./ScoreBadge";
+import { SkeletonShimmer } from "./ui/SkeletonShimmer";
 import { getMenuForRestaurant } from "../lib/core/smart-menu/menuResolver";
 import { getTopPicks, letterGrade } from "../lib/core/smart-menu/topPicks";
 import { getUserLocation, NYC_DEFAULT } from "../lib/location";
@@ -60,6 +63,7 @@ interface Props {
 
 export function PicksNearYouCarousel({ onRestaurantPress }: Props) {
   const [picks, setPicks] = useState<PickCard[]>([]);
+  const [loading, setLoading] = useState(true);
   const [mealWindow] = useState<MealWindow>(currentMealWindow);
 
   useEffect(() => {
@@ -104,17 +108,43 @@ export function PicksNearYouCarousel({ onRestaurantPress }: Props) {
         cards.sort((a, b) => b.topItem.pulseScore - a.topItem.pulseScore);
         if (!cancelled) setPicks(cards.slice(0, 8));
       } catch {}
+      if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
   }, []);
 
+  if (loading) {
+    return (
+      <View style={s.container}>
+        <View style={s.headerRow}>
+          <View>
+            <Text style={s.sectionTitle}>Picks Near You</Text>
+            <Text style={s.sectionSub}>{mealLabel(mealWindow)} · Loading...</Text>
+          </View>
+        </View>
+        <View style={{ flexDirection: "row", gap: CARD_GAP }}>
+          {[0, 1].map((i) => (
+            <View key={i} style={[s.card, { width: CARD_WIDTH }]}>
+              <SkeletonShimmer width="70%" height={16} style={{ marginBottom: 10 }} />
+              <SkeletonShimmer width="50%" height={12} style={{ marginBottom: 14 }} />
+              <SkeletonShimmer width="100%" height={1} style={{ marginBottom: 10 }} />
+              <SkeletonShimmer width="85%" height={14} style={{ marginBottom: 6 }} />
+              <SkeletonShimmer width="60%" height={11} />
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  }
+
   if (picks.length === 0) return null;
 
-  const renderCard = ({ item }: { item: PickCard }) => (
+  const renderCard = ({ item, index }: { item: PickCard; index: number }) => (
+    <Animated.View entering={FadeInRight.delay(index * 80).duration(400)}>
     <TouchableOpacity
       style={s.card}
       activeOpacity={0.8}
-      onPress={() => onRestaurantPress?.(item.restaurant)}
+      onPress={() => { Haptics.selectionAsync(); onRestaurantPress?.(item.restaurant); }}
     >
       <View style={s.cardHeader}>
         <View style={{ flex: 1 }}>
@@ -147,6 +177,7 @@ export function PicksNearYouCarousel({ onRestaurantPress }: Props) {
         </View>
       </View>
     </TouchableOpacity>
+    </Animated.View>
   );
 
   return (
