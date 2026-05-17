@@ -22,6 +22,8 @@ import { ButtonOutline } from "../../components/ui/ButtonOutline";
 import { RestaurantsMap, type MapPin } from "../../components/eat-smart/RestaurantsMap";
 import { RestaurantDetailModal } from "../../components/RestaurantDetailModal";
 import { getMenuForRestaurant } from "../../lib/core/smart-menu/menuResolver";
+import { fetchNearbyRestaurants, detectChainSlug, ALL_CHAIN_ENTRIES, type DOHMHRestaurant } from "../../lib/nearbyRestaurants";
+import { getTopPicks } from "../../lib/core/smart-menu/topPicks";
 import type { RestaurantMenu } from "../../lib/core/smart-menu/types";
 import * as Haptics from "expo-haptics";
 
@@ -51,20 +53,70 @@ const BADGE_LABELS: Record<string, string> = {
   smart: "Smart Pick",
 };
 
-const MOCK_PICKS: Pick[] = [
-  { medal: "🥇", name: "Chipotle", cuisine: "Mexican", item: "Chicken Bowl", score: 86, cal: 510, protein: 42, distance: "0.3 mi", distanceMeters: 480, badges: ["protein", "smart"], lat: 40.7614, lng: -73.9776, chainSlug: "chipotle" },
-  { medal: "🥈", name: "Cava", cuisine: "Mediterranean", item: "Grilled Chicken Bowl", score: 83, cal: 440, protein: 35, distance: "0.5 mi", distanceMeters: 800, badges: ["protein"], lat: 40.7590, lng: -73.9845, chainSlug: "cava" },
-  { medal: "🥉", name: "Sweetgreen", cuisine: "Salad", item: "Harvest Bowl", score: 79, cal: 380, protein: 28, distance: "0.4 mi", distanceMeters: 640, badges: ["fiber"], lat: 40.7555, lng: -73.9870, chainSlug: "sweetgreen" },
-  { medal: "4", name: "Just Salad", cuisine: "Salad", item: "Buffalo Chicken", score: 76, cal: 420, protein: 32, distance: "0.6 mi", distanceMeters: 960, badges: ["smart"], lat: 40.7530, lng: -73.9810, chainSlug: "just-salad" },
-  { medal: "5", name: "Dig", cuisine: "American", item: "Charred Chicken Plate", score: 74, cal: 490, protein: 38, distance: "0.7 mi", distanceMeters: 1120, badges: ["protein"], lat: 40.7600, lng: -73.9900, chainSlug: null },
-];
+function formatDistance(m: number): string {
+  const blocks = Math.round(m / 80);
+  if (blocks <= 20) return `${blocks} blks`;
+  return `${(m / 1609).toFixed(1)} mi`;
+}
 
-const ALL_CHAINS: Pick[] = [
-  ...MOCK_PICKS,
-  { medal: "6", name: "Chopt", cuisine: "Salad", item: "Mexican Caesar", score: 72, cal: 350, protein: 25, distance: "0.8 mi", distanceMeters: 1280, badges: ["fiber"] as Array<"protein" | "fiber" | "smart">, chainSlug: null },
-  { medal: "7", name: "Dos Toros", cuisine: "Mexican", item: "Burrito Bowl", score: 70, cal: 480, protein: 30, distance: "1.0 mi", distanceMeters: 1600, badges: ["smart"] as Array<"protein" | "fiber" | "smart">, chainSlug: null },
-  { medal: "8", name: "Poke Bowl", cuisine: "Japanese", item: "Salmon Poke", score: 68, cal: 400, protein: 34, distance: "0.9 mi", distanceMeters: 1440, badges: ["protein"] as Array<"protein" | "fiber" | "smart">, chainSlug: null },
-].sort((a, b) => a.name.localeCompare(b.name));
+function buildPickFromDOHMH(r: DOHMHRestaurant, idx: number): Pick {
+  const slug = detectChainSlug(r.dba);
+  const menu = getMenuForRestaurant(slug, r.cuisine, r.dba);
+  const topPicks = menu ? getTopPicks(menu, 1) : [];
+  const top = topPicks[0];
+
+  const medals = ["🥇", "🥈", "🥉"];
+  const badges: Array<"protein" | "fiber" | "smart"> = [];
+  if (top) {
+    if (top.protein >= 25) badges.push("protein");
+    if (top.fiber != null && top.fiber >= 5) badges.push("fiber");
+    if (top.pulseScore >= 75) badges.push("smart");
+  }
+
+  return {
+    medal: idx < 3 ? medals[idx] : `${idx + 1}`,
+    name: r.dba,
+    cuisine: r.cuisine,
+    item: top?.name ?? "Menu item",
+    score: top?.pulseScore ?? 65,
+    cal: top?.calories ?? 400,
+    protein: top?.protein ?? 20,
+    distance: formatDistance(r.distance),
+    distanceMeters: r.distance,
+    badges: badges.slice(0, 2),
+    lat: r.lat,
+    lng: r.lng,
+    chainSlug: slug,
+  };
+}
+
+function buildChainPicks(): Pick[] {
+  return ALL_CHAIN_ENTRIES.map((chain, idx) => {
+    const menu = getMenuForRestaurant(chain.slug, chain.cuisine, chain.name);
+    const topPicks = menu ? getTopPicks(menu, 1) : [];
+    const top = topPicks[0];
+    const badges: Array<"protein" | "fiber" | "smart"> = [];
+    if (top) {
+      if (top.protein >= 25) badges.push("protein");
+      if (top.pulseScore >= 75) badges.push("smart");
+    }
+    return {
+      medal: `${chain.icon}`,
+      name: chain.name,
+      cuisine: chain.cuisine,
+      item: top?.name ?? "Best pick",
+      score: top?.pulseScore ?? 70,
+      cal: top?.calories ?? 450,
+      protein: top?.protein ?? 25,
+      distance: "",
+      distanceMeters: 0,
+      badges: badges.slice(0, 2),
+      lat: undefined,
+      lng: undefined,
+      chainSlug: chain.slug,
+    };
+  }).sort((a, b) => b.score - a.score);
+}
 
 type Tab = "near" | "chains" | "saved";
 
@@ -114,6 +166,8 @@ export default function EatSmartScreen() {
     await AsyncStorage.setItem("pulse-eat-saved", JSON.stringify(next));
   };
 
+  const [chainPicks] = useState<Pick[]>(buildChainPicks);
+
   useEffect(() => {
     let cancelled = false;
     loadSaved();
@@ -122,27 +176,35 @@ export default function EatSmartScreen() {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
-          if (!cancelled) { setLocationError(true); setPicks(MOCK_PICKS); setLoading(false); }
+          if (!cancelled) { setLocationError(true); setLoading(false); }
           return;
         }
         const loc = await Promise.race([
           Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
           new Promise<never>((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000)),
         ]);
-        if (!cancelled) {
-          setUserLat(loc.coords.latitude);
-          setUserLng(loc.coords.longitude);
-          setPicks(MOCK_PICKS);
-          setLoading(false);
-        }
+        if (cancelled) return;
+
+        const lat = loc.coords.latitude;
+        const lng = loc.coords.longitude;
+        setUserLat(lat);
+        setUserLng(lng);
+
+        const nearby = await fetchNearbyRestaurants(lat, lng, 1200);
+        if (cancelled) return;
+
+        const nearPicks = nearby.map((r, i) => buildPickFromDOHMH(r, i));
+        nearPicks.sort((a, b) => b.score - a.score);
+        setPicks(nearPicks.slice(0, 30));
+        setLoading(false);
       } catch {
-        if (!cancelled) { setLocationError(true); setPicks(MOCK_PICKS); setLoading(false); }
+        if (!cancelled) { setLocationError(true); setLoading(false); }
       }
     })();
 
     const timer = setTimeout(() => {
-      if (!cancelled && picks.length === 0) { setPicks(MOCK_PICKS); setLoading(false); }
-    }, 2000);
+      if (!cancelled && picks.length === 0) { setLoading(false); }
+    }, 10000);
 
     return () => { cancelled = true; clearTimeout(timer); };
   }, []);
@@ -153,8 +215,9 @@ export default function EatSmartScreen() {
     setRefreshing(false);
   }, [loadSaved]);
 
-  const savedPicks = [...MOCK_PICKS, ...ALL_CHAINS].filter((p) => saved.includes(p.name));
-  const displayPicks = activeTab === "chains" ? ALL_CHAINS : activeTab === "saved" ? savedPicks : picks;
+  const allKnown = [...picks, ...chainPicks];
+  const savedPicks = allKnown.filter((p) => saved.includes(p.name));
+  const displayPicks = activeTab === "chains" ? chainPicks : activeTab === "saved" ? savedPicks : picks;
 
   return (
     <ScrollView
