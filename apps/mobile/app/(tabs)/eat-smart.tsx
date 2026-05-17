@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors, fonts, radius } from "../../theme/tokens";
@@ -127,6 +128,7 @@ type Tab = "near" | "chains" | "saved";
 export default function EatSmartScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const [activeTab, setActiveTab] = useState<Tab>("near");
   const [picks, setPicks] = useState<Pick[]>([]);
   const [loading, setLoading] = useState(true);
@@ -363,7 +365,7 @@ export default function EatSmartScreen() {
         </Card>
       )}
 
-      <View style={{ height: 100 }} />
+      <View style={{ height: tabBarHeight + 20 }} />
 
       {/* ── Restaurant detail modal ── */}
       <RestaurantDetailModal

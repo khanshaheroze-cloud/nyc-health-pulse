@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Svg, { Circle } from "react-native-svg";
 import Animated, {
@@ -219,6 +220,7 @@ const HEALTH_STATUS: { label: string; variant: "good" | "warn" | "alert" }[] = [
 export default function HealthTab() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const [refreshing, setRefreshing] = useState(false);
 
   const [userName, setUserName] = useState<string | null>(null);
@@ -439,7 +441,7 @@ export default function HealthTab() {
         ))}
       </View>
 
-      <View style={{ height: 100 }} />
+      <View style={{ height: tabBarHeight + 20 }} />
     </ScrollView>
   );
 }

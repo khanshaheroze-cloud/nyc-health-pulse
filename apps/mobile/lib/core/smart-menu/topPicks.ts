@@ -9,6 +9,15 @@ export const TIER_LABELS: Record<Tier, string> = {
   "better-than-rest": "Better Than Most",
 };
 
+export function rankedTierLabel(tier: Tier, rank: number): string {
+  if (tier === "great") {
+    if (rank === 0) return "#1 Best Pick";
+    if (rank === 1) return "#2 Strong Pick";
+    return "#3 Solid Pick";
+  }
+  return TIER_LABELS[tier];
+}
+
 export const TIER_COLORS: Record<Tier, { bg: string; fg: string }> = {
   great: { bg: "#d1fae5", fg: "#065f46" },
   decent: { bg: "#e0f2fe", fg: "#0c4a6e" },

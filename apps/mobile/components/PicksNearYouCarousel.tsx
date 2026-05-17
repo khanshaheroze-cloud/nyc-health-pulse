@@ -172,9 +172,6 @@ export function PicksNearYouCarousel({ onRestaurantPress }: Props) {
         <View style={s.macroPill}>
           <Text style={s.macroPillText}>{item.topItem.protein}g protein</Text>
         </View>
-        <View style={s.gradePill}>
-          <Text style={s.gradeText}>{letterGrade(item.avgScore)} avg</Text>
-        </View>
       </View>
     </TouchableOpacity>
     </Animated.View>

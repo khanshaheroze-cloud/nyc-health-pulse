@@ -9,7 +9,7 @@ import { Badge } from "./ui/Badge";
 import { ScoreBadge } from "./ScoreBadge";
 import type { RestaurantMenu } from "../lib/core/smart-menu/types";
 import { detectMealSlot } from "../lib/core/smart-menu/types";
-import { selectTop5Picks, avgPulseScore, letterGrade, goalContext, TIER_LABELS, TIER_COLORS, type TopPick } from "../lib/core/smart-menu/topPicks";
+import { selectTop5Picks, avgPulseScore, letterGrade, goalContext, TIER_LABELS, TIER_COLORS, rankedTierLabel, type TopPick } from "../lib/core/smart-menu/topPicks";
 import { getHealthyTip, getSwapEstimate, type HealthyTip } from "../lib/cuisineTips";
 
 interface Restaurant {
@@ -212,7 +212,7 @@ export function RestaurantDetailModal({
               {topPicks.length > 0 && (
                 <View style={s.picksSection}>
                   <Text style={s.picksTitle}>Top {topPicks.length} PulseScore Picks</Text>
-                  {topPicks.map((pick) => (
+                  {topPicks.map((pick, idx) => (
                     <View key={pick.id} style={s.pickRow}>
                       <ScoreBadge score={pick.pulseScore} size={36} />
                       <View style={s.pickInfo}>
@@ -221,7 +221,7 @@ export function RestaurantDetailModal({
                           {pick.tier && (
                             <View style={[s.tierBadge, { backgroundColor: TIER_COLORS[pick.tier].bg }]}>
                               <Text style={[s.tierText, { color: TIER_COLORS[pick.tier].fg }]}>
-                                {TIER_LABELS[pick.tier]}
+                                {rankedTierLabel(pick.tier, idx)}
                               </Text>
                             </View>
                           )}
