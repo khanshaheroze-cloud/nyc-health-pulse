@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type TimeBucket = "dawn" | "morning" | "midday" | "dusk" | "night";
 export type WeatherCondition = "clear" | "cloudy" | "rain" | "snow" | "fog";
@@ -14,6 +15,34 @@ export interface Environment {
   isNight: boolean;
   tempF: number;
   tempLabel: string;
+}
+
+const CACHE_KEY = "pulse-weather-cache";
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+interface WeatherCache {
+  weather: WeatherCondition;
+  tempF: number;
+  aqi: number;
+  ts: number;
+}
+
+async function getCachedWeather(): Promise<WeatherCache | null> {
+  try {
+    const raw = await AsyncStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const cached: WeatherCache = JSON.parse(raw);
+    if (Date.now() - cached.ts > CACHE_TTL) return null;
+    return cached;
+  } catch {
+    return null;
+  }
+}
+
+async function setCachedWeather(data: Omit<WeatherCache, "ts">): Promise<void> {
+  try {
+    await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({ ...data, ts: Date.now() }));
+  } catch {}
 }
 
 function getTimeBucket(h: number): TimeBucket {
@@ -88,6 +117,8 @@ function getSunTimes(): { sunrise: Date; sunset: Date } {
 }
 
 export function useEnvironment(lat = 40.7128, lng = -74.006): Environment {
+  const fetched = useRef(false);
+
   const [env, setEnv] = useState<Environment>(() => {
     const h = new Date().getHours();
     const bucket = getTimeBucket(h);
@@ -100,8 +131,8 @@ export function useEnvironment(lat = 40.7128, lng = -74.006): Environment {
       sunrise,
       sunset,
       isNight: bucket === "night" || bucket === "dusk",
-      tempF: 55,
-      tempLabel: "55°",
+      tempF: 0,
+      tempLabel: "",
     };
   });
 
@@ -109,6 +140,28 @@ export function useEnvironment(lat = 40.7128, lng = -74.006): Environment {
     let cancelled = false;
 
     (async () => {
+      const cached = await getCachedWeather();
+      if (cached && !cancelled) {
+        const h = new Date().getHours();
+        const bucket = getTimeBucket(h);
+        const { sunrise, sunset } = getSunTimes();
+        setEnv({
+          timeBucket: bucket,
+          weather: cached.weather,
+          aqi: cached.aqi,
+          aqiBand: getAqiBand(cached.aqi),
+          sunrise,
+          sunset,
+          isNight: bucket === "night" || bucket === "dusk",
+          tempF: cached.tempF,
+          tempLabel: `${cached.tempF}°`,
+        });
+        fetched.current = true;
+        return;
+      }
+
+      if (fetched.current) return;
+
       const [weatherData, aqi] = await Promise.all([
         fetchWeather(lat, lng),
         fetchAqi(),
@@ -119,6 +172,12 @@ export function useEnvironment(lat = 40.7128, lng = -74.006): Environment {
       const bucket = getTimeBucket(h);
       const { sunrise, sunset } = getSunTimes();
       const finalAqi = aqi || weatherData.aqi;
+
+      await setCachedWeather({
+        weather: weatherData.weather,
+        tempF: weatherData.tempF,
+        aqi: finalAqi,
+      });
 
       setEnv({
         timeBucket: bucket,
@@ -131,6 +190,7 @@ export function useEnvironment(lat = 40.7128, lng = -74.006): Environment {
         tempF: weatherData.tempF,
         tempLabel: `${weatherData.tempF}°`,
       });
+      fetched.current = true;
     })();
 
     const interval = setInterval(() => {
