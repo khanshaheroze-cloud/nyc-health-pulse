@@ -23,6 +23,7 @@ import { RestaurantsMap, type MapPin } from "../../components/eat-smart/Restaura
 import { RestaurantDetailModal } from "../../components/RestaurantDetailModal";
 import { getMenuForRestaurant } from "../../lib/core/smart-menu/menuResolver";
 import type { RestaurantMenu } from "../../lib/core/smart-menu/types";
+import * as Haptics from "expo-haptics";
 
 /* ------------------------------------------------------------------ */
 /*  Data                                                               */
@@ -87,6 +88,7 @@ export default function EatSmartScreen() {
   const [modalVisible, setModalVisible] = useState(false);
 
   const openPickDetail = useCallback((pick: Pick) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const menu = getMenuForRestaurant(pick.chainSlug, pick.cuisine, pick.name);
     setModalPick(pick);
     setModalMenu(menu);

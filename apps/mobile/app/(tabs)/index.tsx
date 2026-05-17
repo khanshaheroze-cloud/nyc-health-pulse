@@ -12,6 +12,15 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Svg, { Circle } from "react-native-svg";
+import Animated, {
+  FadeInUp,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
 import { colors, radius, fonts } from "../../theme/tokens";
 import { Card } from "../../components/ui/Card";
 import { SectionLabel } from "../../components/ui/SectionLabel";
@@ -71,6 +80,42 @@ function aqiColor(v: number): string {
   if (v > 100) return "#C45A4A";
   if (v > 50) return "#C4964A";
   return colors.accentSage;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Animated helpers                                                   */
+/* ------------------------------------------------------------------ */
+
+function PulsingDot() {
+  const opacity = useSharedValue(1);
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withTiming(0.3, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+  }, []);
+  const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return (
+    <Animated.View style={[styles.tickerDot, style]} />
+  );
+}
+
+function PulsingAQIRing({ value, size = 52 }: { value: number; size?: number }) {
+  const scale = useSharedValue(1);
+  useEffect(() => {
+    scale.value = withRepeat(
+      withTiming(1.06, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+  }, []);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return (
+    <Animated.View style={style}>
+      <AQIRing value={value} size={size} />
+    </Animated.View>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -259,23 +304,24 @@ export default function HealthTab() {
             {neighborhood ? `📍 ${neighborhood.name} · ` : ""}{env.tempLabel} {env.weather === "clear" ? "Clear" : env.weather === "cloudy" ? "Cloudy" : env.weather === "rain" ? "Rain" : env.weather === "snow" ? "Snow" : "Foggy"}
           </Text>
           <View style={styles.skyAqi}>
-            <AQIRing value={aqi} size={52} />
+            <PulsingAQIRing value={aqi} size={52} />
           </View>
         </View>
       </DynamicSky>
 
       {/* ── 1b. LIVE TICKER ── */}
-      <View style={styles.ticker}>
+      <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.ticker}>
         <View style={styles.tickerLive}>
-          <View style={styles.tickerDot} />
+          <PulsingDot />
           <Text style={styles.tickerLiveText}>LIVE</Text>
         </View>
         <Text style={styles.tickerBody} numberOfLines={1}>
           COVID Low · Flu Declining · Water Safe ✓ · Pollen Moderate
         </Text>
-      </View>
+      </Animated.View>
 
       {/* ── 2. TODAY'S PROGRESS (3-ring widget) ── */}
+      <Animated.View entering={FadeInUp.delay(300).duration(500)}>
       <SectionLabel icon="🎯">TODAY'S PROGRESS</SectionLabel>
       <CommitmentRings
         calories={todayCal}
@@ -285,8 +331,10 @@ export default function HealthTab() {
         streak={0}
         bestStreak={0}
       />
+      </Animated.View>
 
       {/* ── 3. TODAY'S WORKOUT ── */}
+      <Animated.View entering={FadeInUp.delay(400).duration(500)}>
       <SectionLabel icon="🏋️">TODAY'S WORKOUT</SectionLabel>
       {workout ? (
         <Card accent>
@@ -307,8 +355,10 @@ export default function HealthTab() {
           <ButtonOutline label="Choose a routine →" onPress={() => router.push("/profile" as any)} style={{ marginTop: 10 }} />
         </Card>
       )}
+      </Animated.View>
 
       {/* ── 4. TODAY'S NUTRITION ── */}
+      <Animated.View entering={FadeInUp.delay(500).duration(500)}>
       <SectionLabel icon="🍽">TODAY'S NUTRITION</SectionLabel>
       <Card>
         <View style={styles.nutritionRow}>
@@ -340,11 +390,14 @@ export default function HealthTab() {
             </View>
           </View>
         </View>
-        <ButtonOutline label="+ Log Food" onPress={() => router.push("/log" as any)} style={{ marginTop: 14 }} />
+        <ButtonOutline label="+ Log Food" onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/log" as any); }} style={{ marginTop: 14 }} />
       </Card>
+      </Animated.View>
 
       {/* ── 5. PICKS NEAR YOU ── */}
+      <Animated.View entering={FadeInUp.delay(600).duration(500)}>
       <PicksNearYouCarousel />
+      </Animated.View>
 
       {/* ── 6. YOUR NEIGHBORHOOD ── */}
       {neighborhood && (
