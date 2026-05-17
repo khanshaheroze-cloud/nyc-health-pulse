@@ -28,10 +28,11 @@ import { Chip } from "../../components/ui/Chip";
 import { MacroBar } from "../../components/ui/MacroBar";
 import { ButtonPrimary } from "../../components/ui/ButtonPrimary";
 import { ButtonOutline } from "../../components/ui/ButtonOutline";
-import { DynamicSky } from "../../components/DynamicSky";
+import { AnimatedHero } from "../../components/home/AnimatedHero";
 import { CommitmentRings } from "../../components/CommitmentRings";
 import { PicksNearYouCarousel } from "../../components/PicksNearYouCarousel";
 import { useEnvironment } from "../../lib/useEnvironment";
+import { useTimeTheme } from "../../lib/theme/useTimeTheme";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -76,10 +77,10 @@ function todayKey(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-function aqiColor(v: number): string {
+function aqiColor(v: number, themeAccent?: string): string {
   if (v > 100) return "#C45A4A";
   if (v > 50) return "#C4964A";
-  return colors.accentSage;
+  return themeAccent || colors.accentSage;
 }
 
 /* ------------------------------------------------------------------ */
@@ -101,7 +102,7 @@ function PulsingDot() {
   );
 }
 
-function PulsingAQIRing({ value, size = 52 }: { value: number; size?: number }) {
+function PulsingAQIRing({ value, size = 52, accent }: { value: number; size?: number; accent?: string }) {
   const scale = useSharedValue(1);
   useEffect(() => {
     scale.value = withRepeat(
@@ -113,7 +114,7 @@ function PulsingAQIRing({ value, size = 52 }: { value: number; size?: number }) 
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <Animated.View style={style}>
-      <AQIRing value={value} size={size} />
+      <AQIRing value={value} size={size} accent={accent} />
     </Animated.View>
   );
 }
@@ -122,13 +123,13 @@ function PulsingAQIRing({ value, size = 52 }: { value: number; size?: number }) 
 /*  Mini ring components                                               */
 /* ------------------------------------------------------------------ */
 
-function AQIRing({ value, size = 64 }: { value: number; size?: number }) {
+function AQIRing({ value, size = 64, accent }: { value: number; size?: number; accent?: string }) {
   const sw = 6;
   const r = (size - sw) / 2;
   const circ = 2 * Math.PI * r;
   const fill = Math.min(value / 200, 1);
   const offset = circ * (1 - fill);
-  const c = aqiColor(value);
+  const c = aqiColor(value, accent);
 
   return (
     <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
@@ -274,6 +275,7 @@ export default function HealthTab() {
   }, [loadData]);
 
   const env = useEnvironment();
+  const timeTheme = useTimeTheme();
 
   const greetingName = userName ? `, ${userName}` : "";
   const proteinPct = goals.protein > 0 ? Math.round((todayProtein / goals.protein) * 100) : 0;
@@ -295,8 +297,8 @@ export default function HealthTab() {
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentSage} />}
     >
-      {/* ── 1. DYNAMIC SKY HERO ── */}
-      <DynamicSky env={env}>
+      {/* ── 1. ANIMATED HERO (time-of-day theme) ── */}
+      <AnimatedHero theme={timeTheme} weather={env.weather} aqiBand={env.aqiBand}>
         <View style={styles.skyContent}>
           <Text style={styles.heroDate}>{formatDateHeader()}</Text>
           <Text style={styles.heroGreeting}>{getGreeting()}{greetingName}</Text>
@@ -304,10 +306,10 @@ export default function HealthTab() {
             {neighborhood ? `📍 ${neighborhood.name} · ` : ""}{env.tempLabel} {env.weather === "clear" ? "Clear" : env.weather === "cloudy" ? "Cloudy" : env.weather === "rain" ? "Rain" : env.weather === "snow" ? "Snow" : "Foggy"}
           </Text>
           <View style={styles.skyAqi}>
-            <PulsingAQIRing value={aqi} size={52} />
+            <PulsingAQIRing value={aqi} size={52} accent={timeTheme.ringStroke} />
           </View>
         </View>
-      </DynamicSky>
+      </AnimatedHero>
 
       {/* ── 1b. LIVE TICKER ── */}
       <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.ticker}>
