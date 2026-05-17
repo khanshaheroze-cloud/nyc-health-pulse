@@ -2,50 +2,48 @@ import React, { useMemo, useState, useEffect } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
 import Constants from "expo-constants";
-import { colors, fonts, radius } from "../../theme/tokens";
+import { colors, fonts, radius } from "../theme/tokens";
 
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? Constants.expoConfig?.extra?.MAPBOX_TOKEN ?? "";
 
-function scoreColor(score: number): string {
-  if (score >= 80) return "#4A7C59";
-  if (score >= 60) return "#C4964A";
-  return "#C45A4A";
-}
-
-export interface MapPin {
-  id: string;
+interface MapPick {
+  name: string;
+  item: string;
+  cal: number;
   lat: number;
   lng: number;
-  score: number;
-  name: string;
+  chainSlug?: string | null;
 }
 
 interface Props {
-  pins: MapPin[];
   userLat: number;
   userLng: number;
-  onPinPress?: (pin: MapPin) => void;
+  picks: MapPick[];
+  delay?: number;
 }
 
-export function RestaurantsMap({ pins, userLat, userLng, onPinPress }: Props) {
+export function EatSmartMap({ userLat, userLng, picks, delay = 800 }: Props) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setReady(true), 600);
+    const t = setTimeout(() => setReady(true), delay);
     return () => clearTimeout(t);
-  }, []);
+  }, [delay]);
 
   const html = useMemo(() => {
-    const markersJs = pins
+    const markersJs = picks
       .map((p) => {
-        const c = scoreColor(p.score);
-        const escapedId = p.id.replace(/'/g, "\\'");
-        return `addPin(map,[${p.lng},${p.lat}],'${escapedId}','${c}',${p.score});`;
+        const isChain = !!p.chainSlug;
+        const bg = isChain ? "#4A7C59" : "#ffffff";
+        const fg = isChain ? "white" : "#374151";
+        const escapedName = p.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        const escapedCuisine = p.item.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        return `addPin(map,[${p.lng},${p.lat}],'${escapedName}','${escapedCuisine}','${bg}','${fg}',${isChain});`;
       })
       .join("\n");
 
-    const boundsJs = pins.map((p) => `bounds.extend([${p.lng},${p.lat}]);`).join("\n");
+    const boundsJs = picks.map((p) => `bounds.extend([${p.lng},${p.lat}]);`).join("\n");
 
     return `<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -55,26 +53,28 @@ export function RestaurantsMap({ pins, userLat, userLng, onPinPress }: Props) {
   *{margin:0;padding:0}
   body,html{height:100%;overflow:hidden}
   #map{width:100%;height:100%}
-  .mapboxgl-ctrl-attrib{font-size:8px!important;opacity:0.3}
-  .pin{width:30px;height:30px;border-radius:15px;display:flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:pointer;transition:transform .15s}
-  .pin:active{transform:scale(1.2)}
-  .pin-score{font-size:10px;font-weight:800;color:#fff;line-height:1}
+  .mapboxgl-ctrl-attrib{font-size:8px!important;opacity:0.4}
+  .mapboxgl-popup-content{border-radius:10px;padding:8px 10px;font-family:system-ui,-apple-system,sans-serif}
 </style></head><body>
 <div id="map"></div>
 <script>
 try{
 mapboxgl.accessToken='${MAPBOX_TOKEN}';
 
-function addPin(map,lnglat,id,bg,score){
-  var el=document.createElement('div');
-  el.className='pin';
-  el.style.background=bg;
-  el.innerHTML='<span class="pin-score">'+score+'</span>';
-  el.addEventListener('click',function(){
-    window.ReactNativeWebView.postMessage(JSON.stringify({type:'pin',id:id}));
-  });
-  new mapboxgl.Marker({element:el,anchor:'center'})
+function addPin(map,lnglat,name,cuisine,bg,fg,isChain){
+  var w=document.createElement('div');
+  w.style.cssText='display:flex;flex-direction:column;align-items:center';
+  var c=document.createElement('div');
+  c.style.cssText='width:'+(isChain?34:28)+'px;height:'+(isChain?34:28)+'px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:'+(isChain?14:12)+'px;font-weight:700;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.25);background:'+bg+';color:'+fg;
+  c.textContent=name.charAt(0);
+  var t=document.createElement('div');
+  t.style.cssText='width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid '+bg+';margin-top:-1px';
+  w.appendChild(c);w.appendChild(t);
+
+  new mapboxgl.Marker({element:w,anchor:'bottom'})
     .setLngLat(lnglat)
+    .setPopup(new mapboxgl.Popup({offset:16,closeButton:false,maxWidth:'200px'})
+      .setHTML('<b style="font-size:12px">'+name+'</b><br><span style="font-size:10px;color:#666">'+cuisine+'</span>'))
     .addTo(map);
 }
 
@@ -84,17 +84,12 @@ var map=new mapboxgl.Map({
   center:[${userLng},${userLat}],
   zoom:15,
   attributionControl:false,
-  minZoom:12,maxZoom:18,
-  dragRotate:false,
-  pitchWithRotate:false
+  minZoom:12,maxZoom:18
 });
 map.addControl(new mapboxgl.AttributionControl({compact:true}),'bottom-right');
 
 var userEl=document.createElement('div');
-userEl.style.cssText='width:14px;height:14px;border-radius:50%;background:#3B7CB8;border:3px solid white;box-shadow:0 0 0 2px #3B7CB8,0 2px 8px rgba(0,0,0,.3);animation:pulse 2s infinite';
-var style=document.createElement('style');
-style.textContent='@keyframes pulse{0%,100%{box-shadow:0 0 0 2px #3B7CB8,0 2px 8px rgba(0,0,0,.3)}50%{box-shadow:0 0 0 6px rgba(59,124,184,.3),0 2px 8px rgba(0,0,0,.3)}}';
-document.head.appendChild(style);
+userEl.style.cssText='width:14px;height:14px;border-radius:50%;background:#5b9cf5;border:3px solid white;box-shadow:0 0 0 2px #5b9cf5,0 2px 8px rgba(0,0,0,.3)';
 new mapboxgl.Marker({element:userEl}).setLngLat([${userLng},${userLat}]).addTo(map);
 
 ${markersJs}
@@ -102,25 +97,12 @@ ${markersJs}
 var bounds=new mapboxgl.LngLatBounds();
 bounds.extend([${userLng},${userLat}]);
 ${boundsJs}
-if(${pins.length}>0) map.fitBounds(bounds,{padding:40,maxZoom:16});
+map.fitBounds(bounds,{padding:40,maxZoom:16});
 }catch(e){
-  window.ReactNativeWebView.postMessage(JSON.stringify({type:'error',msg:e.message}));
+  window.ReactNativeWebView.postMessage('MAP_ERROR:'+e.message);
 }
 <\/script></body></html>`;
-  }, [userLat, userLng, pins]);
-
-  const handleMessage = (event: { nativeEvent: { data: string } }) => {
-    try {
-      const msg = JSON.parse(event.nativeEvent.data);
-      if (msg.type === "pin" && onPinPress) {
-        const pin = pins.find((p) => p.id === msg.id);
-        if (pin) onPinPress(pin);
-      }
-      if (msg.type === "error") {
-        setError(true);
-      }
-    } catch {}
-  };
+  }, [userLat, userLng, picks]);
 
   if (error) {
     return (
@@ -148,7 +130,12 @@ if(${pins.length}>0) map.fitBounds(bounds,{padding:40,maxZoom:16});
           originWhitelist={["*"]}
           onError={() => setError(true)}
           onHttpError={() => setError(true)}
-          onMessage={handleMessage}
+          onMessage={(e) => {
+            if (e.nativeEvent.data?.startsWith("MAP_ERROR:")) {
+              console.warn("[EatSmartMap]", e.nativeEvent.data);
+              setError(true);
+            }
+          }}
           renderLoading={() => (
             <View style={styles.loading}>
               <ActivityIndicator size="small" color={colors.accentSage} />
@@ -163,9 +150,12 @@ if(${pins.length}>0) map.fitBounds(bounds,{padding:40,maxZoom:16});
 
 const styles = StyleSheet.create({
   container: {
-    height: 200,
+    height: 220,
     borderRadius: radius.md,
     overflow: "hidden",
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   map: { flex: 1 },
   loading: {
