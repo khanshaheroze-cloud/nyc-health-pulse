@@ -20,6 +20,9 @@ import { Card } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
 import { ButtonOutline } from "../../components/ui/ButtonOutline";
 import { RestaurantsMap, type MapPin } from "../../components/eat-smart/RestaurantsMap";
+import { RestaurantDetailModal } from "../../components/RestaurantDetailModal";
+import { getMenuForRestaurant } from "../../lib/core/smart-menu/menuResolver";
+import type { RestaurantMenu } from "../../lib/core/smart-menu/types";
 
 /* ------------------------------------------------------------------ */
 /*  Data                                                               */
@@ -34,9 +37,11 @@ interface Pick {
   cal: number;
   protein: number;
   distance: string;
+  distanceMeters: number;
   badges: Array<"protein" | "fiber" | "smart">;
   lat?: number;
   lng?: number;
+  chainSlug: string | null;
 }
 
 const BADGE_LABELS: Record<string, string> = {
@@ -46,18 +51,18 @@ const BADGE_LABELS: Record<string, string> = {
 };
 
 const MOCK_PICKS: Pick[] = [
-  { medal: "🥇", name: "Chipotle", cuisine: "🌯", item: "Chicken Bowl", score: 86, cal: 510, protein: 42, distance: "0.3 mi", badges: ["protein", "smart"], lat: 40.7614, lng: -73.9776 },
-  { medal: "🥈", name: "Cava", cuisine: "🥙", item: "Grilled Chicken Bowl", score: 83, cal: 440, protein: 35, distance: "0.5 mi", badges: ["protein"], lat: 40.7590, lng: -73.9845 },
-  { medal: "🥉", name: "Sweetgreen", cuisine: "🥗", item: "Harvest Bowl", score: 79, cal: 380, protein: 28, distance: "0.4 mi", badges: ["fiber"], lat: 40.7555, lng: -73.9870 },
-  { medal: "4", name: "Just Salad", cuisine: "🥗", item: "Buffalo Chicken", score: 76, cal: 420, protein: 32, distance: "0.6 mi", badges: ["smart"], lat: 40.7530, lng: -73.9810 },
-  { medal: "5", name: "Dig", cuisine: "🍗", item: "Charred Chicken Plate", score: 74, cal: 490, protein: 38, distance: "0.7 mi", badges: ["protein"], lat: 40.7600, lng: -73.9900 },
+  { medal: "🥇", name: "Chipotle", cuisine: "Mexican", item: "Chicken Bowl", score: 86, cal: 510, protein: 42, distance: "0.3 mi", distanceMeters: 480, badges: ["protein", "smart"], lat: 40.7614, lng: -73.9776, chainSlug: "chipotle" },
+  { medal: "🥈", name: "Cava", cuisine: "Mediterranean", item: "Grilled Chicken Bowl", score: 83, cal: 440, protein: 35, distance: "0.5 mi", distanceMeters: 800, badges: ["protein"], lat: 40.7590, lng: -73.9845, chainSlug: "cava" },
+  { medal: "🥉", name: "Sweetgreen", cuisine: "Salad", item: "Harvest Bowl", score: 79, cal: 380, protein: 28, distance: "0.4 mi", distanceMeters: 640, badges: ["fiber"], lat: 40.7555, lng: -73.9870, chainSlug: "sweetgreen" },
+  { medal: "4", name: "Just Salad", cuisine: "Salad", item: "Buffalo Chicken", score: 76, cal: 420, protein: 32, distance: "0.6 mi", distanceMeters: 960, badges: ["smart"], lat: 40.7530, lng: -73.9810, chainSlug: "just-salad" },
+  { medal: "5", name: "Dig", cuisine: "American", item: "Charred Chicken Plate", score: 74, cal: 490, protein: 38, distance: "0.7 mi", distanceMeters: 1120, badges: ["protein"], lat: 40.7600, lng: -73.9900, chainSlug: null },
 ];
 
 const ALL_CHAINS: Pick[] = [
   ...MOCK_PICKS,
-  { medal: "6", name: "Chopt", cuisine: "🥗", item: "Mexican Caesar", score: 72, cal: 350, protein: 25, distance: "0.8 mi", badges: ["fiber"] as Array<"protein" | "fiber" | "smart"> },
-  { medal: "7", name: "Dos Toros", cuisine: "🌯", item: "Burrito Bowl", score: 70, cal: 480, protein: 30, distance: "1.0 mi", badges: ["smart"] as Array<"protein" | "fiber" | "smart"> },
-  { medal: "8", name: "Poke Bowl", cuisine: "🍣", item: "Salmon Poke", score: 68, cal: 400, protein: 34, distance: "0.9 mi", badges: ["protein"] as Array<"protein" | "fiber" | "smart"> },
+  { medal: "6", name: "Chopt", cuisine: "Salad", item: "Mexican Caesar", score: 72, cal: 350, protein: 25, distance: "0.8 mi", distanceMeters: 1280, badges: ["fiber"] as Array<"protein" | "fiber" | "smart">, chainSlug: null },
+  { medal: "7", name: "Dos Toros", cuisine: "Mexican", item: "Burrito Bowl", score: 70, cal: 480, protein: 30, distance: "1.0 mi", distanceMeters: 1600, badges: ["smart"] as Array<"protein" | "fiber" | "smart">, chainSlug: null },
+  { medal: "8", name: "Poke Bowl", cuisine: "Japanese", item: "Salmon Poke", score: 68, cal: 400, protein: 34, distance: "0.9 mi", distanceMeters: 1440, badges: ["protein"] as Array<"protein" | "fiber" | "smart">, chainSlug: null },
 ].sort((a, b) => a.name.localeCompare(b.name));
 
 type Tab = "near" | "chains" | "saved";
@@ -77,6 +82,22 @@ export default function EatSmartScreen() {
   const [saved, setSaved] = useState<string[]>([]);
   const [userLat, setUserLat] = useState(40.7580);
   const [userLng, setUserLng] = useState(-73.9855);
+  const [modalPick, setModalPick] = useState<Pick | null>(null);
+  const [modalMenu, setModalMenu] = useState<RestaurantMenu | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const openPickDetail = useCallback((pick: Pick) => {
+    const menu = getMenuForRestaurant(pick.chainSlug, pick.cuisine, pick.name);
+    setModalPick(pick);
+    setModalMenu(menu);
+    setModalVisible(true);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setModalVisible(false);
+    setModalPick(null);
+    setModalMenu(null);
+  }, []);
 
   const loadSaved = useCallback(async () => {
     const raw = await AsyncStorage.getItem("pulse-eat-saved");
@@ -186,6 +207,10 @@ export default function EatSmartScreen() {
                 score: p.score,
                 name: p.name,
               }))}
+            onPinPress={(pin) => {
+              const pick = picks.find((p) => p.name === pin.id);
+              if (pick) openPickDetail(pick);
+            }}
           />
         </Card>
       )}
@@ -233,7 +258,11 @@ export default function EatSmartScreen() {
           {displayPicks.map((pick, idx) => (
             <View key={pick.name}>
               {idx > 0 && <View style={styles.divider} />}
-              <View style={styles.pickRow}>
+              <TouchableOpacity
+                style={styles.pickRow}
+                activeOpacity={0.7}
+                onPress={() => openPickDetail(pick)}
+              >
                 <Text style={styles.medal}>{pick.medal}</Text>
                 <View style={styles.pickInfo}>
                   <Text style={styles.pickTitle}>
@@ -265,13 +294,31 @@ export default function EatSmartScreen() {
                     />
                   </TouchableOpacity>
                 </View>
-              </View>
+              </TouchableOpacity>
             </View>
           ))}
         </Card>
       )}
 
       <View style={{ height: 100 }} />
+
+      {/* ── Restaurant detail modal ── */}
+      <RestaurantDetailModal
+        restaurant={modalPick ? {
+          name: modalPick.name,
+          cuisine: modalPick.cuisine,
+          grade: null,
+          address: "",
+          lat: modalPick.lat ?? userLat,
+          lng: modalPick.lng ?? userLng,
+          distance: modalPick.distanceMeters,
+          chainSlug: modalPick.chainSlug,
+          isHealthy: modalPick.score >= 75,
+        } : null}
+        menu={modalMenu}
+        visible={modalVisible}
+        onClose={closeModal}
+      />
     </ScrollView>
   );
 }
