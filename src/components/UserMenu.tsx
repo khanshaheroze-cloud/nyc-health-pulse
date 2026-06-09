@@ -25,11 +25,12 @@ export function UserMenu() {
 
   if (loading) return null;
 
-  // Not signed in — show compact sign-in link
+  // Not signed in — show compact sign-in link with a concrete benefit
   if (!user) {
     return (
       <Link
         href="/auth/login"
+        title="Sync your meals and workouts across devices"
         className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold text-dim border border-border-light hover:text-hp-green hover:border-hp-green/30 transition-all"
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

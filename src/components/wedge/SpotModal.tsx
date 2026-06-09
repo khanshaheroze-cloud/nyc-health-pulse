@@ -276,14 +276,19 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
           {reportState === "sent" && (
             <p className="mb-3 text-[12px] text-[#2F8F4D]">Thanks — your report is in the review queue.</p>
           )}
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setReportOpen((v) => !v)}
-              className="text-[12px] text-[#6B716B] hover:text-[#1A1A1A] hover:underline"
-            >
-              Report an error
-            </button>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setReportOpen((v) => !v)}
+                className="text-[12px] text-[#6B716B] hover:text-[#1A1A1A] hover:underline"
+              >
+                Report an error
+              </button>
+              <a href="/methodology" className="text-[12px] text-[#6B716B] hover:text-[#1A1A1A] hover:underline">
+                How PulseScore works
+              </a>
+            </div>
             <a
               href={`/restaurants/${spot.slug}`}
               className="text-[12px] text-[#2A6BC9] font-medium hover:underline"

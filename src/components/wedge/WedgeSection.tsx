@@ -418,9 +418,13 @@ export function WedgeSection() {
             onRetry={() => fetchResults(coords.lat, coords.lng, mealType)}
           />
 
-          {/* Waitlist — primary conversion, above the map */}
+          {/* Waitlist — THE primary email capture, shown contextually after a
+              successful result set (weekly digest merged into its confirmation) */}
           {!loading && spots.length > 0 && (
             <div className="mt-10">
+              <p className="text-center text-[15px] font-semibold text-[#1A1A1A] mb-3">
+                Take this with you — the app ships Q3 2026
+              </p>
               <AppWaitlistCapture />
             </div>
           )}

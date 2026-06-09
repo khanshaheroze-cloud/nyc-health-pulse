@@ -4,7 +4,6 @@ import { WedgeSection } from "@/components/wedge/WedgeSection";
 import { EnvironmentBackdrop } from "@/components/wedge/EnvironmentBackdrop";
 import { BentoGrid } from "@/components/wedge/BentoGrid";
 import { WeeklyChanges } from "@/components/WeeklyChanges";
-import { EmailSignup } from "@/components/EmailSignup";
 import { OverviewBoroughCharts } from "@/components/overview/OverviewBoroughCharts";
 import { AlertBanner } from "@/components/AlertBanner";
 import { NeighborhoodBar } from "@/components/overview/NeighborhoodBar";
@@ -136,8 +135,9 @@ export default async function OverviewPage() {
       </div>
 
       {/* ── Stay informed ── */}
+      {/* Digest signup demoted: the app waitlist (in WedgeSection, with a
+          digest add-on at confirmation) is the single primary email capture */}
       <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-8 space-y-4">
-        <EmailSignup />
         <NeighborhoodBar />
       </div>
 

@@ -91,6 +91,9 @@ export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, 
             {o.label}
           </button>
         ))}
+        <a href="/methodology" className="text-[11px] text-[#2A6BC9] hover:underline ml-1">
+          How PulseScore works
+        </a>
       </div>
 
       {/* Default location hint */}

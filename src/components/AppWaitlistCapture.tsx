@@ -3,11 +3,27 @@
 import { useState } from "react";
 
 type Status = "idle" | "loading" | "success" | "error";
+type DigestStatus = "idle" | "loading" | "done";
 
 export function AppWaitlistCapture() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errMsg, setErrMsg] = useState("");
+  // The weekly digest capture is merged into the waitlist confirmation step —
+  // one primary email ask, digest as a one-click add-on after success.
+  const [digestStatus, setDigestStatus] = useState<DigestStatus>("idle");
+
+  async function addDigest() {
+    setDigestStatus("loading");
+    try {
+      await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, frequency: "weekly" }),
+      });
+    } catch {}
+    setDigestStatus("done");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,6 +53,20 @@ export function AppWaitlistCapture() {
       <div className="max-w-[480px] mx-auto px-4">
         <div className="bg-white border border-[#E6E5DE] rounded-[14px] px-4 py-3 text-center">
           <span className="text-[#2F8F4D] text-[14px] font-semibold">&check; You&apos;re on the list! We&apos;ll email you at launch.</span>
+          <div className="mt-2 pt-2 border-t border-[#E6E5DE]">
+            {digestStatus === "done" ? (
+              <span className="text-[12px] text-[#6B716B]">&check; Weekly digest added too.</span>
+            ) : (
+              <button
+                type="button"
+                onClick={addDigest}
+                disabled={digestStatus === "loading"}
+                className="text-[12px] text-[#2A6BC9] hover:underline disabled:opacity-50"
+              >
+                {digestStatus === "loading" ? "Adding…" : "Also send me the weekly NYC health digest"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
