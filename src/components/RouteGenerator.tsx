@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { RefuelNearby } from "./RefuelNearby";
 import { RouteAmenities } from "./RouteAmenities";
+import { fetchWithTimeout, isTimeoutError } from "@/lib/fetchWithTimeout";
 
 // Lazy-load the map to avoid SSR issues with mapbox-gl
 const RouteGeneratorMap = dynamic(
@@ -210,7 +211,7 @@ export function RouteGenerator() {
     setActiveRoute(0);
 
     try {
-      const res = await fetch("/api/run-routes/generate", {
+      const res = await fetchWithTimeout("/api/run-routes/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -222,7 +223,7 @@ export function RouteGenerator() {
           optimizeFor,
           preferParks,
         }),
-      });
+      }, 20_000); // route generation legitimately takes longer than data fetches
 
       const data = await res.json();
 
@@ -233,8 +234,12 @@ export function RouteGenerator() {
       } else {
         setError("No routes found. Try a different location or distance.");
       }
-    } catch {
-      setError("Failed to generate route. Please try again.");
+    } catch (err) {
+      setError(
+        isTimeoutError(err)
+          ? "Route generation is taking too long — try again or pick a shorter distance."
+          : "Failed to generate route. Please try again.",
+      );
     } finally {
       setGenerating(false);
     }

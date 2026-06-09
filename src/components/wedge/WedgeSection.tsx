@@ -11,6 +11,7 @@ import { LiveResultsStrip, type ResultSpot, type SortKey } from "./LiveResultsSt
 import { SpotModal } from "./SpotModal";
 import { AppWaitlistCapture } from "../AppWaitlistCapture";
 import { detectMealType, type MealCategory } from "@/lib/inferMealType";
+import { fetchWithTimeout } from "@/lib/fetchWithTimeout";
 import { reverseGeocode } from "@/lib/geocode";
 import { neighborhoods } from "@/lib/neighborhoodData";
 import {
@@ -140,6 +141,7 @@ export function WedgeSection() {
   const [loading, setLoading] = useState(true);
   const [mapVisible, setMapVisible] = useState(false);
   const [fetchedAt, setFetchedAt] = useState<number | null>(null);
+  const [fetchError, setFetchError] = useState(false);
   const [sortBy, setSortBy] = useState<SortKey>("score");
 
   const spotSlug = searchParams.get("spot");
@@ -214,8 +216,9 @@ export function WedgeSection() {
 
   const fetchResults = useCallback(async (lat: number, lng: number, meal: MealCategory) => {
     setLoading(true);
+    setFetchError(false);
     try {
-      const res = await fetch(`/api/smart-menu/near-me?lat=${lat}&lng=${lng}&meal=${meal}`);
+      const res = await fetchWithTimeout(`/api/smart-menu/near-me?lat=${lat}&lng=${lng}&meal=${meal}`);
       if (!res.ok) throw new Error("fetch failed");
       const data = await res.json();
       const restaurants: ApiRestaurant[] = data.restaurants || [];
@@ -253,6 +256,7 @@ export function WedgeSection() {
     } catch {
       setAllSpots([]);
       setTotalCount(0);
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -410,6 +414,8 @@ export function WedgeSection() {
             fetchedAt={fetchedAt}
             sortBy={sortBy}
             onSortChange={setSortBy}
+            fetchError={fetchError}
+            onRetry={() => fetchResults(coords.lat, coords.lng, mealType)}
           />
 
           {/* Waitlist — primary conversion, above the map */}

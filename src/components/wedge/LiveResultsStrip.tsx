@@ -39,6 +39,8 @@ interface LiveResultsStripProps {
   fetchedAt?: number | null;
   sortBy?: SortKey;
   onSortChange?: (key: SortKey) => void;
+  fetchError?: boolean;
+  onRetry?: () => void;
 }
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -55,7 +57,7 @@ function priceTierFallback(range: number): string {
   return "$$$";
 }
 
-export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, loading, mealLabel, onSpotClick, fetchedAt, sortBy = "score", onSortChange }: LiveResultsStripProps) {
+export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, loading, mealLabel, onSpotClick, fetchedAt, sortBy = "score", onSortChange, fetchError, onRetry }: LiveResultsStripProps) {
   const sortLabel = SORT_OPTIONS.find((o) => o.key === sortBy)?.label ?? "PulseScore";
   return (
     <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-14">
@@ -116,8 +118,22 @@ export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, 
         </div>
       )}
 
+      {/* Error state — never confuse a failed fetch with "no spots nearby" */}
+      {!loading && fetchError && (
+        <div className="bg-white border border-[#E6B0A8] rounded-2xl p-6 text-center">
+          <p className="text-[14px] text-[#C45A4A] mb-3">Couldn&apos;t load spots — NYC&apos;s data servers may be slow right now.</p>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="px-4 py-2 rounded-xl bg-[#2F8F4D] text-white text-[13px] font-semibold hover:bg-[#267A3F] transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Empty state */}
-      {!loading && spots.length === 0 && (
+      {!loading && !fetchError && spots.length === 0 && (
         <div className="bg-white border border-[#E6E5DE] rounded-2xl p-6 text-center text-[14px] text-[#6B716B]">
           No healthy spots open within 10 min walk of {locationLabel}. Try widening the radius.
         </div>

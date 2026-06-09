@@ -12,6 +12,7 @@ import type { RestaurantMenu } from "@/lib/eat-smart/types";
 import { LazyMenuModal, preloadMenuModal } from "./LazyMenuModal";
 import { QuickLogToast } from "./QuickLogToast";
 import { readLocation, writeLocation, subscribeLocation, requestBrowserLocation } from "@/lib/locationStore";
+import { fetchWithTimeout } from "@/lib/fetchWithTimeout";
 
 const MapImpl = dynamic(() => import("./_EatSmartMapHeroImpl"), { ssr: false });
 
@@ -89,7 +90,7 @@ export function EatSmartMapHero() {
     setError("");
     try {
       const radiusMeters = Math.round(radiusMi * 1609.34);
-      const res = await fetch(`/api/nearby-food?lat=${lat}&lng=${lng}&radius=${radiusMeters}`);
+      const res = await fetchWithTimeout(`/api/nearby-food?lat=${lat}&lng=${lng}&radius=${radiusMeters}`);
       if (!res.ok) throw new Error("API error");
       const json = await res.json();
       const raw: NearbyResult[] = json.results ?? [];
