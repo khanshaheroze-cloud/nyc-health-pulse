@@ -7,7 +7,7 @@ import { WedgeHero } from "./WedgeHero";
 import { WedgeSearch } from "./WedgeSearch";
 import { QuickFilterChips, type ChipId } from "./QuickFilterChips";
 import { MealTypeToggle } from "./MealTypeToggle";
-import { LiveResultsStrip, type ResultSpot } from "./LiveResultsStrip";
+import { LiveResultsStrip, type ResultSpot, type SortKey } from "./LiveResultsStrip";
 import { SpotModal } from "./SpotModal";
 import { AppWaitlistCapture } from "../AppWaitlistCapture";
 import { detectMealType, type MealCategory } from "@/lib/inferMealType";
@@ -39,9 +39,14 @@ interface ApiRestaurant {
   lng: number;
   address: string;
   grade: string;
+  inspectedAt?: string | null;
   isGeneric: boolean;
   category: string;
-  topPicks: { name: string; protein: number; pulseScore: number }[];
+  topPicks: { name: string; calories: number; protein: number; pulseScore: number }[];
+  bestDrink?: { name: string; calories: number; protein: number } | null;
+  locationCount?: number;
+  otherLocations?: { address: string; walkMinutes: number; grade: string }[];
+  orderingTip?: string;
 }
 
 function readCachedLocation(): CachedLocation | null {
@@ -152,12 +157,14 @@ export function WedgeSection() {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [mapVisible, setMapVisible] = useState(false);
+  const [fetchedAt, setFetchedAt] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState<SortKey>("score");
 
   const spotSlug = searchParams.get("spot");
 
   const anyPriceFilter = activeChips.has("price-1") || activeChips.has("price-2") || activeChips.has("price-3");
 
-  // Filter spots by active chips
+  // Filter spots by active chips, then sort by the selected key
   const spots = useMemo(() => {
     let filtered = allSpots;
     if (activeChips.has("quick")) {
@@ -172,8 +179,20 @@ export function WedgeSection() {
         return false;
       });
     }
-    return filtered.slice(0, 5);
-  }, [allSpots, activeChips, anyPriceFilter]);
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "protein": return (b.topPickProtein ?? 0) - (a.topPickProtein ?? 0);
+        case "calories": return (a.topPickCalories || 9999) - (b.topPickCalories || 9999);
+        case "distance": return a.walkMinutes - b.walkMinutes;
+        case "protein-per-dollar":
+          return (b.topPickProtein ?? 0) / Math.max(1, b.priceRange) - (a.topPickProtein ?? 0) / Math.max(1, a.priceRange);
+        case "score":
+        default:
+          return (b.topPickScore ?? 0) - (a.topPickScore ?? 0);
+      }
+    });
+    return sorted.slice(0, 5);
+  }, [allSpots, activeChips, anyPriceFilter, sortBy]);
 
   const activeSpot = useMemo(() => {
     if (!spotSlug) return null;
@@ -217,20 +236,29 @@ export function WedgeSection() {
           slug: r.slug,
           name: r.restaurantName,
           walkMinutes: r.walkMinutes,
-          topPickName: topPick?.name ?? "Chef's pick",
+          topPickName: topPick?.name ?? "",
           topPickProtein: topPick?.protein ?? 0,
+          topPickCalories: topPick?.calories ?? 0,
+          topPickScore: topPick?.pulseScore ?? 0,
+          topPicks: r.topPicks,
+          bestDrink: r.bestDrink ?? null,
           priceRange: r.priceRange,
           priceTier: r.priceTier,
           lat: r.lat,
           lng: r.lng,
           address: r.address,
           grade: r.grade,
+          inspectedAt: r.inspectedAt ?? null,
           isGeneric: r.isGeneric,
           category: r.category,
+          locationCount: r.locationCount ?? 1,
+          otherLocations: r.otherLocations ?? [],
+          orderingTip: r.orderingTip,
         };
       });
 
       setAllSpots(mapped);
+      setFetchedAt(Date.now());
       setTotalCount(restaurants.length);
     } catch {
       setAllSpots([]);
@@ -379,6 +407,9 @@ export function WedgeSection() {
             loading={loading}
             mealLabel={mealType === "coffee" ? "Coffee" : mealType === "breakfast" ? "Breakfast" : mealType === "lunch" ? "Lunch" : mealType === "dinner" ? "Dinner" : "Snack"}
             onSpotClick={handleSpotClick}
+            fetchedAt={fetchedAt}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
           />
 
           {/* Waitlist — primary conversion, above the map */}

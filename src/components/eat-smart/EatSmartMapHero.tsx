@@ -242,6 +242,26 @@ export function EatSmartMapHero() {
     return true;
   });
 
+  // NEARBY list dedupes same-brand venues into one card ("Dunkin' · 4
+  // locations nearby"); the map keeps every pin so all locations stay findable.
+  const listResults = (() => {
+    const out: (EnrichedResult & { locationCount: number })[] = [];
+    const brandIndex = new Map<string, number>();
+    const sorted = [...filtered].sort((a, b) => a.distance - b.distance);
+    for (const r of sorted) {
+      if (r.chainSlug) {
+        const idx = brandIndex.get(r.chainSlug);
+        if (idx != null) {
+          out[idx].locationCount++;
+          continue;
+        }
+        brandIndex.set(r.chainSlug, out.length);
+      }
+      out.push({ ...r, locationCount: 1 });
+    }
+    return out;
+  })();
+
   const handleCardClick = (r: EnrichedResult) => {
     setSelectedId(`${r.lat}-${r.lng}`);
     flyToRef.current?.(r.lat, r.lng);
@@ -428,12 +448,12 @@ export function EatSmartMapHero() {
           <div className="flex items-center gap-3 mb-3">
             <p className="text-[11px] font-bold tracking-[1.5px] uppercase text-muted whitespace-nowrap">Nearby</p>
             <div className="flex-1 h-px bg-border-light" />
-            <p className="text-[10px] text-dim">{filtered.length} restaurants</p>
+            <p className="text-[10px] text-dim">{listResults.length} restaurants</p>
           </div>
 
           {/* Card grid — scroll on mobile, grid on desktop */}
           <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:overflow-visible md:snap-none scrollbar-hide">
-            {filtered
+            {listResults
               .sort((a, b) => {
                 const scoreA = a.bestPick?.pulseScore ?? 0;
                 const scoreB = b.bestPick?.pulseScore ?? 0;
@@ -452,7 +472,9 @@ export function EatSmartMapHero() {
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="min-w-0">
                         <p className="text-[12px] font-bold text-text truncate">{r.icon} {r.name}</p>
-                        <p className="text-[10px] text-dim">{r.cuisine} · {distLabel}</p>
+                        <p className="text-[10px] text-dim">
+                          {r.cuisine} · {r.locationCount > 1 ? `${r.locationCount} locations · nearest ${distLabel}` : distLabel}
+                        </p>
                       </div>
                       {r.grade && (
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${

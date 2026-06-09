@@ -1,21 +1,27 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { CHAINS } from "@/lib/restaurantData";
 import { ChainMenu } from "@/components/ChainMenu";
 import { openDirections } from "@/lib/openDirections";
 import { GENERIC_TEMPLATES, type GenericTemplate } from "@/lib/genericRestaurants";
-import { inferMealType, mealMatches, type MealCategory } from "@/lib/inferMealType";
+import { type MealCategory } from "@/lib/inferMealType";
+import { formatMonthYear } from "@/lib/freshness";
 import type { ResultSpot } from "./LiveResultsStrip";
 
 interface SpotModalProps {
   spot: ResultSpot | null;
   onClose: () => void;
+  /** Kept for API compatibility — picks are now meal-filtered server-side */
   meal?: MealCategory;
 }
 
-export function SpotModal({ spot, onClose, meal }: SpotModalProps) {
+export function SpotModal({ spot, onClose }: SpotModalProps) {
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("wrong-item");
+  const [reportNotes, setReportNotes] = useState("");
+  const [reportState, setReportState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const prevFocusRef = useRef<HTMLElement | null>(null);
@@ -78,33 +84,12 @@ export function SpotModal({ spot, onClose, meal }: SpotModalProps) {
   const orderingTip = chain?.orderingTip ?? template?.orderingTip;
   const isGeneric = spot.isGeneric ?? false;
 
-  const templatePicks = template?.picks ?? [];
-  const BEVERAGE_RE = /\b(latte|cappuccino|espresso|americano|matcha|cold.?brew|drip coffee|chai|macchiato|mocha|frappuccino)\b/i;
-  const UNHEALTHY_SNACK_RE = /\b(glazed\s*donut|frosted\s*donut|cheese\s*danish|cinnamon\s*roll|chocolate\s*croissant)\b/i;
-  const visiblePicks = meal && template
-    ? [...templatePicks]
-        .filter(p => {
-          if (BEVERAGE_RE.test(p.name)) {
-            if (meal === "lunch" || meal === "dinner") return false;
-            if (meal !== "coffee" && p.protein < 5) return false;
-          }
-          if (meal === "snack") {
-            if (p.cal > 450) return false;
-            if (p.protein > 25) return false;
-            if (UNHEALTHY_SNACK_RE.test(p.name)) return false;
-          }
-          if (meal === "coffee" && p.protein >= 15 && p.cal >= 400) return false;
-          if ((meal === "lunch" || meal === "dinner") && p.cal < 250 && p.protein < 10) return false;
-          return true;
-        })
-        .sort((a, b) => {
-          const aInferred = inferMealType(a.name, undefined, template.category);
-          const bInferred = inferMealType(b.name, undefined, template.category);
-          const aPri = aInferred === meal ? 2 : mealMatches(aInferred, meal) ? 1 : 0;
-          const bPri = bInferred === meal ? 2 : mealMatches(bInferred, meal) ? 1 : 0;
-          return bPri - aPri;
-        })
-    : templatePicks;
+  // Single source of truth: the card and this modal both render the API's
+  // topPicks — they can never disagree on the recommended order again.
+  // (Previously the modal re-filtered template picks with its own copy of the
+  // meal guards, so card and modal could headline different dishes.)
+  const visiblePicks = spot.topPicks ?? [];
+  const inspectedLabel = formatMonthYear(spot.inspectedAt);
 
   return createPortal(
     /* Backdrop — flex-centers the modal on desktop, anchors bottom on mobile */
@@ -136,8 +121,22 @@ export function SpotModal({ spot, onClose, meal }: SpotModalProps) {
               </h2>
             </div>
             <p className="text-[12px] text-[#6B716B] mt-0.5">
-              {displayCategory}{displayPrice ? ` · ${"$".repeat(displayPrice)}` : ""}{spot.walkMinutes != null ? ` · ${spot.walkMinutes} min walk` : ""}{spot.grade ? ` · Grade ${spot.grade}` : ""}
+              {displayCategory}{displayPrice ? ` · ${"$".repeat(displayPrice)}` : ""}{spot.walkMinutes != null ? ` · ${spot.walkMinutes} min walk` : ""}{spot.grade ? ` · Grade ${spot.grade}` : ""}{inspectedLabel ? ` · Inspected ${inspectedLabel}` : ""}
             </p>
+            {(spot.locationCount ?? 1) > 1 && spot.otherLocations && spot.otherLocations.length > 0 && (
+              <details className="mt-1">
+                <summary className="text-[12px] text-[#2A6BC9] cursor-pointer select-none">
+                  {spot.locationCount} locations nearby — this is the closest
+                </summary>
+                <ul className="mt-1 space-y-0.5">
+                  {spot.otherLocations.map((loc, i) => (
+                    <li key={i} className="text-[11px] text-[#6B716B]">
+                      {loc.address} · {loc.walkMinutes} min walk{loc.grade ? ` · Grade ${loc.grade}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
             {spot.address && (
               <div className="flex items-center gap-1.5 mt-1 text-[12px] text-[#6B716B]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -177,25 +176,41 @@ export function SpotModal({ spot, onClose, meal }: SpotModalProps) {
             </div>
           )}
 
-          {/* Generic template picks */}
-          {isGeneric && visiblePicks.length > 0 && (
+          {/* Top picks — same data as the result card (single source) */}
+          {visiblePicks.length > 0 && (
             <div className="space-y-2 mb-4">
               <h3 className="text-[13px] font-semibold text-[#1A1A1A] uppercase tracking-[0.5px]">Top picks</h3>
               {visiblePicks.map((pick, i) => (
-                <div key={i} className="bg-white border border-[#E6E5DE] rounded-xl p-3">
+                <div key={i} className={`bg-white border rounded-xl p-3 ${i === 0 ? "border-[#2F8F4D]/40" : "border-[#E6E5DE]"}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-[13px] font-semibold text-[#1A1A1A]">{pick.name}</p>
-                      {pick.description && (
-                        <p className="text-[11px] text-[#6B716B] mt-0.5">{pick.description}</p>
-                      )}
+                      <p className="text-[13px] font-semibold text-[#1A1A1A]">
+                        {i === 0 && <span className="text-[#2F8F4D] mr-1">★</span>}
+                        {pick.name}
+                      </p>
                     </div>
                     <span className="text-[11px] text-[#6B716B] whitespace-nowrap flex-shrink-0">
-                      ~{pick.cal} cal &middot; {pick.protein}g P
+                      {isGeneric ? "~" : ""}{pick.calories} cal &middot; {pick.protein}g P
                     </span>
                   </div>
                 </div>
               ))}
+              {spot.bestDrink && (
+                <p className="text-[12px] text-[#6B716B] pl-1">
+                  Best drink: <span className="text-[#1A1A1A] font-medium">{spot.bestDrink.name}</span> · {spot.bestDrink.calories} cal
+                </p>
+              )}
+              {isGeneric && (
+                <p className="text-[11px] text-[#9A9F9A] pl-1">Estimates — actual items vary ±15% by location.</p>
+              )}
+            </div>
+          )}
+
+          {/* No coherent pick: show ordering guidance instead of a named dish */}
+          {visiblePicks.length === 0 && isGeneric && (
+            <div className="mb-4 p-3 bg-white border border-[#E6E5DE] rounded-xl text-[13px] text-[#6B716B]">
+              <p className="font-semibold text-[#1A1A1A] mb-1">Smart ordering tips</p>
+              <p>{spot.orderingTip || template?.orderingTip || "Ask for grilled over fried, sauce on the side, and add a vegetable side — that combination works at almost any kitchen."}</p>
             </div>
           )}
 
@@ -204,16 +219,78 @@ export function SpotModal({ spot, onClose, meal }: SpotModalProps) {
         </div>
 
         {/* Footer — sticky */}
-        <div className="flex-shrink-0 border-t border-[#E6E5DE] px-5 py-3 flex items-center justify-between">
-          <button className="text-[12px] text-[#6B716B] hover:text-[#1A1A1A] hover:underline">
-            Report an error
-          </button>
-          <a
-            href={`/restaurants/${spot.slug}`}
-            className="text-[12px] text-[#2A6BC9] font-medium hover:underline"
-          >
-            Open full page &rarr;
-          </a>
+        <div className="flex-shrink-0 border-t border-[#E6E5DE] px-5 py-3">
+          {reportOpen && reportState !== "sent" && (
+            <form
+              className="mb-3 space-y-2"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setReportState("sending");
+                try {
+                  const res = await fetch("/api/eat-smart/report-error", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      venueId: spot.slug,
+                      venueName: displayName,
+                      address: spot.address ?? null,
+                      field: reportReason,
+                      message: reportNotes.slice(0, 500),
+                      reportedAt: new Date().toISOString(),
+                    }),
+                  });
+                  setReportState(res.ok ? "sent" : "error");
+                } catch {
+                  setReportState("error");
+                }
+              }}
+            >
+              <select
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="w-full text-[12px] border border-[#E6E5DE] rounded-lg px-2 py-1.5 bg-white text-[#1A1A1A]"
+              >
+                <option value="wrong-item">An item listed isn&apos;t on the real menu</option>
+                <option value="wrong-macros">Calories or protein look wrong</option>
+                <option value="closed">This place is closed / wrong location</option>
+                <option value="wrong-name">The name is wrong or misspelled</option>
+                <option value="other">Something else</option>
+              </select>
+              <textarea
+                value={reportNotes}
+                onChange={(e) => setReportNotes(e.target.value)}
+                maxLength={500}
+                placeholder="Details (optional)"
+                rows={2}
+                className="w-full text-[12px] border border-[#E6E5DE] rounded-lg px-2 py-1.5 bg-white text-[#1A1A1A] resize-none"
+              />
+              <div className="flex items-center gap-2">
+                <button type="submit" disabled={reportState === "sending"} className="text-[12px] font-semibold text-white bg-[#2F8F4D] rounded-lg px-3 py-1.5 disabled:opacity-50">
+                  {reportState === "sending" ? "Sending…" : "Send report"}
+                </button>
+                <button type="button" onClick={() => setReportOpen(false)} className="text-[12px] text-[#6B716B] hover:underline">Cancel</button>
+                {reportState === "error" && <span className="text-[11px] text-[#C04545]">Couldn&apos;t send — try again</span>}
+              </div>
+            </form>
+          )}
+          {reportState === "sent" && (
+            <p className="mb-3 text-[12px] text-[#2F8F4D]">Thanks — your report is in the review queue.</p>
+          )}
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setReportOpen((v) => !v)}
+              className="text-[12px] text-[#6B716B] hover:text-[#1A1A1A] hover:underline"
+            >
+              Report an error
+            </button>
+            <a
+              href={`/restaurants/${spot.slug}`}
+              className="text-[12px] text-[#2A6BC9] font-medium hover:underline"
+            >
+              Open full page &rarr;
+            </a>
+          </div>
         </div>
       </div>
     </div>,

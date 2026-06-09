@@ -1,19 +1,31 @@
 "use client";
 
+import { formatRelative } from "@/lib/freshness";
+
+export type SortKey = "score" | "protein" | "calories" | "distance" | "protein-per-dollar";
+
 export interface ResultSpot {
   slug: string;
   name: string;
   walkMinutes: number;
   topPickName: string;
   topPickProtein: number;
+  topPickCalories?: number;
+  topPickScore?: number;
+  topPicks?: { name: string; calories: number; protein: number; pulseScore: number }[];
+  bestDrink?: { name: string; calories: number; protein: number } | null;
   priceRange: number;
   priceTier?: string;
   lat?: number;
   lng?: number;
   address?: string;
   grade?: string;
+  inspectedAt?: string | null;
   isGeneric?: boolean;
   category?: string;
+  locationCount?: number;
+  otherLocations?: { address: string; walkMinutes: number; grade: string }[];
+  orderingTip?: string;
 }
 
 interface LiveResultsStripProps {
@@ -24,7 +36,18 @@ interface LiveResultsStripProps {
   loading: boolean;
   mealLabel?: string;
   onSpotClick?: (slug: string) => void;
+  fetchedAt?: number | null;
+  sortBy?: SortKey;
+  onSortChange?: (key: SortKey) => void;
 }
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "score", label: "PulseScore" },
+  { key: "protein", label: "Protein" },
+  { key: "calories", label: "Calories" },
+  { key: "distance", label: "Distance" },
+  { key: "protein-per-dollar", label: "Protein per $" },
+];
 
 function priceTierFallback(range: number): string {
   if (range <= 1) return "$";
@@ -32,26 +55,40 @@ function priceTierFallback(range: number): string {
   return "$$$";
 }
 
-export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, loading, mealLabel, onSpotClick }: LiveResultsStripProps) {
+export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, loading, mealLabel, onSpotClick, fetchedAt, sortBy = "score", onSortChange }: LiveResultsStripProps) {
+  const sortLabel = SORT_OPTIONS.find((o) => o.key === sortBy)?.label ?? "PulseScore";
   return (
     <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-14">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-2">
         <h2 className="font-display text-[28px] text-[#1A1A1A] leading-tight">
           {spots.length > 0
-            ? `${spots.length} ${mealLabel || ""} spot${spots.length === 1 ? "" : "s"} near you, ranked by protein per dollar`
+            ? `${spots.length} ${mealLabel || ""} spot${spots.length === 1 ? "" : "s"} near you, ranked by ${sortLabel}`
             : "Spots near you"}
         </h2>
         <span className="text-[13px] text-[#6B716B] flex-shrink-0">
-          Updated just now · {totalCount} spot{totalCount === 1 ? "" : "s"} within 10 min walk
+          {fetchedAt ? `Updated ${formatRelative(fetchedAt)}` : "Updating"} · {totalCount} spot{totalCount === 1 ? "" : "s"} within 10 min walk
         </span>
       </div>
 
-      {/* Sort pill — TODO: turn into a sort selector once we add distance/price sort */}
-      <div className="mb-5">
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] text-[#6B716B] bg-white border border-[#E6E5DE]">
-          ↓ Protein per dollar
-        </span>
+      {/* Sort selector */}
+      <div className="mb-5 flex items-center gap-1.5 flex-wrap">
+        <span className="text-[11px] text-[#6B716B] mr-0.5">Sort:</span>
+        {SORT_OPTIONS.map((o) => (
+          <button
+            key={o.key}
+            type="button"
+            onClick={() => onSortChange?.(o.key)}
+            aria-pressed={sortBy === o.key}
+            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] border transition-colors ${
+              sortBy === o.key
+                ? "bg-[#E5F1E8] text-[#2F8F4D] border-[#2F8F4D]/30 font-semibold"
+                : "bg-white text-[#6B716B] border-[#E6E5DE] hover:border-[#2F8F4D]/30"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
       </div>
 
       {/* Default location hint */}
@@ -106,20 +143,31 @@ export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, 
                   {spot.category}
                 </span>
               )}
-              <p className="font-semibold text-[15px] text-[#1A1A1A] mb-2">
+              <p className="font-semibold text-[15px] text-[#1A1A1A] mb-0.5">
                 {spot.name}
               </p>
-              <div className="flex flex-wrap gap-1.5 mb-3">
+              {(spot.locationCount ?? 1) > 1 && (
+                <p className="text-[11px] text-[#6B716B] mb-1.5">
+                  {spot.locationCount} locations nearby · nearest {spot.walkMinutes} min
+                </p>
+              )}
+              <div className="flex flex-wrap gap-1.5 mb-3 mt-1.5">
                 <span className="bg-[#E6EEF9] text-[#2A6BC9] text-[11px] px-2 py-0.5 rounded-full">
                   {spot.walkMinutes} min walk
                 </span>
-                <span className="bg-[#E5F1E8] text-[#2F8F4D] text-[11px] px-2 py-0.5 rounded-full">
-                  {spot.topPickProtein}g protein
-                </span>
-                {spot.isGeneric && (
-                  <span className="inline-flex items-center gap-1 bg-[#FBF6E8] text-[#8A6A1C] text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-[#F0E3B5]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#2F8F4D]" />
-                    PulseNYC pick
+                {spot.topPickProtein > 0 && (
+                  <span className="bg-[#E5F1E8] text-[#2F8F4D] text-[11px] px-2 py-0.5 rounded-full">
+                    {spot.topPickProtein}g protein
+                  </span>
+                )}
+                {(spot.topPickCalories ?? 0) > 0 && (
+                  <span className="bg-[#FDF1E2] text-[#B06A1E] text-[11px] px-2 py-0.5 rounded-full">
+                    {spot.isGeneric ? "~" : ""}{spot.topPickCalories} cal
+                  </span>
+                )}
+                {spot.grade && (
+                  <span className="bg-[#E5F1E8] text-[#2F8F4D] text-[11px] font-bold px-2 py-0.5 rounded-full border border-[#2F8F4D]/20" title="DOHMH inspection grade">
+                    Grade {spot.grade}
                   </span>
                 )}
                 <span className="bg-[#F0EFE8] text-[#1A1A1A] text-[11px] px-2 py-0.5 rounded-full">
@@ -127,7 +175,17 @@ export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, 
                 </span>
               </div>
               <div className="border-t border-dashed border-[#E6E5DE] pt-2 text-[13px] text-[#6B716B]">
-                <strong className="text-[#1A1A1A]">Order:</strong> {spot.topPickName}
+                {spot.topPickName ? (
+                  <>
+                    <strong className="text-[#1A1A1A]">Order:</strong> {spot.topPickName}
+                    {spot.isGeneric && <span className="text-[11px] text-[#9A9F9A] ml-1">est.</span>}
+                  </>
+                ) : (
+                  <>
+                    <strong className="text-[#1A1A1A]">Smart ordering tips</strong>
+                    {spot.orderingTip ? ` — ${spot.orderingTip.slice(0, 90)}${spot.orderingTip.length > 90 ? "…" : ""}` : " inside"}
+                  </>
+                )}
               </div>
             </a>
           ))}

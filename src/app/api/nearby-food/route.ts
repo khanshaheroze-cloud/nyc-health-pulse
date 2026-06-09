@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CHAINS } from "@/lib/restaurantData";
+import { canonicalBrand, normalizeVenueName } from "@/lib/venue-normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -14,75 +14,8 @@ export const dynamic = "force-dynamic";
  * - Smarter deduplication keeping best grade per restaurant
  */
 
-/* ── Chain matching patterns ──────────────────────────────────── */
-
-const CHAIN_PATTERNS: { patterns: string[]; slug: string; name: string }[] = CHAINS.map((c) => {
-  const n = c.name.toUpperCase();
-  const patterns: string[] = [n];
-
-  // Add DBA variations that appear in DOHMH data
-  const VARIATIONS: Record<string, string[]> = {
-    "MCDONALD'S": ["MCDONALDS", "MC DONALDS", "MC DONALD'S", "MCDONALD'S CORP"],
-    "DUNKIN'": ["DUNKIN", "DUNKIN DONUTS", "DUNKIN'", "DUNKIN' DONUTS"],
-    "CHICK-FIL-A": ["CHICK FIL A", "CHICKFILA", "CHICK-FIL-A INC"],
-    "POPEYES": ["POPEYE'S", "POPEYES LOUISIANA", "POPEYE'S LOUISIANA"],
-    "PANDA EXPRESS": ["PANDA EXPRESS INC"],
-    "DOMINO'S": ["DOMINOS", "DOMINO'S PIZZA", "DOMINOS PIZZA"],
-    "PAPA JOHN'S": ["PAPA JOHNS", "PAPA JOHN'S PIZZA", "PAPA JOHNS PIZZA"],
-    "PIZZA HUT": ["PIZZA HUT INC", "PIZZA HUT EXPRESS"],
-    "BURGER KING": ["BURGER KING CORP", "BURGER KING #"],
-    "WENDY'S": ["WENDYS", "WENDY'S OLD FASHIONED", "WENDY'S #"],
-    "TACO BELL": ["TACO BELL CORP", "TACO BELL #"],
-    "SUBWAY": ["SUBWAY RESTAURANT", "SUBWAY SANDWICHES", "SUBWAY #"],
-    "STARBUCKS": ["STARBUCKS COFFEE", "STARBUCKS CORP"],
-    "THE HALAL GUYS": ["HALAL GUYS", "THE HALAL GUYS INC"],
-    "JERSEY MIKE'S": ["JERSEY MIKES", "JERSEY MIKE'S SUBS"],
-    "PRET A MANGER": ["PRET-A-MANGER", "PRET A MANGER US"],
-    "FIVE GUYS": ["FIVE GUYS BURGERS", "FIVE GUYS ENTERPRISES", "5 GUYS"],
-    "JOE'S PIZZA": ["JOE'S", "JOES PIZZA", "FAMOUS JOE'S"],
-    "2 BROS PIZZA": ["2 BROS", "TWO BROS", "2BROS", "2 BROS. PIZZA"],
-    "WINGSTOP": ["WING STOP"],
-    "BUFFALO WILD WINGS": ["B-DUBS", "BWW", "B DUBS"],
-    "RAISING CANE'S": ["RAISING CANES", "RAISING CANE"],
-    "KUNG FU TEA": ["KUNGFU TEA"],
-    "TIGER SUGAR": ["TIGER SUGAR NYC"],
-    "GREGORY'S COFFEE": ["GREGORYS COFFEE", "GREGORY'S"],
-    "LUKE'S LOBSTER": ["LUKES LOBSTER"],
-    "SMASHBURGER": ["SMASH BURGER"],
-    "SHAKE SHACK": ["SHAKESHACK", "SHAKE SHACK #"],
-    "CHIPOTLE": ["CHIPOTLE MEXICAN", "CHIPOTLE MEXICAN GRILL"],
-    "SWEETGREEN": ["SWEET GREEN"],
-    "JUST SALAD": ["JUST SALAD INC"],
-    "PANERA": ["PANERA BREAD", "PANERA BREAD CO"],
-    "CAVA": ["CAVA GRILL", "CAVA MEZZE"],
-    "DIG": ["DIG INN", "DIG FOOD"],
-    "APPLEBEE'S": ["APPLEBEES", "APPLEBEE'S GRILL"],
-    "CHILI'S": ["CHILIS", "CHILI'S GRILL"],
-    "TGI FRIDAY'S": ["TGI FRIDAYS", "T.G.I. FRIDAY'S", "TGIF"],
-    "OLIVE GARDEN": ["OLIVE GARDEN ITALIAN"],
-    "DENNY'S": ["DENNYS"],
-    "IHOP": ["INTERNATIONAL HOUSE OF PANCAKES", "IHOP #"],
-    "KFC": ["KENTUCKY FRIED CHICKEN", "KFC #", "KFC/"],
-    "CHEESECAKE FACTORY": ["THE CHEESECAKE FACTORY"],
-    "BON CHON": ["BONCHON", "BON CHON CHICKEN"],
-    "JAMBA JUICE": ["JAMBA", "JAMBA JUICE #"],
-    "JUICE PRESS": ["JUICEPRESS"],
-    "DOS TOROS": ["DOS TOROS TAQUERIA"],
-    "TENDER GREENS": ["TENDERGREENS"],
-    "HONEYGROW": ["HONEY GROW"],
-    "NAYA": ["NAYA EXPRESS", "NAYA MEZZE"],
-    "PLAYA BOWLS": ["PLAYA BOWL"],
-    "POKEWORKS": ["POKÉWORKS", "POKE WORKS"],
-    "SWEETCATCH POKE": ["SWEET CATCH", "SWEETCATCH"],
-    "HALE & HEARTY": ["HALE AND HEARTY", "HALE & HEARTY SOUPS"],
-    "WOK TO WALK": ["WOKTOWALK"],
-  };
-
-  const extra = VARIATIONS[n];
-  if (extra) patterns.push(...extra);
-
-  return { patterns, slug: c.slug, name: c.name };
-});
+/* Chain matching lives in src/lib/venue-normalize.ts (canonicalBrand) —
+ * one alias map shared by every surface. */
 
 const HEALTHY_CUISINES = [
   "salad", "vegan", "vegetarian", "health food",
@@ -107,24 +40,7 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
 }
 
 function matchChain(dba: string): string | null {
-  const upper = dba.toUpperCase().trim();
-
-  for (const { patterns, slug } of CHAIN_PATTERNS) {
-    for (const pattern of patterns) {
-      // Exact match or DBA starts with pattern
-      if (upper === pattern || upper.startsWith(pattern + " ") || upper.startsWith(pattern + "#")) {
-        return slug;
-      }
-      // DBA contains pattern as a standalone segment
-      if (upper.includes(" " + pattern) || upper.includes(pattern + " ") || upper.includes(pattern)) {
-        // Avoid false positives: require the pattern to be a significant portion
-        if (pattern.length >= 5 || upper === pattern) {
-          return slug;
-        }
-      }
-    }
-  }
-  return null;
+  return canonicalBrand(dba)?.slug ?? null;
 }
 
 /* ── Fetch from DOHMH with pagination ─────────────────────── */
@@ -220,7 +136,9 @@ export async function GET(req: NextRequest) {
         const cuisine = r.cuisine_description || "";
 
         return {
-          name: r.dba || "Unknown",
+          // Normalized for display: raw DOHMH dba is ALL-CAPS with store numbers
+          name: normalizeVenueName(r.dba || "Unknown"),
+          rawName: r.dba || "Unknown",
           cuisine,
           grade: r.grade || null,
           score: r.score ? Number(r.score) : null,

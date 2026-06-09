@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { CHAINS, type MenuItem as ChainMenuItem } from "@/lib/restaurantData";
 import { inferMealType, mealMatches, type MealCategory } from "@/lib/inferMealType";
 import { matchGenericCategory, type GenericTemplate, type GenericPick } from "@/lib/genericRestaurants";
+import { canonicalBrand, normalizeVenueName, healthyPickEligibility } from "@/lib/venue-normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -78,45 +79,11 @@ function pulseScore(item: ChainMenuItem): number {
   return Math.max(0, Math.min(100, score));
 }
 
-const CHAIN_PATTERNS: { patterns: string[]; slug: string }[] = CHAINS.map((c) => {
-  const n = c.name.toUpperCase();
-  const patterns: string[] = [n];
-  const VARIATIONS: Record<string, string[]> = {
-    "MCDONALD'S": ["MCDONALDS", "MC DONALDS"],
-    "DUNKIN'": ["DUNKIN", "DUNKIN DONUTS"],
-    "CHICK-FIL-A": ["CHICK FIL A", "CHICKFILA"],
-    "CHIPOTLE": ["CHIPOTLE MEXICAN", "CHIPOTLE MEXICAN GRILL"],
-    "SWEETGREEN": ["SWEET GREEN"],
-    "SUBWAY": ["SUBWAY RESTAURANT", "SUBWAY SANDWICHES"],
-    "STARBUCKS": ["STARBUCKS COFFEE"],
-    "SHAKE SHACK": ["SHAKESHACK"],
-    "PANERA": ["PANERA BREAD"],
-    "CAVA": ["CAVA GRILL", "CAVA MEZZE"],
-    "WENDY'S": ["WENDYS"],
-    "BURGER KING": ["BURGER KING CORP"],
-    "TACO BELL": ["TACO BELL CORP"],
-    "POPEYES": ["POPEYE'S", "POPEYES LOUISIANA"],
-    "FIVE GUYS": ["FIVE GUYS BURGERS", "5 GUYS"],
-    "JUST SALAD": ["JUST SALAD INC"],
-    "PRET A MANGER": ["PRET-A-MANGER"],
-    "DIG": ["DIG INN", "DIG FOOD"],
-    "KFC": ["KENTUCKY FRIED CHICKEN"],
-    "JERSEY MIKE'S": ["JERSEY MIKES"],
-  };
-  const extra = VARIATIONS[n];
-  if (extra) patterns.push(...extra);
-  return { patterns, slug: c.slug };
-});
-
+// Brand matching lives in src/lib/venue-normalize.ts (canonicalBrand) — one
+// alias map shared by every surface, covering DOHMH misspellings like
+// "CHIPOTLE MEXCIAN GRILL # 2760".
 function matchChain(dba: string): string | null {
-  const upper = dba.toUpperCase().trim();
-  for (const { patterns, slug } of CHAIN_PATTERNS) {
-    for (const p of patterns) {
-      if (upper === p || upper.startsWith(p + " ") || upper.startsWith(p + "#")) return slug;
-      if (p.length >= 5 && upper.includes(p)) return slug;
-    }
-  }
-  return null;
+  return canonicalBrand(dba)?.slug ?? null;
 }
 
 const BEVERAGE_RE = /\b(latte|cappuccino|espresso|americano|matcha|cold.?brew|drip coffee|chai|macchiato|mocha|frappuccino|refresher|hot.?chocolate|hot.?cocoa)\b/i;
@@ -175,7 +142,9 @@ function filterGenericPicks(picks: GenericPick[], meal: string, category: string
       return { pick: p, priority };
     });
 
-  if (scored.length === 0) return picks.slice(0, 3);
+  // No cuisine-coherent pick for this meal: return none — the venue card
+  // renders "Smart ordering tips" guidance instead of an incoherent dish.
+  if (scored.length === 0) return [];
 
   scored.sort((a, b) => b.priority - a.priority);
   const result: GenericPick[] = [];
@@ -207,6 +176,18 @@ interface DOHMHRow {
   boro?: string;
   latitude?: string;
   longitude?: string;
+  inspection_date?: string;
+}
+
+interface TopPick {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  pulseScore: number;
 }
 
 interface ApiResult {
@@ -222,9 +203,17 @@ interface ApiResult {
   lng: number;
   address: string;
   grade: string;
+  inspectedAt: string | null;
   isGeneric: boolean;
   category: string;
-  topPicks: { id: string; name: string; calories: number; protein: number; carbs: number; fat: number; fiber: number; pulseScore: number }[];
+  topPicks: TopPick[];
+  /** Best beverage, surfaced separately so a 5-cal cold brew can't headline */
+  bestDrink: { name: string; calories: number; protein: number } | null;
+  /** Same-brand locations within the radius collapsed into this card */
+  locationCount: number;
+  otherLocations: { address: string; walkMinutes: number; grade: string }[];
+  /** Generic-template ordering guidance shown when no coherent pick exists */
+  orderingTip?: string;
 }
 
 export async function GET(req: NextRequest) {
@@ -242,7 +231,7 @@ export async function GET(req: NextRequest) {
     const lngNum = parseFloat(lng);
 
     const where = `within_circle(location, ${latNum}, ${lngNum}, 800) AND grade IN('A','B')`;
-    const url = `https://data.cityofnewyork.us/resource/43nn-pn8j.json?$where=${encodeURIComponent(where)}&$select=dba,cuisine_description,grade,building,street,boro,latitude,longitude&$limit=500&$order=grade ASC`;
+    const url = `https://data.cityofnewyork.us/resource/43nn-pn8j.json?$where=${encodeURIComponent(where)}&$select=dba,cuisine_description,grade,building,street,boro,latitude,longitude,inspection_date&$limit=500&$order=grade ASC`;
 
     const res = await fetch(url, { next: { revalidate: 3600 } });
     const rows: DOHMHRow[] = res.ok ? await res.json() : [];
@@ -281,7 +270,7 @@ export async function GET(req: NextRequest) {
         if (meal === "coffee" && !COFFEE_ALLOWED_CHAIN_CATS.has(chain.category)) continue;
 
         const activeMeal = meal as MealCategory;
-        const scored = chain.items
+        const scoredAll = chain.items
           .filter(filterFn)
           .map((item) => {
             const ps = pulseScore(item);
@@ -299,10 +288,26 @@ export async function GET(req: NextRequest) {
             };
           })
           .sort((a, b) => b._sort - a._sort)
-          .map(({ _sort, ...rest }) => rest)
-          .slice(0, 3);
+          .map(({ _sort, ...rest }) => rest);
 
+        if (scoredAll.length === 0) continue;
+
+        // Headline rule: for breakfast/lunch/dinner the "best order" must be a
+        // real meal (>=200 cal, not a beverage). Drinks surface separately as
+        // bestDrink — a 5-cal cold brew can never headline a Dunkin' card.
+        const drinks = scoredAll.filter((s) => BEVERAGE_RE.test(s.name));
+        let scored: TopPick[];
+        if (meal === "breakfast" || meal === "lunch" || meal === "dinner") {
+          const meals = scoredAll.filter((s) => s.calories >= 200 && !BEVERAGE_RE.test(s.name));
+          const rest = scoredAll.filter((s) => !meals.includes(s) && !BEVERAGE_RE.test(s.name));
+          scored = (meals.length > 0 ? [...meals, ...rest] : rest).slice(0, 3);
+        } else {
+          scored = scoredAll.slice(0, 3);
+        }
         if (scored.length === 0) continue;
+        const bestDrink = meal !== "coffee" && drinks.length > 0
+          ? { name: drinks[0].name, calories: drinks[0].calories, protein: drinks[0].protein }
+          : null;
 
         chainResults.push({
           restaurantId: `${chainSlug}-${rLat.toFixed(4)}`,
@@ -317,11 +322,24 @@ export async function GET(req: NextRequest) {
           lng: rLng,
           address,
           grade: r.grade || "",
+          inspectedAt: r.inspection_date ?? null,
           isGeneric: false,
           category: chain.category,
           topPicks: scored,
+          bestDrink,
+          locationCount: 1,
+          otherLocations: [],
         });
       } else {
+        // Bars, lounges, dessert-only, hotel kitchens never make ranked
+        // healthy picks (brand-matched venues were handled above and are
+        // exempt). They remain findable in the full map view (/api/nearby-food).
+        const elig = healthyPickEligibility(r.dba || "", r.cuisine_description || "", false, meal);
+        if (!elig.eligible) {
+          venueGateExcluded++;
+          continue;
+        }
+
         const template = matchGenericCategory(r.cuisine_description || "");
         if (!template) continue;
 
@@ -331,7 +349,7 @@ export async function GET(req: NextRequest) {
         if (seenKeys.has(addrKey)) continue;
         seenKeys.add(addrKey);
 
-        const dba = r.dba || template.category;
+        const dba = normalizeVenueName(r.dba || template.category);
         const seed = hashStr(dba + (r.building || "") + (r.street || ""));
 
         const filteredPicks = filterGenericPicks(template.picks, meal, template.category, seed);
@@ -359,11 +377,38 @@ export async function GET(req: NextRequest) {
           lng: rLng,
           address,
           grade: r.grade || "",
+          inspectedAt: r.inspection_date ?? null,
           isGeneric: true,
           category: template.category,
           topPicks,
+          bestDrink: null,
+          locationCount: 1,
+          otherLocations: [],
+          orderingTip: template.orderingTip,
         });
       }
+    }
+
+    // ── Brand dedupe: collapse same-brand venues into one card ─────────────
+    // "Dunkin' · 4 locations nearby · nearest 2 blocks" instead of four
+    // identical Dunkin' cards. Nearest location is the primary.
+    const byBrand = new Map<string, ApiResult[]>();
+    for (const r of chainResults) {
+      const group = byBrand.get(r.slug);
+      if (group) group.push(r);
+      else byBrand.set(r.slug, [r]);
+    }
+    chainResults.length = 0;
+    for (const group of byBrand.values()) {
+      group.sort((a, b) => a.distance - b.distance);
+      const primary = group[0];
+      primary.locationCount = group.length;
+      primary.otherLocations = group.slice(1, 6).map((g) => ({
+        address: g.address,
+        walkMinutes: g.walkMinutes,
+        grade: g.grade,
+      }));
+      chainResults.push(primary);
     }
 
     chainResults.sort((a, b) => a.distance - b.distance);
@@ -415,9 +460,11 @@ export async function GET(req: NextRequest) {
     const deduped: ApiResult[] = [];
     const seenPicks = new Set<string>();
     for (const spot of mixed) {
-      const pickKey = `${spot.topPicks[0]?.name}-${spot.topPicks[0]?.calories}`;
-      if (seenPicks.has(pickKey) && spot.isGeneric) continue;
-      seenPicks.add(pickKey);
+      if (spot.topPicks.length > 0) {
+        const pickKey = `${spot.topPicks[0].name}-${spot.topPicks[0].calories}`;
+        if (seenPicks.has(pickKey) && spot.isGeneric) continue;
+        seenPicks.add(pickKey);
+      }
       deduped.push(spot);
     }
 
