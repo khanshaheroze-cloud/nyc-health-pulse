@@ -81,6 +81,7 @@ export function KPICard({ label, value, unit, sub, badge, color, tag, lastUpdate
 
   return (
     <div
+      data-kpi={label}
       className={`relative bg-surface border ${c.border} rounded-3xl p-5 overflow-visible animate-fade-in-up card-hover`}
       style={{ animationDelay: `${(index ?? 0) * 60}ms` }}
     >

@@ -11,14 +11,20 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /mobile/ },
     // 375px viewport project for the mobile nav regression test
-    { name: "mobile", use: { ...devices["iPhone SE"] }, testMatch: /mobile/ },
+    // (Pixel 5 descriptor = Chromium-based; viewport forced to the audit's 375px)
+    {
+      name: "mobile",
+      use: { ...devices["Pixel 5"], viewport: { width: 375, height: 667 } },
+      testMatch: /mobile/,
+    },
   ],
   webServer: {
-    command: "npm run dev",
+    // CI runs the production build (next start); locally reuse the dev server
+    command: process.env.CI ? "pnpm start" : "pnpm dev",
     url: "http://localhost:3000",
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
 });

@@ -9,7 +9,9 @@
     "start": "next start",
     "lint": "eslint",
     "audit-menus": "node scripts/audit-menus.js",
-    "ci:menus": "node scripts/audit-menus.js --ci"
+    "ci:menus": "node scripts/audit-menus.js --ci",
+    "test": "playwright test --project=chromium --project=mobile",
+    "test:data": "playwright test tests/curated-picks.spec.ts tests/venue-normalize.spec.ts --project=chromium"
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",

@@ -190,7 +190,7 @@ export function AirQualityHero({ aqi, category, pm25, no2, o3, period }: AirQual
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="font-display text-5xl font-bold leading-none" style={{ color: meta.color }}>
+              <span data-testid="aqi-value" data-aqi={displayAqi} className="font-display text-5xl font-bold leading-none" style={{ color: meta.color }}>
                 {animatedAqi}
               </span>
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted mt-1">AQI</span>

@@ -139,7 +139,7 @@ export function BentoGrid({ aqi, aqiCategory, tempF, uvIndex, pollenLevel }: Ben
               🌤
             </div>
             <span className="text-[11px] font-semibold tracking-[1px] uppercase text-[#6B716B]">Air Quality · NYC</span>
-            <div className="text-[42px] font-semibold text-[#1A1A1A] leading-none mt-1">{aqiDisplay}</div>
+            <div data-testid="aqi-value" data-aqi={aqiDisplay} className="text-[42px] font-semibold text-[#1A1A1A] leading-none mt-1">{aqiDisplay}</div>
             <span className="text-[13px] text-[#6B716B]">{aqiLabel} · EPA AirNow</span>
           </div>
           <div>
