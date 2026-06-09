@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "NYC Neighborhood Health Profiles — All 42 Districts",
   description: "Look up health data for your NYC neighborhood — asthma, obesity, poverty, life expectancy, air quality, and more. Compare any two neighborhoods side by side.",
+  alternates: { canonical: "/neighborhood" },
+  openGraph: {
+    title: "NYC Neighborhood Health Profiles — All 42 Districts",
+    description: "Look up health data for your NYC neighborhood — asthma, obesity, poverty, life expectancy, air quality, and more. Compare any two neighborhoods side by side.",
+    url: "/neighborhood",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NYC Neighborhood Health Profiles — All 42 Districts",
+    description: "Look up health data for your NYC neighborhood — asthma, obesity, poverty, life expectancy, air quality, and more. Compare any two neighborhoods side by side.",
+  },
 };
 import Link from "next/link";
 import { neighborhoods, BOROUGH_ORDER, cityAvg, neighborhoodScores } from "@/lib/neighborhoodData";

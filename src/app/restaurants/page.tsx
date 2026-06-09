@@ -3,9 +3,22 @@ import { RESTAURANT_STATS } from "@/lib/restaurantData";
 import { SectionShell } from "@/components/SectionShell";
 import { RestaurantBrowser } from "@/components/RestaurantBrowser";
 
+const RESTAURANTS_DESCRIPTION = `Browse ${RESTAURANT_STATS.totalItems}+ menu items from ${RESTAURANT_STATS.totalChains} NYC restaurant chains with full calorie and macro breakdowns.`;
+
 export const metadata: Metadata = {
   title: "Restaurant Nutrition Guide",
-  description: `Browse ${RESTAURANT_STATS.totalItems}+ menu items from ${RESTAURANT_STATS.totalChains} NYC restaurant chains with full calorie and macro breakdowns.`,
+  description: RESTAURANTS_DESCRIPTION,
+  alternates: { canonical: "/restaurants" },
+  openGraph: {
+    title: "Restaurant Nutrition Guide",
+    description: RESTAURANTS_DESCRIPTION,
+    url: "/restaurants",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Restaurant Nutrition Guide",
+    description: RESTAURANTS_DESCRIPTION,
+  },
 };
 
 export default function RestaurantsPage() {

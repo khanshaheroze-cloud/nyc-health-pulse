@@ -8,6 +8,19 @@ export const metadata: Metadata = {
   title: "Smart Run Routes — AI-Optimized NYC Running Routes",
   description:
     "Generate optimized running routes anywhere in NYC using real-time air quality, street safety, scenery, and terrain data. 20+ curated routes including NYRR race courses, refuel suggestions, amenities, and 10 running clubs.",
+  alternates: { canonical: "/run-routes" },
+  openGraph: {
+    title: "Smart Run Routes — AI-Optimized NYC Running Routes",
+    description:
+      "Generate optimized running routes anywhere in NYC using real-time air quality, street safety, scenery, and terrain data. 20+ curated routes including NYRR race courses, refuel suggestions, amenities, and 10 running clubs.",
+    url: "/run-routes",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Smart Run Routes — AI-Optimized NYC Running Routes",
+    description:
+      "Generate optimized running routes anywhere in NYC using real-time air quality, street safety, scenery, and terrain data. 20+ curated routes including NYRR race courses, refuel suggestions, amenities, and 10 running clubs.",
+  },
 };
 
 export default function RunRoutesPage() {

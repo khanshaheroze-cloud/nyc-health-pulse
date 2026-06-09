@@ -4,6 +4,17 @@ import { AppWaitlistCapture } from "@/components/AppWaitlistCapture";
 export const metadata: Metadata = {
   title: "NYC Pulse Smart Eats — Coming Q3 2026",
   description: "Sign up for the NYC Pulse Smart Eats app waitlist. Healthy food near you, right now.",
+  alternates: { canonical: "/app" },
+  openGraph: {
+    title: "NYC Pulse Smart Eats — Coming Q3 2026",
+    description: "Sign up for the NYC Pulse Smart Eats app waitlist. Healthy food near you, right now.",
+    url: "/app",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NYC Pulse Smart Eats — Coming Q3 2026",
+    description: "Sign up for the NYC Pulse Smart Eats app waitlist. Healthy food near you, right now.",
+  },
 };
 
 export default function AppPage() {

@@ -4,6 +4,19 @@ export const metadata: Metadata = {
   title: "NYC Street Safety — Vision Zero Crash Data",
   description:
     "Traffic crash data for NYC: collisions, injuries, and fatalities by borough. Live data from NYPD Motor Vehicle Collisions. Vision Zero progress tracker.",
+  alternates: { canonical: "/safety" },
+  openGraph: {
+    title: "NYC Street Safety — Vision Zero Crash Data",
+    description:
+      "Traffic crash data for NYC: collisions, injuries, and fatalities by borough. Live data from NYPD Motor Vehicle Collisions. Vision Zero progress tracker.",
+    url: "/safety",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NYC Street Safety — Vision Zero Crash Data",
+    description:
+      "Traffic crash data for NYC: collisions, injuries, and fatalities by borough. Live data from NYPD Motor Vehicle Collisions. Vision Zero progress tracker.",
+  },
 };
 
 import { SectionShell } from "@/components/SectionShell";

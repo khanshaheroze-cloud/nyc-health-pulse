@@ -46,7 +46,11 @@ export function OverviewBoroughCharts({ chronicOutcomes, inactivityData }: Props
                 {...chartTheme.tooltip}
                 formatter={(v: any) => v != null ? [`${v}%`] : [""]}
               />
-              <Legend wrapperStyle={{ fontSize: 10, paddingTop: 4 }} iconSize={8} />
+              <Legend
+                wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+                iconSize={8}
+                formatter={(value: string) => <span style={{ color: "var(--color-dim)" }}>{value}</span>}
+              />
               {boroughs.map((b, i) => (
                 <Bar key={b} dataKey={b} fill={boroughColors[i] + boroughOpacities[i]} radius={[2, 2, 0, 0]} />
               ))}

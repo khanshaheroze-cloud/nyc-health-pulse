@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "NYC Demographics — Race, Income, Poverty & Insurance",
   description: "Census demographic data for NYC. Race/ethnicity, median income, poverty rate, and uninsured rate by borough. Live data from U.S. Census ACS.",
+  alternates: { canonical: "/demographics" },
+  openGraph: {
+    title: "NYC Demographics — Race, Income, Poverty & Insurance",
+    description: "Census demographic data for NYC. Race/ethnicity, median income, poverty rate, and uninsured rate by borough. Live data from U.S. Census ACS.",
+    url: "/demographics",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NYC Demographics — Race, Income, Poverty & Insurance",
+    description: "Census demographic data for NYC. Race/ethnicity, median income, poverty rate, and uninsured rate by borough. Live data from U.S. Census ACS.",
+  },
 };
 import { datasetJsonLdString, CENSUS_LICENSE, NYC_OPEN_DATA_LICENSE } from "@/lib/jsonLd";
 import { SectionShell } from "@/components/SectionShell";

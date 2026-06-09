@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Free NYC Health Resources — Clinics, Hotlines & Assistance",
   description: "Free and low-cost health resources for NYC residents. Clinics, mental health hotlines, poison control, food assistance, cooling centers, and more.",
+  alternates: { canonical: "/resources" },
+  openGraph: {
+    title: "Free NYC Health Resources — Clinics, Hotlines & Assistance",
+    description: "Free and low-cost health resources for NYC residents. Clinics, mental health hotlines, poison control, food assistance, cooling centers, and more.",
+    url: "/resources",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Free NYC Health Resources — Clinics, Hotlines & Assistance",
+    description: "Free and low-cost health resources for NYC residents. Clinics, mental health hotlines, poison control, food assistance, cooling centers, and more.",
+  },
 };
 import { SectionShell } from "@/components/SectionShell";
 

@@ -4,6 +4,17 @@ import { SectionShell } from "@/components/SectionShell";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description: "Pulse NYC privacy policy — what data we collect, how we use it, and your rights.",
+  alternates: { canonical: "/privacy" },
+  openGraph: {
+    title: "Privacy Policy",
+    description: "Pulse NYC privacy policy — what data we collect, how we use it, and your rights.",
+    url: "/privacy",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Privacy Policy",
+    description: "Pulse NYC privacy policy — what data we collect, how we use it, and your rights.",
+  },
 };
 
 const LAST_UPDATED = "March 4, 2026";

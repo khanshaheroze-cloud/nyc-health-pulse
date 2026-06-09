@@ -5,6 +5,17 @@ import { SectionShell } from "@/components/SectionShell";
 export const metadata: Metadata = {
   title: "Health Data — Disease, Demographics & More",
   description: "Explore NYC health data: COVID-19, flu surveillance, chronic disease, maternal health, overdose tracking, demographics, environment, and nutrition data.",
+  alternates: { canonical: "/health-data" },
+  openGraph: {
+    title: "Health Data — Disease, Demographics & More",
+    description: "Explore NYC health data: COVID-19, flu surveillance, chronic disease, maternal health, overdose tracking, demographics, environment, and nutrition data.",
+    url: "/health-data",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Health Data — Disease, Demographics & More",
+    description: "Explore NYC health data: COVID-19, flu surveillance, chronic disease, maternal health, overdose tracking, demographics, environment, and nutrition data.",
+  },
 };
 
 const sections = [

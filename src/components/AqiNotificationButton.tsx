@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -25,13 +25,13 @@ async function checkAndNotify() {
     );
     if (maxAqi >= 101) {
       new Notification("NYC Air Quality Alert", {
-        body: `Current AQI: ${maxAqi} — ${getAqiCategory(maxAqi)}. Check /air-quality for details.`,
-        icon: "/apple-icon.png",
+        body: `Current AQI: ${maxAqi} â€” ${getAqiCategory(maxAqi)}. Check /air-quality for details.`,
+        icon: "/apple-icon",
         tag: "aqi-alert",
       });
     }
   } catch (_) {
-    // Silently fail — non-critical
+    // Silently fail â€” non-critical
   }
 }
 
@@ -84,7 +84,7 @@ export function AqiNotificationButton() {
   if (state === "denied") {
     return (
       <p className="text-[11px] text-muted mt-2">
-        Notifications blocked — enable in browser settings to receive AQI alerts.
+        Notifications blocked â€” enable in browser settings to receive AQI alerts.
       </p>
     );
   }
@@ -100,14 +100,14 @@ export function AqiNotificationButton() {
             : "bg-surface border-border text-dim hover:text-text hover:border-hp-blue/40")
         }
       >
-        <span>{state === "granted" ? "🔔" : "🔕"}</span>
-        {state === "granted" ? "AQI alerts on — click to disable" : "Get AQI alerts"}
+        <span>{state === "granted" ? "ðŸ””" : "ðŸ”•"}</span>
+        {state === "granted" ? "AQI alerts on â€” click to disable" : "Get AQI alerts"}
         {state === "granted" && (
           <span className="w-1.5 h-1.5 rounded-full bg-hp-green live-pulse" />
         )}
       </button>
       <p className="text-[10px] text-muted mt-1.5">
-        Alerts trigger when AQI ≥ 101 (Unhealthy for Sensitive Groups). Browser must be open.
+        Alerts trigger when AQI â‰¥ 101 (Unhealthy for Sensitive Groups). Browser must be open.
       </p>
     </div>
   );

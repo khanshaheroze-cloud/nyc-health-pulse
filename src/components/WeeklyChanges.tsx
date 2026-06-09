@@ -152,11 +152,10 @@ export function WeeklyChanges(props: WeeklyChangesProps) {
       <div className="flex items-end justify-between mb-3">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="subway-pill bg-hp-green" aria-hidden="true">W</span>
             <h2 className="font-display text-[22px] text-text leading-snug">What&apos;s Happening</h2>
           </div>
           {weekLabel && (
-            <p className="text-[12px] text-muted mt-0.5 ml-[34px]">
+            <p className="text-[12px] text-muted mt-0.5">
               Week of {weekLabel} · <FreshnessStamp lastUpdated={props.lastUpdated} />
             </p>
           )}

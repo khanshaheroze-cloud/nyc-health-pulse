@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "NYC Maternal Health — Pregnancy Mortality & Birth Outcomes",
   description: "Pregnancy-related mortality, C-section rates, and infant mortality by race and borough in NYC. Data from NYC DOHMH and NY State DOH.",
+  alternates: { canonical: "/maternal-health" },
+  openGraph: {
+    title: "NYC Maternal Health — Pregnancy Mortality & Birth Outcomes",
+    description: "Pregnancy-related mortality, C-section rates, and infant mortality by race and borough in NYC. Data from NYC DOHMH and NY State DOH.",
+    url: "/maternal-health",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NYC Maternal Health — Pregnancy Mortality & Birth Outcomes",
+    description: "Pregnancy-related mortality, C-section rates, and infant mortality by race and borough in NYC. Data from NYC DOHMH and NY State DOH.",
+  },
 };
 import { datasetJsonLdString, NYC_OPEN_DATA_LICENSE } from "@/lib/jsonLd";
 import { SectionShell } from "@/components/SectionShell";

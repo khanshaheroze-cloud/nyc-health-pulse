@@ -14,9 +14,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const chain = CHAINS.find(c => c.slug === slug);
   if (!chain) return {};
+  const title = `${chain.name} Nutrition Guide`;
+  const description = `Complete nutrition breakdown for ${chain.items.length} menu items at ${chain.name}. Calories, protein, fat, carbs, sodium for every item.`;
   return {
-    title: `${chain.name} Nutrition Guide`,
-    description: `Complete nutrition breakdown for ${chain.items.length} menu items at ${chain.name}. Calories, protein, fat, carbs, sodium for every item.`,
+    title,
+    description,
+    alternates: { canonical: `/restaurants/${slug}` },
+    openGraph: {
+      title,
+      description,
+      url: `/restaurants/${slug}`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
   };
 }
 

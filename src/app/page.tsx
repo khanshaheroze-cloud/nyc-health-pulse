@@ -26,6 +26,19 @@ export const metadata: Metadata = {
   title: "PulseNYC — Healthy food near you, right now",
   description:
     "Find the best healthy spots open near you in NYC right now, with what to order. Plus live air quality, run routes, neighborhood health, and building safety — all in one place.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "PulseNYC — Healthy food near you, right now",
+    description:
+      "Find the best healthy spots open near you in NYC right now, with what to order. Plus live air quality, run routes, neighborhood health, and building safety — all in one place.",
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PulseNYC — Healthy food near you, right now",
+    description:
+      "Find the best healthy spots open near you in NYC right now, with what to order. Plus live air quality, run routes, neighborhood health, and building safety — all in one place.",
+  },
 };
 
 export default async function OverviewPage() {

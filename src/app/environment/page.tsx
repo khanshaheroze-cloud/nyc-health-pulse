@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "NYC Environment — Rats, Water Quality, Noise & Food Deserts",
   description: "Environmental health data for NYC. Rodent inspections, tap water quality, 311 noise complaints, dog bites, EMS response times, and USDA food desert mapping.",
+  alternates: { canonical: "/environment" },
+  openGraph: {
+    title: "NYC Environment — Rats, Water Quality, Noise & Food Deserts",
+    description: "Environmental health data for NYC. Rodent inspections, tap water quality, 311 noise complaints, dog bites, EMS response times, and USDA food desert mapping.",
+    url: "/environment",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NYC Environment — Rats, Water Quality, Noise & Food Deserts",
+    description: "Environmental health data for NYC. Rodent inspections, tap water quality, 311 noise complaints, dog bites, EMS response times, and USDA food desert mapping.",
+  },
 };
 import { datasetJsonLdString, NYC_OPEN_DATA_LICENSE } from "@/lib/jsonLd";
 import { SectionShell } from "@/components/SectionShell";

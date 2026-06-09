@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+﻿import { Metadata } from "next";
 import { SectionShell } from "@/components/SectionShell";
 import { EatSmartChainCard } from "@/components/EatSmartChainCard";
 import { NutritionSearch } from "@/components/NutritionSearch";
@@ -6,13 +6,23 @@ import { EatSmartMapHero } from "@/components/eat-smart/EatSmartMapHero";
 import { CHAINS, CHALLENGE_STATS } from "@/lib/eatSmartData";
 import Link from "next/link";
 
+export const revalidate = 3600; // re-render hourly so crawlers never see stale prerendered HTML
+
 export const metadata: Metadata = {
   title: "Eat Smart NYC — Best Low-Calorie Orders at 30 NYC Chains",
   description:
     "Find the healthiest menu items at Chipotle, Sweetgreen, McDonald's, CAVA, Taco Bell and 25+ NYC chains. Search 500K+ foods with USDA + Open Food Facts data.",
+  alternates: { canonical: "/eat-smart" },
   openGraph: {
     title: "Eat Smart NYC — Best Low-Calorie Orders at 30 NYC Chains",
     description: "Standing in line? Find the best order under 600 calories at any NYC chain.",
+    url: "/eat-smart",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Eat Smart NYC — Best Low-Calorie Orders at 30 NYC Chains",
+    description:
+      "Find the healthiest menu items at Chipotle, Sweetgreen, McDonald's, CAVA, Taco Bell and 25+ NYC chains. Search 500K+ foods with USDA + Open Food Facts data.",
   },
 };
 

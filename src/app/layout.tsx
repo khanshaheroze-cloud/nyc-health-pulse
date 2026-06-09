@@ -44,23 +44,22 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Pulse NYC",
   },
+  // NO global alternates.canonical here — a site-wide canonical pointing at the
+  // homepage donates every page's ranking signal to "/". Each page declares its
+  // own canonical in its metadata.
   openGraph: {
-    title: "Pulse NYC",
+    title: "Pulse NYC — NYC Health Dashboard | Air Quality, COVID, Food Safety & More",
     description:
       "Free NYC health dashboard. Check air quality, flu & COVID activity, restaurant safety, and 40+ health metrics for your neighborhood. Updated daily from official city data.",
-    url: "https://pulsenyc.app",
     siteName: "Pulse NYC",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pulse NYC",
+    title: "Pulse NYC — NYC Health Dashboard | Air Quality, COVID, Food Safety & More",
     description:
       "Free NYC health dashboard. Check air quality, flu & COVID activity, restaurant safety, and 40+ health metrics for your neighborhood. Updated daily from official city data.",
-  },
-  alternates: {
-    canonical: "https://pulsenyc.app",
   },
 };
 
@@ -255,7 +254,7 @@ export default function RootLayout({
                     ].map((link) => (
                       <a key={link.href} href={link.href} className="text-[12px] text-dim hover:text-hp-green transition-colors">{link.label}</a>
                     ))}
-                    <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-[12px] text-dim hover:text-hp-green transition-colors">GitHub ↗</a>
+                    <a href="https://github.com/khanshaheroze-cloud/nyc-health-pulse" target="_blank" rel="noopener noreferrer" className="text-[12px] text-dim hover:text-hp-green transition-colors">GitHub ↗</a>
                   </div>
                 </div>
               </div>

@@ -6,6 +6,19 @@ export const metadata: Metadata = {
   title: "Should I Run Outside? — Real-Time NYC Running Conditions",
   description:
     "Live Run Score for NYC based on air quality, temperature, wind, UV index, and precipitation. Know before you go.",
+  alternates: { canonical: "/run-outside" },
+  openGraph: {
+    title: "Should I Run Outside? — Real-Time NYC Running Conditions",
+    description:
+      "Live Run Score for NYC based on air quality, temperature, wind, UV index, and precipitation. Know before you go.",
+    url: "/run-outside",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Should I Run Outside? — Real-Time NYC Running Conditions",
+    description:
+      "Live Run Score for NYC based on air quality, temperature, wind, UV index, and precipitation. Know before you go.",
+  },
 };
 
 export default function RunOutsidePage() {

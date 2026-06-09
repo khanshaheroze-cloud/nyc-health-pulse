@@ -279,7 +279,8 @@ function TitleBar({ streak, onGear }: { streak: number; onGear: () => void }) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <h1 className="text-[24px] font-display font-bold text-text">Workouts</h1>
+        {/* The page-level h1 is server-rendered in app/workouts/page.tsx */}
+        <p className="text-[24px] font-display font-bold text-text">Workouts</p>
         {streak > 0 && (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-bold"
             style={{ background: "#fef3e2", color: "#c4704a" }}

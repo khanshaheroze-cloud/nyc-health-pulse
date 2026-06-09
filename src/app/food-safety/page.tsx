@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "NYC Restaurant Safety — Inspection Grades & Violations",
   description: "Check NYC restaurant inspection grades and critical violations by borough and cuisine. Updated hourly from NYC DOHMH inspection data.",
+  alternates: { canonical: "/food-safety" },
+  openGraph: {
+    title: "NYC Restaurant Safety — Inspection Grades & Violations",
+    description: "Check NYC restaurant inspection grades and critical violations by borough and cuisine. Updated hourly from NYC DOHMH inspection data.",
+    url: "/food-safety",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NYC Restaurant Safety — Inspection Grades & Violations",
+    description: "Check NYC restaurant inspection grades and critical violations by borough and cuisine. Updated hourly from NYC DOHMH inspection data.",
+  },
 };
 import { datasetJsonLdString, NYC_OPEN_DATA_LICENSE } from "@/lib/jsonLd";
 import { SectionShell } from "@/components/SectionShell";

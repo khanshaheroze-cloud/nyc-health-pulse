@@ -24,14 +24,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!n) return {};
   const hs = neighborhoodScores.get(slug);
   const scoreText = hs ? `Health Score: ${hs.grade} (${hs.score}/100)` : "";
+  const title = `${n.name} Health Profile${hs ? ` — ${hs.grade} (${hs.score}/100)` : ""}`;
+  const description = `${n.name}, ${n.borough}${hs ? ` — ${scoreText}.` : "."} Asthma ED ${n.metrics.asthmaED}/10K, life expectancy ${n.metrics.lifeExp}y, poverty ${n.metrics.poverty}%, obesity ${n.metrics.obesity}%. NYC DOHMH data on Pulse NYC.`;
   return {
-    title: `${n.name} Health Profile${hs ? ` — ${hs.grade} (${hs.score}/100)` : ""}`,
-    description: `${n.name}, ${n.borough}${hs ? ` — ${scoreText}.` : "."} Asthma ED ${n.metrics.asthmaED}/10K, life expectancy ${n.metrics.lifeExp}y, poverty ${n.metrics.poverty}%, obesity ${n.metrics.obesity}%. NYC DOHMH data on Pulse NYC.`,
+    title,
+    description,
+    alternates: { canonical: `/neighborhood/${slug}` },
     openGraph: {
       title: `${n.name}: ${hs?.grade ?? "?"} Health Score`,
       description: `Scored ${hs?.score ?? "?"}/100 across air quality, life expectancy, safety, and more.`,
-      url: `https://pulsenyc.app/neighborhood/${slug}`,
+      url: `/neighborhood/${slug}`,
       siteName: "Pulse NYC",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
     },
   };
 }

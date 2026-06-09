@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "NYC Air Quality Today — PM2.5 by Borough",
   description: "Is the air safe in NYC today? Real-time PM2.5, NO2, and ozone levels for all five boroughs. Updated daily from NYCCAS and EPA AirNow.",
+  alternates: { canonical: "/air-quality" },
+  openGraph: {
+    title: "NYC Air Quality Today — PM2.5 by Borough",
+    description: "Is the air safe in NYC today? Real-time PM2.5, NO2, and ozone levels for all five boroughs. Updated daily from NYCCAS and EPA AirNow.",
+    url: "/air-quality",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NYC Air Quality Today — PM2.5 by Borough",
+    description: "Is the air safe in NYC today? Real-time PM2.5, NO2, and ozone levels for all five boroughs. Updated daily from NYCCAS and EPA AirNow.",
+  },
 };
 import { datasetJsonLdString, NYC_OPEN_DATA_LICENSE } from "@/lib/jsonLd";
 import { SectionShell } from "@/components/SectionShell";

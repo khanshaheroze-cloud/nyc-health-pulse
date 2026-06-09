@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "NYC Nutrition — Vitamin Deficiencies, Food Access & Youth Health",
   description: "Nutritional data for NYC. Vitamin D and iron deficiency rates, youth obesity trends, farmers markets, SNAP/EBT access, and food resource programs.",
+  alternates: { canonical: "/nutrition" },
+  openGraph: {
+    title: "NYC Nutrition — Vitamin Deficiencies, Food Access & Youth Health",
+    description: "Nutritional data for NYC. Vitamin D and iron deficiency rates, youth obesity trends, farmers markets, SNAP/EBT access, and food resource programs.",
+    url: "/nutrition",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NYC Nutrition — Vitamin Deficiencies, Food Access & Youth Health",
+    description: "Nutritional data for NYC. Vitamin D and iron deficiency rates, youth obesity trends, farmers markets, SNAP/EBT access, and food resource programs.",
+  },
 };
 import { datasetJsonLdString, CDC_DATA_LICENSE, NYC_OPEN_DATA_LICENSE } from "@/lib/jsonLd";
 import { SectionShell } from "@/components/SectionShell";

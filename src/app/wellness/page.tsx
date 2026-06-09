@@ -8,6 +8,19 @@ export const metadata: Metadata = {
   title: "Wellness Directory — Cold Plunge, Sauna, Yoga, Pools & More in NYC",
   description:
     "Find wellness services across NYC: cold plunge, infrared sauna, yoga, public pools, massage, acupuncture, and free fitness classes. Curated, ad-free guide with pricing.",
+  alternates: { canonical: "/wellness" },
+  openGraph: {
+    title: "Wellness Directory — Cold Plunge, Sauna, Yoga, Pools & More in NYC",
+    description:
+      "Find wellness services across NYC: cold plunge, infrared sauna, yoga, public pools, massage, acupuncture, and free fitness classes. Curated, ad-free guide with pricing.",
+    url: "/wellness",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Wellness Directory — Cold Plunge, Sauna, Yoga, Pools & More in NYC",
+    description:
+      "Find wellness services across NYC: cold plunge, infrared sauna, yoga, public pools, massage, acupuncture, and free fitness classes. Curated, ad-free guide with pricing.",
+  },
 };
 
 export default function WellnessPage() {

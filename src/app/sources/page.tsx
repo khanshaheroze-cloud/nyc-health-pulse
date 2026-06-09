@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Data Sources & Methodology — 25+ Live APIs",
   description: "Every dataset, API endpoint, and methodology note behind Pulse NYC. 25+ live APIs from NYC DOHMH, CDC, Census, EPA, and more.",
+  alternates: { canonical: "/sources" },
+  openGraph: {
+    title: "Data Sources & Methodology — 25+ Live APIs",
+    description: "Every dataset, API endpoint, and methodology note behind Pulse NYC. 25+ live APIs from NYC DOHMH, CDC, Census, EPA, and more.",
+    url: "/sources",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Data Sources & Methodology — 25+ Live APIs",
+    description: "Every dataset, API endpoint, and methodology note behind Pulse NYC. 25+ live APIs from NYC DOHMH, CDC, Census, EPA, and more.",
+  },
 };
 import { SectionShell } from "@/components/SectionShell";
 

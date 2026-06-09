@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "NYC Overdose Deaths & Child Lead Levels",
   description: "Drug overdose mortality trends and childhood blood lead screening data for NYC by borough and neighborhood. ~80% of deaths involve fentanyl.",
+  alternates: { canonical: "/overdose" },
+  openGraph: {
+    title: "NYC Overdose Deaths & Child Lead Levels",
+    description: "Drug overdose mortality trends and childhood blood lead screening data for NYC by borough and neighborhood. ~80% of deaths involve fentanyl.",
+    url: "/overdose",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NYC Overdose Deaths & Child Lead Levels",
+    description: "Drug overdose mortality trends and childhood blood lead screening data for NYC by borough and neighborhood. ~80% of deaths involve fentanyl.",
+  },
 };
 import { datasetJsonLdString, NYC_OPEN_DATA_LICENSE } from "@/lib/jsonLd";
 import { SectionShell } from "@/components/SectionShell";

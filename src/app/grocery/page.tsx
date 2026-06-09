@@ -10,6 +10,19 @@ export const metadata: Metadata = {
   title: "NYC Grocery Prices",
   description:
     "Track NYC grocery prices monthly, find stores and farmers markets near you, and discover budget-friendly healthy eating tips. BLS price data, SNAP retailers, and dietitian-backed shopping guides.",
+  alternates: { canonical: "/grocery" },
+  openGraph: {
+    title: "NYC Grocery Prices",
+    description:
+      "Track NYC grocery prices monthly, find stores and farmers markets near you, and discover budget-friendly healthy eating tips. BLS price data, SNAP retailers, and dietitian-backed shopping guides.",
+    url: "/grocery",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NYC Grocery Prices",
+    description:
+      "Track NYC grocery prices monthly, find stores and farmers markets near you, and discover budget-friendly healthy eating tips. BLS price data, SNAP retailers, and dietitian-backed shopping guides.",
+  },
 };
 
 export default function GroceryPage() {

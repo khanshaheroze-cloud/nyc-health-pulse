@@ -6,6 +6,19 @@ export const metadata: Metadata = {
   title: "Find Care Near You — Doctors, Dentists, Therapists & Clinics in NYC",
   description:
     "Search thousands of NYC healthcare providers — doctors, dentists, mental health therapists, specialists, clinics, and hospitals. Filter by type, location, and insurance. Free tool powered by federal and state registries.",
+  alternates: { canonical: "/find-care" },
+  openGraph: {
+    title: "Find Care Near You — Doctors, Dentists, Therapists & Clinics in NYC",
+    description:
+      "Search thousands of NYC healthcare providers — doctors, dentists, mental health therapists, specialists, clinics, and hospitals. Filter by type, location, and insurance. Free tool powered by federal and state registries.",
+    url: "/find-care",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Find Care Near You — Doctors, Dentists, Therapists & Clinics in NYC",
+    description:
+      "Search thousands of NYC healthcare providers — doctors, dentists, mental health therapists, specialists, clinics, and hospitals. Filter by type, location, and insurance. Free tool powered by federal and state registries.",
+  },
 };
 
 export default function FindCarePage() {

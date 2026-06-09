@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "NYC Chronic Disease — Obesity, Diabetes, Asthma by Borough",
   description: "CDC PLACES health data for NYC. Obesity, diabetes, asthma, depression, and smoking rates by borough and census tract. Compare neighborhoods.",
+  alternates: { canonical: "/chronic-disease" },
+  openGraph: {
+    title: "NYC Chronic Disease — Obesity, Diabetes, Asthma by Borough",
+    description: "CDC PLACES health data for NYC. Obesity, diabetes, asthma, depression, and smoking rates by borough and census tract. Compare neighborhoods.",
+    url: "/chronic-disease",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NYC Chronic Disease — Obesity, Diabetes, Asthma by Borough",
+    description: "CDC PLACES health data for NYC. Obesity, diabetes, asthma, depression, and smoking rates by borough and census tract. Compare neighborhoods.",
+  },
 };
 import { datasetJsonLdString, NYC_OPEN_DATA_LICENSE, CDC_DATA_LICENSE } from "@/lib/jsonLd";
 import { SectionShell } from "@/components/SectionShell";

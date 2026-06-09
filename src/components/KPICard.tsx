@@ -89,8 +89,9 @@ export function KPICard({ label, value, unit, sub, badge, color, tag, lastUpdate
 
       <div className="flex items-center justify-between mb-2 gap-1">
         <div className="flex items-center gap-1 min-w-0">
+          {/* No line-clamp: labels like "Persons Injured" were truncating to "PERSO INJURE" in narrow cards */}
           <div
-            className="text-[11px] font-semibold tracking-[0.8px] uppercase text-muted line-clamp-2 leading-tight"
+            className="text-[11px] font-semibold tracking-[0.8px] uppercase text-muted leading-tight break-words"
             title={label}
           >
             {label}

@@ -2,10 +2,25 @@ import type { Metadata } from "next";
 import { SectionShell } from "@/components/SectionShell";
 import { BuildingHealthSearch } from "@/components/BuildingHealthSearch";
 
+export const revalidate = 3600; // re-render hourly so crawlers never see stale prerendered HTML
+
 export const metadata: Metadata = {
   title: "Is My Building Safe? — Full Building Dossier",
   description:
     "Look up any NYC building across 5 datasets: HPD violations & complaints, DOB violations, ECB fines, and 311 history. Building health score, open violations, and outstanding penalties.",
+  alternates: { canonical: "/building-health" },
+  openGraph: {
+    title: "Is My Building Safe? — Full Building Dossier",
+    description:
+      "Look up any NYC building across 5 datasets: HPD violations & complaints, DOB violations, ECB fines, and 311 history. Building health score, open violations, and outstanding penalties.",
+    url: "/building-health",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Is My Building Safe? — Full Building Dossier",
+    description:
+      "Look up any NYC building across 5 datasets: HPD violations & complaints, DOB violations, ECB fines, and 311 history. Building health score, open violations, and outstanding penalties.",
+  },
 };
 
 export default function BuildingHealthPage() {

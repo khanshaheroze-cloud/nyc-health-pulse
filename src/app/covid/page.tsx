@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "NYC COVID-19 Tracker — Hospitalizations & Cases",
   description: "Is COVID spreading in NYC right now? Live hospitalizations, cases by borough, and wastewater surveillance. Updated daily from NYC DOHMH.",
+  alternates: { canonical: "/covid" },
+  openGraph: {
+    title: "NYC COVID-19 Tracker — Hospitalizations & Cases",
+    description: "Is COVID spreading in NYC right now? Live hospitalizations, cases by borough, and wastewater surveillance. Updated daily from NYC DOHMH.",
+    url: "/covid",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NYC COVID-19 Tracker — Hospitalizations & Cases",
+    description: "Is COVID spreading in NYC right now? Live hospitalizations, cases by borough, and wastewater surveillance. Updated daily from NYC DOHMH.",
+  },
 };
 import { datasetJsonLdString, NYC_OPEN_DATA_LICENSE } from "@/lib/jsonLd";
 import { SectionShell } from "@/components/SectionShell";

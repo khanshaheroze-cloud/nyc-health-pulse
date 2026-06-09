@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Changelog",
   description: "What's new on Pulse NYC — feature updates, new data sources, and improvements.",
+  alternates: { canonical: "/changelog" },
+  openGraph: {
+    title: "Changelog",
+    description: "What's new on Pulse NYC — feature updates, new data sources, and improvements.",
+    url: "/changelog",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Changelog",
+    description: "What's new on Pulse NYC — feature updates, new data sources, and improvements.",
+  },
 };
 import { SectionShell } from "@/components/SectionShell";
 
