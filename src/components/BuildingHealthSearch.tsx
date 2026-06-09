@@ -77,6 +77,7 @@ interface SearchResult {
   address: string;
   score: number;
   grade: string;
+  sourceErrors?: string[];
   violations: Violation[];
   hpdComplaints: HpdComplaint[];
   dobViolations: DobViolation[];
@@ -140,19 +141,24 @@ export function BuildingHealthSearch() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState<Tab>("overview");
 
-  async function handleSearch() {
-    if (!address.trim()) return;
+  async function handleSearch(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!address.trim() || loading) return;
     setLoading(true);
     setError("");
     setResult(null);
     setTab("overview");
+
+    // Never spin forever: abort the request after 12s and show a retryable error.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12_000);
 
     try {
       const params = new URLSearchParams({ address: address.trim() });
       if (borough) params.set("borough", borough);
       if (zip) params.set("zip", zip);
 
-      const res = await fetch(`/api/building-health?${params}`);
+      const res = await fetch(`/api/building-health?${params}`, { signal: controller.signal });
       const data = await res.json();
 
       if (!res.ok) {
@@ -160,9 +166,14 @@ export function BuildingHealthSearch() {
         return;
       }
       setResult(data);
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        setError("NYC's data servers are slow right now — try again");
+      } else {
+        setError("Network error. Please try again.");
+      }
     } finally {
+      clearTimeout(timer);
       setLoading(false);
     }
   }
@@ -181,12 +192,12 @@ export function BuildingHealthSearch() {
 
   return (
     <div className="space-y-4">
-      {/* Search form */}
-      <div className="bg-surface border border-border rounded-xl p-4">
+      {/* Search form — a real <form> so Enter and button click share one submit path */}
+      <form onSubmit={handleSearch} className="bg-surface border border-border rounded-xl p-4">
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
           <div className="sm:col-span-5">
             <label className="text-[10px] font-bold tracking-[1.5px] uppercase text-muted block mb-1">Street Address</label>
-            <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} placeholder="e.g. 123 Main St" className="w-full px-3 py-2 text-[13px] rounded-lg border border-border bg-bg text-text placeholder:text-muted focus-ring" />
+            <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g. 123 Main St" className="w-full px-3 py-2 text-[13px] rounded-lg border border-border bg-bg text-text placeholder:text-muted focus-ring" />
           </div>
           <div className="sm:col-span-3">
             <label className="text-[10px] font-bold tracking-[1.5px] uppercase text-muted block mb-1">Borough</label>
@@ -197,10 +208,10 @@ export function BuildingHealthSearch() {
           </div>
           <div className="sm:col-span-2">
             <label className="text-[10px] font-bold tracking-[1.5px] uppercase text-muted block mb-1">Zip Code</label>
-            <input type="text" value={zip} onChange={(e) => setZip(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} placeholder="Optional" maxLength={5} className="w-full px-3 py-2 text-[13px] rounded-lg border border-border bg-bg text-text placeholder:text-muted focus:outline-none focus:border-hp-green/40 focus:ring-1 focus:ring-hp-green/20 transition-colors" />
+            <input type="text" value={zip} onChange={(e) => setZip(e.target.value)} placeholder="Optional" maxLength={5} className="w-full px-3 py-2 text-[13px] rounded-lg border border-border bg-bg text-text placeholder:text-muted focus:outline-none focus:border-hp-green/40 focus:ring-1 focus:ring-hp-green/20 transition-colors" />
           </div>
           <div className="sm:col-span-2 flex items-end">
-            <button onClick={handleSearch} disabled={loading || !address.trim()} className="w-full px-4 py-2 text-[13px] font-semibold rounded-lg bg-hp-green text-white hover:bg-hp-green/90 btn-press disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            <button type="submit" disabled={loading || !address.trim()} className="w-full px-4 py-2 text-[13px] font-semibold rounded-lg bg-hp-green text-white hover:bg-hp-green/90 btn-press disabled:opacity-40 disabled:cursor-not-allowed transition-all">
               {loading ? <span className="flex items-center justify-center gap-2"><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Searching</span> : "Search"}
             </button>
           </div>
@@ -208,9 +219,22 @@ export function BuildingHealthSearch() {
         <p className="text-[10px] text-muted mt-2">
           Queries 5 NYC datasets: HPD violations &amp; complaints, DOB violations, ECB fines, and 311 history.
         </p>
-      </div>
+      </form>
 
-      {error && <div className="bg-hp-red/8 border border-hp-red/20 rounded-xl p-4 text-[13px] text-hp-red">{error}</div>}
+      {error && (
+        <div className="bg-hp-red/8 border border-hp-red/20 rounded-xl p-4 flex items-center justify-between gap-3">
+          <p className="text-[13px] text-hp-red">{error}</p>
+          <button type="button" onClick={() => handleSearch()} className="flex-shrink-0 px-3 py-1.5 text-[12px] font-semibold rounded-lg border border-hp-red/30 text-hp-red hover:bg-hp-red/10 transition-colors">
+            Retry
+          </button>
+        </div>
+      )}
+
+      {result && result.sourceErrors && result.sourceErrors.length > 0 && (
+        <div className="bg-hp-orange/8 border border-hp-orange/20 rounded-xl px-4 py-3 text-[12px] text-hp-orange">
+          Partial results — {result.sourceErrors.length} of 5 NYC data sources didn&apos;t respond in time ({result.sourceErrors.join("; ")}). Retry for complete data.
+        </div>
+      )}
 
       {/* ── Results ──────────────────────────────────────────────────── */}
       {result && s && gs && (
@@ -361,7 +385,7 @@ export function BuildingHealthSearch() {
                           {c.minorcategory && <p className="text-[11px] text-dim">{c.minorcategory}</p>}
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${c.status?.toUpperCase() === "CLOSE" ? "bg-hp-green/10 text-hp-green" : "bg-hp-orange/10 text-hp-orange"}`}>
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${c.status?.toUpperCase().startsWith("CLOSE") ? "bg-hp-green/10 text-hp-green" : "bg-hp-orange/10 text-hp-orange"}`}>
                             {c.status || "Unknown"}
                           </span>
                           <p className="text-[10px] text-muted mt-0.5">{fmtDate(c.statusdate)}</p>

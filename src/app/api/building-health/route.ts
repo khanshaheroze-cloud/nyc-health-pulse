@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export const revalidate = 3600;
+// Hard ceiling so a slow upstream can never hang the Vercel function;
+// every Socrata fetch below is individually capped at SOURCE_TIMEOUT_MS.
+export const maxDuration = 15;
+
+const SOURCE_TIMEOUT_MS = 8000;
+
+// Unauthenticated Socrata requests are aggressively throttled. Set
+// NYC_OPEN_DATA_APP_TOKEN in env (free at data.cityofnewyork.us) to lift limits.
+const APP_TOKEN = process.env.NYC_OPEN_DATA_APP_TOKEN;
 
 /* ── Dataset URLs ─────────────────────────────────────────────────────── */
 const HPD_VIOLATIONS  = "https://data.cityofnewyork.us/resource/wvxf-dwi5.json";
@@ -18,20 +27,30 @@ const BOROUGH_MAP: Record<string, string> = {
 };
 
 /* ── Street normalization ─────────────────────────────────────────────── */
+// NYC datasets (HPD, DOB, ECB, 311) store streets in canonical full-word form
+// with ordinals stripped: "5th Ave" is stored as "5 AVENUE", "E 21st St" as
+// "EAST 21 STREET". Normalize user input to that form or nothing matches.
+const STREET_TYPES: Record<string, string> = {
+  ST: "STREET", AVE: "AVENUE", AV: "AVENUE", BLVD: "BOULEVARD", DR: "DRIVE",
+  PL: "PLACE", RD: "ROAD", CT: "COURT", LN: "LANE", TER: "TERRACE",
+  PKWY: "PARKWAY", PKY: "PARKWAY", HWY: "HIGHWAY", EXPY: "EXPRESSWAY",
+  SQ: "SQUARE", CIR: "CIRCLE",
+};
+const DIRECTIONALS: Record<string, string> = { E: "EAST", W: "WEST", N: "NORTH", S: "SOUTH" };
+
 function normalizeStreet(street: string): string {
-  return street
+  const tokens = street
     .toUpperCase()
-    .replace(/\bSTREET\b/gi, "ST")
-    .replace(/\bAVENUE\b/gi, "AVE")
-    .replace(/\bBOULEVARD\b/gi, "BLVD")
-    .replace(/\bDRIVE\b/gi, "DR")
-    .replace(/\bPLACE\b/gi, "PL")
-    .replace(/\bROAD\b/gi, "RD")
-    .replace(/\bCOURT\b/gi, "CT")
-    .replace(/\bLANE\b/gi, "LN")
-    .replace(/\bTERRACE\b/gi, "TER")
     .replace(/[.,]/g, "")
-    .trim();
+    .replace(/\b(\d+)(?:ST|ND|RD|TH)\b/g, "$1")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (tokens.length === 0) return "";
+  if (tokens.length > 1 && DIRECTIONALS[tokens[0]]) tokens[0] = DIRECTIONALS[tokens[0]];
+  // Expand the trailing street type only — "ST MARKS PL" must not become "STREET MARKS PLACE"
+  const last = tokens[tokens.length - 1];
+  if (STREET_TYPES[last]) tokens[tokens.length - 1] = STREET_TYPES[last];
+  return tokens.join(" ");
 }
 
 /* ── HPD complaint category codes ─────────────────────────────────────── */
@@ -59,10 +78,38 @@ function parseDate(d?: string): string | undefined {
   return d;
 }
 
-function safeFetch(url: string): Promise<Record<string, string>[] | null> {
-  return fetch(url, { next: { revalidate } })
-    .then(async (r) => r.ok ? r.json() : null)
-    .catch(() => null);
+interface SourceResult {
+  name: string;
+  data: Record<string, string>[] | null;
+  error: string | null;
+}
+
+async function timedFetch(name: string, url: string): Promise<SourceResult> {
+  const start = Date.now();
+  try {
+    const r = await fetch(url, {
+      next: { revalidate },
+      headers: APP_TOKEN ? { "X-App-Token": APP_TOKEN } : undefined,
+      signal: AbortSignal.timeout(SOURCE_TIMEOUT_MS),
+    });
+    const ms = Date.now() - start;
+    if (!r.ok) {
+      console.log(`[building-health] ${name}: HTTP ${r.status} in ${ms}ms`);
+      return { name, data: null, error: `${name}: upstream returned ${r.status}` };
+    }
+    const data = (await r.json()) as Record<string, string>[];
+    console.log(`[building-health] ${name}: ${Array.isArray(data) ? data.length : 0} rows in ${ms}ms`);
+    return { name, data: Array.isArray(data) ? data : [], error: null };
+  } catch (e) {
+    const ms = Date.now() - start;
+    const timedOut = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
+    console.log(`[building-health] ${name}: ${timedOut ? "TIMEOUT" : `error (${e instanceof Error ? e.message : e})`} after ${ms}ms`);
+    return {
+      name,
+      data: null,
+      error: timedOut ? `${name}: timed out after ${SOURCE_TIMEOUT_MS / 1000}s` : `${name}: fetch failed`,
+    };
+  }
 }
 
 /* ── Main handler ─────────────────────────────────────────────────────── */
@@ -107,7 +154,8 @@ export async function GET(request: NextRequest) {
       `upper(street) LIKE '%${streetEsc}%'`,
       ...(houseNumber ? [`house_number='${houseNumber}'`] : []),
     ].join(" AND ");
-    const dvUrl = `${DOB_VIOLATIONS}?$where=${encodeURIComponent(dvWhere)}&$select=isn_dob_bis_viol,violation_type,violation_category,issue_date,violation_number,disposition_date,disposition_comments,ecb_penalty_status&$order=issue_date DESC&$limit=50`;
+    // NB: this dataset has no ecb_penalty_status column — selecting it 400s the whole query
+    const dvUrl = `${DOB_VIOLATIONS}?$where=${encodeURIComponent(dvWhere)}&$select=isn_dob_bis_viol,violation_type,violation_category,issue_date,violation_number,disposition_date,disposition_comments&$order=issue_date DESC&$limit=50`;
 
     /* ── 4. ECB/OATH Violations (fines) ───────────────────────────────── */
     const ecbWhere = [
@@ -117,24 +165,39 @@ export async function GET(request: NextRequest) {
     const ecbUrl = `${ECB_VIOLATIONS}?$where=${encodeURIComponent(ecbWhere)}&$select=isn_dob_bis_extract,ecb_violation_number,ecb_violation_status,violation_type,issue_date,balance_due,amount_paid,severity,violation_description&$order=issue_date DESC&$limit=50`;
 
     /* ── 5. 311 Complaints ────────────────────────────────────────────── */
-    const addrSearch = houseNumber ? `${houseNumber} ${street}` : street;
-    const threeOneOneWhere = `upper(incident_address) LIKE '%${esc(addrSearch)}%'`;
+    // The 311 dataset is 30M+ rows; an unbounded LIKE '%…%' is a full table
+    // scan that can run for minutes. Bound it to the last 2 years so the
+    // indexed created_date column prunes the scan.
+    const twoYearsAgo = new Date();
+    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+    const sinceIso = twoYearsAgo.toISOString().slice(0, 10);
+    // Anchored prefix match when we have a house number: ~0.3s vs ~11s for a
+    // double-wildcard LIKE, and "350 5 AVENUE%" can't false-match "1350 5 AVENUE".
+    const threeOneOneWhere = houseNumber
+      ? `created_date > '${sinceIso}' AND upper(incident_address) LIKE '${esc(`${houseNumber} ${street}`)}%'`
+      : `created_date > '${sinceIso}' AND upper(incident_address) LIKE '%${esc(street)}%'`;
     const threeOneOneUrl = `${NYC_311}?$where=${encodeURIComponent(threeOneOneWhere)}&$select=unique_key,created_date,complaint_type,descriptor,status,resolution_description,borough&$order=created_date DESC&$limit=25`;
 
-    /* ── Fetch all 5 in parallel ──────────────────────────────────────── */
-    const [vRaw, hcRaw, dvRaw, ecbRaw, threeOneOneRaw] = await Promise.all([
-      safeFetch(vUrl),
-      safeFetch(hcUrl),
-      safeFetch(dvUrl),
-      safeFetch(ecbUrl),
-      safeFetch(threeOneOneUrl),
+    /* ── Fetch all 5 in parallel, each with its own 8s timeout ────────── */
+    const settled = await Promise.allSettled([
+      timedFetch("hpd-violations", vUrl),
+      timedFetch("hpd-complaints", hcUrl),
+      timedFetch("dob-violations", dvUrl),
+      timedFetch("ecb-violations", ecbUrl),
+      timedFetch("311", threeOneOneUrl),
     ]);
+    const results: SourceResult[] = settled.map((s, i) =>
+      s.status === "fulfilled"
+        ? s.value
+        : { name: ["hpd-violations", "hpd-complaints", "dob-violations", "ecb-violations", "311"][i], data: null, error: "internal error" },
+    );
+    const sourceErrors = results.filter((r) => r.error).map((r) => r.error as string);
 
-    const violations = vRaw ?? [];
-    const hpdComplaints = hcRaw ?? [];
-    const dobViolations = dvRaw ?? [];
-    const ecbViolations = ecbRaw ?? [];
-    const threeOneOne = threeOneOneRaw ?? [];
+    const violations = results[0].data ?? [];
+    const hpdComplaints = results[1].data ?? [];
+    const dobViolations = results[2].data ?? [];
+    const ecbViolations = results[3].data ?? [];
+    const threeOneOne = results[4].data ?? [];
 
     /* ── HPD Violations summary ───────────────────────────────────────── */
     const openViol = violations.filter((v) => v.currentstatus?.toUpperCase() === "VIOLATION OPEN").length;
@@ -154,7 +217,8 @@ export async function GET(request: NextRequest) {
       return new Date(d) >= oneYearAgo;
     }).length;
 
-    const openHpdComplaints = hpdComplaints.filter((c) => c.status?.toUpperCase() !== "CLOSE").length;
+    // Status values are "CLOSED"/"ACTIVE" (older rows used "CLOSE") — match the prefix
+    const openHpdComplaints = hpdComplaints.filter((c) => !c.status?.toUpperCase().startsWith("CLOSE")).length;
 
     const normalizedHpdComplaints = hpdComplaints.map((c) => ({
       complaintid: c.complaint_number,
@@ -212,7 +276,9 @@ export async function GET(request: NextRequest) {
     score -= openClassC * 15;            // Open Class C = -15 each
     score -= (openViol - openClassC) * 3; // Other open violations = -3 each
     score -= openHpdComplaints * 2;       // Open HPD complaints = -2 each
-    score -= normalizedDobViolations.length * 4; // DOB violations = -4 each
+    // Only ACTIVE DOB violations count — the dataset goes back to the 1980s
+    const activeDobViolations = dobViolations.filter((d) => d.violation_category?.toUpperCase().includes("ACTIVE")).length;
+    score -= activeDobViolations * 4; // Active DOB violations = -4 each
     score -= Math.min(totalPenaltyDue / 500, 20); // ECB fines, up to -20
     score -= Math.min(normalized311.length, 10);   // 311 complaints, up to -10
     score = Math.max(0, Math.min(100, Math.round(score)));
@@ -230,6 +296,7 @@ export async function GET(request: NextRequest) {
       address: addrDisplay,
       score,
       grade,
+      sourceErrors,
       violations,
       hpdComplaints: normalizedHpdComplaints,
       dobViolations: normalizedDobViolations,
