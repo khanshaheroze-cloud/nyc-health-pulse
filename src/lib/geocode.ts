@@ -11,15 +11,32 @@ export interface GeocodeSuggestion {
   lng: number;
 }
 
+// Belt-and-braces: bbox + country bound the API call, and this filter drops
+// anything that still resolves outside the five boroughs (e.g. "Orange, NJ")
+const FIVE_BOROUGHS = new Set(["new york", "brooklyn", "queens", "bronx", "the bronx", "staten island", "manhattan"]);
+
+function isFiveBoroughs(feature: any): boolean {
+  const context: any[] = feature.context ?? [];
+  const region = context.find((c) => c.id?.startsWith("region"))?.text?.toLowerCase();
+  if (region && region !== "new york") return false;
+  const place = context.find((c) => c.id?.startsWith("place"))?.text?.toLowerCase();
+  const district = context.find((c) => c.id?.startsWith("district"))?.text?.toLowerCase();
+  if (place && FIVE_BOROUGHS.has(place)) return true;
+  if (district && FIVE_BOROUGHS.has(district.replace(" county", ""))) return true;
+  // place-type features (e.g. "Brooklyn" itself) have no place context
+  if (feature.place_type?.[0] === "place" && FIVE_BOROUGHS.has(feature.text?.toLowerCase())) return true;
+  return !place && !district; // addresses inside the bbox with sparse context pass through
+}
+
 export async function forwardGeocode(query: string): Promise<GeocodeSuggestion[]> {
   if (!MAPBOX_TOKEN || query.length < 3) return [];
   try {
     const res = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?proximity=${NYC_PROXIMITY}&bbox=${NYC_BBOX}&types=address,poi,neighborhood,place&limit=5&access_token=${MAPBOX_TOKEN}`,
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?proximity=${NYC_PROXIMITY}&bbox=${NYC_BBOX}&country=US&types=address,poi,neighborhood,place&limit=5&access_token=${MAPBOX_TOKEN}`,
     );
     if (!res.ok) return [];
     const data = await res.json();
-    return (data.features ?? []).map((f: any) => {
+    return (data.features ?? []).filter(isFiveBoroughs).map((f: any) => {
       const context = f.context ?? [];
       const neighborhood = context.find((c: any) => c.id?.startsWith("neighborhood"))?.text;
       const place = context.find((c: any) => c.id?.startsWith("place"))?.text;

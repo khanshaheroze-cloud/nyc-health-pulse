@@ -43,11 +43,13 @@ interface Props {
   restaurants: EnrichedResult[];
   selectedId?: string | null;
   onMapMove?: (center: { lat: number; lng: number }) => void;
+  /** Fired when a pin is clicked so the parent can highlight the matching list card */
+  onPinClick?: (id: string) => void;
   flyToRef?: MutableRefObject<((lat: number, lng: number) => void) | null>;
   distanceUnit?: DistanceUnit;
 }
 
-export default function EatSmartMapHeroImpl({ center, restaurants, selectedId, onMapMove, flyToRef, distanceUnit = "blocks" }: Props) {
+export default function EatSmartMapHeroImpl({ center, restaurants, selectedId, onMapMove, onPinClick, flyToRef, distanceUnit = "blocks" }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -190,8 +192,13 @@ export default function EatSmartMapHeroImpl({ center, restaurants, selectedId, o
         .setPopup(new mapboxgl.Popup({ offset: 20, closeButton: false, maxWidth: "300px" }).setHTML(popupHtml))
         .addTo(map);
 
+      // Explicit click handler: the popup toggle is Mapbox's default, but the
+      // parent also needs to highlight/scroll the matching NEARBY card
+      const id = `${r.lat}-${r.lng}`;
+      el.addEventListener("click", () => onPinClick?.(id));
+
       markersRef.current.push(marker);
-      markerIdRef.current.push(`${r.lat}-${r.lng}`);
+      markerIdRef.current.push(id);
     });
 
     // Fit bounds
@@ -201,7 +208,7 @@ export default function EatSmartMapHeroImpl({ center, restaurants, selectedId, o
       restaurants.forEach((r) => bounds.extend([r.lng, r.lat]));
       map.fitBounds(bounds, { padding: 50, maxZoom: 16 });
     }
-  }, [restaurants, center, mapReady, distanceUnit]);
+  }, [restaurants, center, mapReady, distanceUnit, onPinClick]);
 
   // Fly to selected ID
   useEffect(() => {

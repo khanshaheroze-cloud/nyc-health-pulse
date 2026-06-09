@@ -3,13 +3,23 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { forwardGeocode, type GeocodeSuggestion } from "@/lib/geocode";
+import type { LocationStatus } from "@/lib/locationStore";
 
 interface WedgeSearchProps {
   locationLabel: string;
   onRequestLocation: () => void;
   onManualLocation: (query: string, coords?: { lat: number; lng: number }) => void;
-  locationStatus: "idle" | "requesting" | "granted" | "denied" | "timeout" | "unavailable";
+  locationStatus: LocationStatus;
 }
+
+// Borough quick-picks for visitors outside the five boroughs
+const BOROUGH_PICKS: { label: string; lat: number; lng: number }[] = [
+  { label: "Manhattan", lat: 40.7549, lng: -73.984 },
+  { label: "Brooklyn", lat: 40.6782, lng: -73.9442 },
+  { label: "Queens", lat: 40.7282, lng: -73.7949 },
+  { label: "Bronx", lat: 40.8448, lng: -73.8648 },
+  { label: "Staten Island", lat: 40.5795, lng: -74.1502 },
+];
 
 export function WedgeSearch({ locationLabel, onRequestLocation, onManualLocation, locationStatus }: WedgeSearchProps) {
   const router = useRouter();
@@ -31,6 +41,15 @@ export function WedgeSearch({ locationLabel, onRequestLocation, onManualLocation
       return () => clearTimeout(t);
     }
   }, []);
+
+  // Close the picker once a location resolves successfully
+  const prevStatusRef = useRef(locationStatus);
+  useEffect(() => {
+    if (prevStatusRef.current === "locating" && locationStatus === "success") {
+      setPickerOpen(false);
+    }
+    prevStatusRef.current = locationStatus;
+  }, [locationStatus]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -106,9 +125,17 @@ export function WedgeSearch({ locationLabel, onRequestLocation, onManualLocation
   };
 
   const locationError =
-    locationStatus === "denied" ? "Location blocked. Enter an address below." :
-    locationStatus === "timeout" || locationStatus === "unavailable" ? "Couldn't get your location. Enter an address below." :
+    locationStatus === "denied" ? "Location is blocked in your browser — enter an address or ZIP instead." :
+    locationStatus === "timeout" || locationStatus === "unavailable" ? "Couldn't get your location — enter an address or ZIP instead." :
+    locationStatus === "out_of_area" ? "PulseNYC covers the five boroughs — enter a NYC address or browse by borough:" :
     null;
+
+  // Denied/timeout: focus the manual address input so the fallback is obvious
+  useEffect(() => {
+    if ((locationStatus === "denied" || locationStatus === "timeout" || locationStatus === "unavailable") && pickerOpen) {
+      inputRef.current?.focus();
+    }
+  }, [locationStatus, pickerOpen]);
 
   return (
     <div className="max-w-[720px] mx-auto px-4">
@@ -135,24 +162,41 @@ export function WedgeSearch({ locationLabel, onRequestLocation, onManualLocation
 
           {pickerOpen && (
             <div className="absolute top-full left-0 mt-2 bg-white border border-[#E6E5DE] rounded-xl p-3 shadow-lg z-20 w-[320px]" role="dialog" aria-label="Set your location">
+              {/* Picker stays OPEN during/after the request — closing it hid
+                  every error state and made the button feel like a no-op */}
               <button
-                onClick={() => {
-                  onRequestLocation();
-                  setPickerOpen(false);
-                }}
-                disabled={locationStatus === "requesting"}
+                onClick={onRequestLocation}
+                disabled={locationStatus === "locating"}
                 className="w-full flex items-center gap-2 px-3 py-2.5 bg-[#1A1A1A] text-white text-[14px] font-medium rounded-lg hover:bg-[#333] transition-colors mb-2 disabled:opacity-70"
               >
-                {locationStatus === "requesting" ? (
+                {locationStatus === "locating" ? (
                   <svg width="16" height="16" viewBox="0 0 24 24" className="animate-spin"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                 ) : (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
                 )}
-                {locationStatus === "requesting" ? "Getting your location…" : "Use my current location"}
+                {locationStatus === "locating" ? "Locating…" : "Use my current location"}
               </button>
 
               {locationError && (
-                <p className="text-[12px] text-[#C45A4A] mb-2 px-1">{locationError}</p>
+                <p className="text-[12px] text-[#C45A4A] mb-2 px-1" role="status">{locationError}</p>
+              )}
+
+              {locationStatus === "out_of_area" && (
+                <div className="flex flex-wrap gap-1.5 mb-2 px-1">
+                  {BOROUGH_PICKS.map((b) => (
+                    <button
+                      key={b.label}
+                      type="button"
+                      onClick={() => {
+                        onManualLocation(b.label, { lat: b.lat, lng: b.lng });
+                        setPickerOpen(false);
+                      }}
+                      className="px-2.5 py-1 rounded-full text-[12px] bg-[#F0F7F1] text-[#2F8F4D] border border-[#2F8F4D]/25 hover:bg-[#E5F1E8] transition-colors"
+                    >
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
               )}
 
               <div className="border-t border-[#E6E5DE] pt-2 mt-1 relative">

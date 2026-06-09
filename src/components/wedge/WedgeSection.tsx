@@ -13,21 +13,18 @@ import { AppWaitlistCapture } from "../AppWaitlistCapture";
 import { detectMealType, type MealCategory } from "@/lib/inferMealType";
 import { reverseGeocode } from "@/lib/geocode";
 import { neighborhoods } from "@/lib/neighborhoodData";
+import {
+  readLocation,
+  writeLocation,
+  subscribeLocation,
+  requestBrowserLocation,
+  type LocationStatus,
+} from "@/lib/locationStore";
 
 const LocalMap = dynamic(() => import("./LocalMap").then(m => m.LocalMap), { ssr: false });
 
 const TIMES_SQUARE = { lat: 40.758, lng: -73.9855 };
-const CACHE_KEY = "pulsenyc:lastLocation";
-const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MEAL_LS_KEY = "pulsenyc:mealType";
-
-interface CachedLocation {
-  lat: number;
-  lng: number;
-  label: string;
-  source: "gps" | "manual";
-  ts: number;
-}
 
 interface ApiRestaurant {
   slug: string;
@@ -47,24 +44,6 @@ interface ApiRestaurant {
   locationCount?: number;
   otherLocations?: { address: string; walkMinutes: number; grade: string }[];
   orderingTip?: string;
-}
-
-function readCachedLocation(): CachedLocation | null {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const cached = JSON.parse(raw) as CachedLocation;
-    if (Date.now() - cached.ts > CACHE_TTL_MS) return null;
-    return cached;
-  } catch {
-    return null;
-  }
-}
-
-function writeCachedLocation(loc: CachedLocation) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(loc));
-  } catch {}
 }
 
 function readCachedMeal(): MealCategory | null {
@@ -148,7 +127,10 @@ export function WedgeSection() {
   const [coords, setCoords] = useState<{ lat: number; lng: number }>(TIMES_SQUARE);
   const [locationLabel, setLocationLabel] = useState("Set location");
   const [isDefault, setIsDefault] = useState(true);
-  const [locationStatus, setLocationStatus] = useState<"idle" | "requesting" | "granted" | "denied" | "timeout" | "unavailable">("idle");
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
+  // accuracy > 2km (desktop IP geolocation): show the resolved neighborhood
+  // and ask for confirmation instead of silently using it
+  const [lowConfidenceHood, setLowConfidenceHood] = useState<string | null>(null);
 
   const [activeChips, setActiveChips] = useState<Set<ChipId>>(() => new Set(["high-protein"]));
   const [mealType, setMealType] = useState<MealCategory>(() => detectMealType());
@@ -210,16 +192,24 @@ export function WedgeSection() {
   }, [mealType, spots]);
 
   useEffect(() => {
-    const cached = readCachedLocation();
+    const cached = readLocation();
     if (cached) {
       setCoords({ lat: cached.lat, lng: cached.lng });
-      setLocationLabel(cached.label);
+      setLocationLabel(cached.label ?? "Saved location");
       setIsDefault(false);
-      setLocationStatus("granted");
-      syncNeighborhood(cached.lat, cached.lng, cached.source);
+      setLocationStatus("success");
+      syncNeighborhood(cached.lat, cached.lng, cached.source === "manual" ? "manual" : "gps");
     }
     const cachedMeal = readCachedMeal();
     if (cachedMeal) setMealType(cachedMeal);
+
+    // Live sync: setting a location on /eat-smart (or anywhere) updates here too
+    return subscribeLocation((loc) => {
+      setCoords({ lat: loc.lat, lng: loc.lng });
+      if (loc.label) setLocationLabel(loc.label);
+      setIsDefault(false);
+      setLocationStatus("success");
+    });
   }, []);
 
   const fetchResults = useCallback(async (lat: number, lng: number, meal: MealCategory) => {
@@ -272,59 +262,59 @@ export function WedgeSection() {
     fetchResults(coords.lat, coords.lng, mealType);
   }, [coords, mealType, fetchResults]);
 
-  const handleRequestLocation = useCallback(() => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setLocationStatus("unavailable");
+  const handleRequestLocation = useCallback(async () => {
+    setLocationStatus("locating");
+    setLowConfidenceHood(null);
+
+    const result = await requestBrowserLocation(10_000);
+
+    if (result.status !== "success") {
+      setLocationStatus(result.status);
       return;
     }
-    setLocationStatus("requesting");
 
-    const onSuccess = async (pos: GeolocationPosition) => {
-      const { latitude, longitude } = pos.coords;
-      setCoords({ lat: latitude, lng: longitude });
+    const { lat, lng } = result.coords!;
+    const hood = findNearestNeighborhood(lat, lng);
+
+    if (result.lowConfidence) {
+      // Desktop IP-level accuracy: show the resolved neighborhood and ask the
+      // user to confirm instead of silently committing a city-block guess.
+      setCoords({ lat, lng });
+      setLowConfidenceHood(hood?.name ?? "your area");
+      setLocationStatus("success");
       setIsDefault(false);
-      setLocationStatus("granted");
+      setLocationLabel(hood ? `Near ${hood.name}?` : "Near you (approximate)");
+      return;
+    }
 
-      const geo = await reverseGeocode(latitude, longitude);
-      const label = geo?.label ?? `${latitude.toFixed(4)}°N, ${longitude.toFixed(4)}°W`;
-      setLocationLabel(label);
-      const loc: CachedLocation = { lat: latitude, lng: longitude, label, source: "gps", ts: Date.now() };
-      writeCachedLocation(loc);
-      syncNeighborhood(latitude, longitude, "gps");
-    };
+    setCoords({ lat, lng });
+    setIsDefault(false);
+    setLocationStatus("success");
 
-    const onError = (err: GeolocationPositionError) => {
-      if (err.code === 1) {
-        setLocationStatus("denied");
-        return;
-      }
-      // Retry without high accuracy on timeout/unavailable
-      navigator.geolocation.getCurrentPosition(
-        onSuccess,
-        (retryErr) => {
-          const status = retryErr.code === 1 ? "denied" as const : retryErr.code === 3 ? "timeout" as const : "unavailable" as const;
-          setLocationStatus(status);
-        },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
-      );
-    };
-
-    navigator.geolocation.getCurrentPosition(onSuccess, onError, {
-      enableHighAccuracy: true,
-      timeout: 8000,
-      maximumAge: 60000,
-    });
+    const geo = await reverseGeocode(lat, lng);
+    const label = geo?.label ?? `${lat.toFixed(4)}°N, ${lng.toFixed(4)}°W`;
+    setLocationLabel(label);
+    writeLocation({ lat, lng, label, source: "gps", accuracy: result.accuracy });
+    syncNeighborhood(lat, lng, "gps");
   }, []);
 
+  const confirmLowConfidence = useCallback(() => {
+    setLowConfidenceHood(null);
+    const label = locationLabel.replace(/^Near | \?$|\?$/g, "");
+    writeLocation({ lat: coords.lat, lng: coords.lng, label, source: "gps" });
+    setLocationLabel(label);
+    syncNeighborhood(coords.lat, coords.lng, "gps");
+  }, [coords, locationLabel]);
+
   const handleManualLocation = useCallback(async (query: string, resolvedCoords?: { lat: number; lng: number }) => {
+    setLowConfidenceHood(null);
     if (resolvedCoords) {
       const { lat, lng } = resolvedCoords;
-      const loc: CachedLocation = { lat, lng, label: query, source: "manual", ts: Date.now() };
-      writeCachedLocation(loc);
+      writeLocation({ lat, lng, label: query, source: "manual" });
       setCoords({ lat, lng });
       setLocationLabel(query);
       setIsDefault(false);
-      setLocationStatus("granted");
+      setLocationStatus("success");
       syncNeighborhood(lat, lng, "manual");
       return;
     }
@@ -339,12 +329,11 @@ export function WedgeSection() {
         if (rows.length > 0 && rows[0].lat && rows[0].lng) {
           const lat = parseFloat(rows[0].lat);
           const lng = parseFloat(rows[0].lng);
-          const loc: CachedLocation = { lat, lng, label: query, source: "manual", ts: Date.now() };
-          writeCachedLocation(loc);
+          writeLocation({ lat, lng, label: query, source: "manual" });
           setCoords({ lat, lng });
           setLocationLabel(query);
           setIsDefault(false);
-          setLocationStatus("granted");
+          setLocationStatus("success");
           syncNeighborhood(lat, lng, "manual");
           return;
         }
@@ -352,11 +341,10 @@ export function WedgeSection() {
     }
 
     const label = query;
-    const loc: CachedLocation = { ...TIMES_SQUARE, label, source: "manual", ts: Date.now() };
-    writeCachedLocation(loc);
+    writeLocation({ ...TIMES_SQUARE, label, source: "manual" });
     setLocationLabel(label);
     setIsDefault(false);
-    setLocationStatus("granted");
+    setLocationStatus("success");
   }, []);
 
   const handleChipToggle = useCallback((id: ChipId) => {
@@ -397,6 +385,18 @@ export function WedgeSection() {
             onManualLocation={handleManualLocation}
             locationStatus={locationStatus}
           />
+          {lowConfidenceHood && (
+            <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-2">
+              <div className="flex flex-wrap items-center gap-2 bg-[#FBF6E8] border border-[#F0E3B5] rounded-xl px-3 py-2 text-[12px] text-[#8A6A1C]">
+                <span>Your location looks approximate — are you near <strong>{lowConfidenceHood}</strong>?</span>
+                <button type="button" onClick={confirmLowConfidence} className="font-semibold text-[#2F8F4D] hover:underline">
+                  Yes, use it
+                </button>
+                <span className="text-[#C9BD96]">·</span>
+                <span>or enter an address above for exact results</span>
+              </div>
+            </div>
+          )}
           <MealTypeToggle active={mealType} onChange={handleMealChange} />
           <QuickFilterChips active={activeChips} onToggle={handleChipToggle} />
           <LiveResultsStrip

@@ -1,5 +1,14 @@
 "use client";
 
+// MAP STACK DECISION (June 2026 hardening sprint): this stays on Leaflet
+// rather than migrating to Mapbox GL with the eat-smart map. The choropleth
+// maps (borough, UHF42, census tract) depend on react-leaflet's GeoJSON layer
+// with per-feature styling/tooltips, render static data with no pan/search
+// interaction, and add zero Mapbox API usage (cost) as raster tiles. A
+// rewrite to mapbox-gl fill layers is pure churn with regression risk before
+// the Android wrap. Interactive/searchable maps (eat-smart, find-care) are
+// the ones consolidated on Mapbox GL.
+
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import "leaflet/dist/leaflet.css";

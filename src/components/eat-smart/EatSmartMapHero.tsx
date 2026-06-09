@@ -11,6 +11,7 @@ import { useDistanceUnit } from "@/lib/eat-smart/useDistanceUnit";
 import type { RestaurantMenu } from "@/lib/eat-smart/types";
 import { LazyMenuModal, preloadMenuModal } from "./LazyMenuModal";
 import { QuickLogToast } from "./QuickLogToast";
+import { readLocation, writeLocation, subscribeLocation, requestBrowserLocation } from "@/lib/locationStore";
 
 const MapImpl = dynamic(() => import("./_EatSmartMapHeroImpl"), { ssr: false });
 
@@ -58,6 +59,7 @@ const FILTER_OPTIONS: { value: FilterOption; label: string }[] = [
 export function EatSmartMapHero() {
   const [results, setResults] = useState<EnrichedResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [error, setError] = useState("");
   const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [hasLocation, setHasLocation] = useState(false);
@@ -78,6 +80,9 @@ export function EatSmartMapHero() {
 
   // Map ref for flyTo
   const flyToRef = useRef<((lat: number, lng: number) => void) | null>(null);
+  // Last coords we fetched for — lets the store subscription ignore echoes of
+  // our own writeLocation() calls (which would re-fetch and reset the radius)
+  const lastFetchedRef = useRef<{ lat: number; lng: number } | null>(null);
 
   const fetchNearby = useCallback(async (lat: number, lng: number, radiusMi: number = 0.5) => {
     setLoading(true);
@@ -114,6 +119,7 @@ export function EatSmartMapHero() {
 
       setResults(enriched);
       setUserLoc({ lat, lng });
+      lastFetchedRef.current = { lat, lng };
       setHasLocation(true);
       setMapPanned(false);
     } catch {
@@ -125,7 +131,16 @@ export function EatSmartMapHero() {
 
   useEffect(() => {
     setMounted(true);
-    if (navigator.geolocation && navigator.permissions) {
+    const onStoreChange = (loc: { lat: number; lng: number }) => {
+      const last = lastFetchedRef.current;
+      if (last && Math.abs(last.lat - loc.lat) < 1e-6 && Math.abs(last.lng - loc.lng) < 1e-6) return;
+      fetchNearby(loc.lat, loc.lng, 0.5);
+    };
+    // Shared location set anywhere (homepage wedge) seeds this map too
+    const cached = readLocation();
+    if (cached) {
+      fetchNearby(cached.lat, cached.lng, 0.5);
+    } else if (navigator.geolocation && navigator.permissions) {
       navigator.permissions.query({ name: "geolocation" }).then((perm) => {
         if (perm.state === "granted") {
           navigator.geolocation.getCurrentPosition(
@@ -136,6 +151,7 @@ export function EatSmartMapHero() {
         }
       }).catch(() => {});
     }
+    return subscribeLocation(onStoreChange);
   }, [fetchNearby]);
 
   // Document-level listener for popup buttons
@@ -183,20 +199,35 @@ export function EatSmartMapHero() {
     return () => document.removeEventListener("click", handleClick);
   }, []);
 
-  const requestLocation = () => {
-    if (!navigator.geolocation) {
-      setError("Geolocation not supported");
-      return;
+  // Full state machine — the old version gave zero feedback while locating
+  // and treated every failure as "denied"
+  const requestLocation = async () => {
+    setLocating(true);
+    setError("");
+    const result = await requestBrowserLocation(10_000);
+    setLocating(false);
+    switch (result.status) {
+      case "success": {
+        const { lat, lng } = result.coords!;
+        writeLocation({ lat, lng, source: "gps", accuracy: result.accuracy });
+        fetchNearby(lat, lng, radius);
+        if (result.lowConfidence) {
+          setError("Your location looks approximate — enter a ZIP for exact results.");
+        }
+        break;
+      }
+      case "denied":
+        setError("Location is blocked in your browser — enter a ZIP instead.");
+        break;
+      case "timeout":
+        setError("Couldn't get your location in time — enter a ZIP instead.");
+        break;
+      case "out_of_area":
+        setError("PulseNYC covers the five boroughs — enter a NYC ZIP code instead.");
+        break;
+      default:
+        setError("Location unavailable on this device — enter a ZIP instead.");
     }
-    setLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => fetchNearby(pos.coords.latitude, pos.coords.longitude, radius),
-      () => {
-        setLoading(false);
-        setError("Location denied. Try entering a ZIP code.");
-      },
-      { timeout: 8000 },
-    );
   };
 
   const searchByZip = async () => {
@@ -209,7 +240,10 @@ export function EatSmartMapHero() {
       );
       const data = await res.json();
       if (data?.[0]?.lat && data?.[0]?.lng) {
-        fetchNearby(Number(data[0].lat), Number(data[0].lng), radius);
+        const lat = Number(data[0].lat);
+        const lng = Number(data[0].lng);
+        writeLocation({ lat, lng, label: zip, source: "manual" });
+        fetchNearby(lat, lng, radius);
       } else {
         setError("ZIP not found in NYC.");
         setLoading(false);
@@ -266,6 +300,13 @@ export function EatSmartMapHero() {
     setSelectedId(`${r.lat}-${r.lng}`);
     flyToRef.current?.(r.lat, r.lng);
   };
+
+  // Pin click → highlight + scroll the matching NEARBY card into view
+  const handlePinClick = useCallback((id: string) => {
+    setSelectedId(id);
+    const card = document.querySelector<HTMLElement>(`[data-spot-id="${id}"]`);
+    card?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, []);
 
   const handleSeeMenu = (r: EnrichedResult) => {
     const menu = getRestaurantMenu(r.chainSlug, r.cuisine, r.name, r.name);
@@ -380,6 +421,7 @@ export function EatSmartMapHero() {
                 restaurants={filtered}
                 selectedId={selectedId}
                 onMapMove={handleMapMove}
+                onPinClick={handlePinClick}
                 flyToRef={flyToRef}
                 distanceUnit={distanceUnit}
               />
@@ -414,9 +456,11 @@ export function EatSmartMapHero() {
                   </p>
                   <button
                     onClick={requestLocation}
-                    className="px-5 py-2.5 rounded-xl bg-accent text-white text-[13px] font-bold hover:bg-accent/90 transition-colors mb-3"
+                    disabled={locating}
+                    className="px-5 py-2.5 rounded-xl bg-accent text-white text-[13px] font-bold hover:bg-accent/90 transition-colors mb-3 disabled:opacity-70 inline-flex items-center gap-2"
                   >
-                    Use My Location
+                    {locating && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                    {locating ? "Locating…" : "Use My Location"}
                   </button>
                   <div className="flex items-center gap-2">
                     <input
@@ -466,7 +510,10 @@ export function EatSmartMapHero() {
                 return (
                   <div
                     key={`${r.lat}-${r.lng}-${r.name}`}
-                    className="flex-shrink-0 w-[240px] md:w-auto snap-start rounded-xl bg-surface border border-border-light p-3.5 cursor-pointer hover:border-accent/30 hover:shadow-sm transition-all"
+                    data-spot-id={`${r.lat}-${r.lng}`}
+                    className={`flex-shrink-0 w-[240px] md:w-auto snap-start rounded-xl bg-surface border p-3.5 cursor-pointer hover:border-accent/30 hover:shadow-sm transition-all ${
+                      selectedId === `${r.lat}-${r.lng}` ? "border-accent ring-2 ring-accent/30" : "border-border-light"
+                    }`}
                     onClick={() => handleCardClick(r)}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1.5">
