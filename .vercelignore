@@ -1,0 +1,10 @@
+apps/
+android/
+ios/
+packages/
+www/
+.next/
+node_modules/.pnpm/@react-native*
+node_modules/.pnpm/react-native*
+node_modules/.pnpm/expo*
+node_modules/.pnpm/@expo*

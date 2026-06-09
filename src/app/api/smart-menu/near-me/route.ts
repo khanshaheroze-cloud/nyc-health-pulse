@@ -1,7 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CHAINS, type MenuItem as ChainMenuItem } from "@/lib/restaurantData";
+import { inferMealType, mealMatches, type MealCategory } from "@/lib/inferMealType";
+import { matchGenericCategory, type GenericTemplate, type GenericPick } from "@/lib/genericRestaurants";
 
 export const dynamic = "force-dynamic";
+
+const NON_FOOD_VENUE_RE = /\b(golf|bowling|cinema|theatre|theater|gym|fitness|coworking|workspace|co-work|members?\s*club|club\s*lounge|axe\s*throw|escape\s*room|trampoline|laser\s*tag|arcade|batting\s*cage|billiard|pool\s*hall|hookah|karaoke|night\s*club|strip\s*club|gentlemen|tattoo|spa\b(?!ghetti)|nail\s*salon|barber|beauty|laundromat|dry\s*clean|self.?storage|parking|gas\s*station)\b/i;
+
+const COFFEE_ALLOWED_CATS = new Set(["cafe", "café", "deli", "sandwiches"]);
+const COFFEE_ALLOWED_CHAIN_CATS = new Set(["Coffee & Bakery"]);
+
+const BODEGA_CLASS_KEYS = new Set(["deli", "halal"]);
+
+function isPrimaryFoodVenue(dba: string, cuisine: string): boolean {
+  if (process.env.PULSENYC_VENUE_GATE === "off") return true;
+  if (NON_FOOD_VENUE_RE.test(dba)) return false;
+  return true;
+}
+
+function priceTierLabel(priceRange: number): string {
+  if (priceRange <= 1) return "$";
+  if (priceRange <= 2) return "$$";
+  return "$$$";
+}
+
+const SNACK_FULL_MEAL_RE = /\b(entrees?|plates?|platters?|dinners?|combos?|family\s*size)\b/i;
+const UNHEALTHY_SNACK_RE = /\b(glazed\s*donut|frosted\s*donut|cheese\s*danish|cinnamon\s*roll|chocolate\s*croissant)\b/i;
 
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
@@ -95,12 +119,84 @@ function matchChain(dba: string): string | null {
   return null;
 }
 
-const MEAL_FILTER: Record<string, (item: ChainMenuItem) => boolean> = {
-  breakfast: (i) => !!(i.tags?.some((t) => t === "breakfast") || i.cal <= 500),
-  lunch: () => true,
-  dinner: () => true,
-  snack: (i) => i.cal <= 400,
-};
+const BEVERAGE_RE = /\b(latte|cappuccino|espresso|americano|matcha|cold.?brew|drip coffee|chai|macchiato|mocha|frappuccino|refresher|hot.?chocolate|hot.?cocoa)\b/i;
+const STRICT_BREAKFAST_RE = /\b(egg.?(and|&).?cheese|breakfast (wrap|burrito|sandwich|taco)|pancakes?|waffles?|french.?toast|hash.?browns?|biscuits?|omelets?|omelettes?|hotcakes|egg.?whites?.*(wrap|sandwich)|bagels?.*(cream|cheese)|mcmuffin|scrambled?)\b/i;
+const ALL_DAY_BREAKFAST_CATS = new Set(["deli", "diner", "cafe", "café"]);
+
+function applyMealGuards(name: string, protein: number, cal: number, activeMeal: MealCategory, categoryKey: string, sugar?: number): boolean {
+  if (BEVERAGE_RE.test(name)) {
+    if (activeMeal === "lunch" || activeMeal === "dinner") return false;
+    if (activeMeal !== "coffee" && protein < 5) return false;
+  }
+  if (activeMeal === "lunch" || activeMeal === "dinner" || activeMeal === "snack") {
+    if (STRICT_BREAKFAST_RE.test(name) && !ALL_DAY_BREAKFAST_CATS.has(categoryKey.toLowerCase())) return false;
+  }
+  if (activeMeal === "snack") {
+    if (cal > 450) return false;
+    if (protein > 25) return false;
+    if (SNACK_FULL_MEAL_RE.test(name)) return false;
+    if (UNHEALTHY_SNACK_RE.test(name)) return false;
+    if (sugar != null && sugar > 20 && protein < 5) return false;
+  }
+  if (activeMeal === "coffee") {
+    if (protein >= 15 && cal >= 400) return false;
+  }
+  if ((activeMeal === "lunch" || activeMeal === "dinner") && cal < 250 && protein < 10) return false;
+  return true;
+}
+
+function mealFilterFn(meal: string): (item: ChainMenuItem) => boolean {
+  const activeMeal = meal as MealCategory;
+  return (item) => {
+    const inferred = inferMealType(item.name, item.tags);
+    if (!mealMatches(inferred, activeMeal)) {
+      if (!(activeMeal === "snack" && item.cal <= 300 && inferred !== "lunch" && inferred !== "dinner")) return false;
+    }
+    return applyMealGuards(item.name, item.protein, item.cal, activeMeal, "", item.sugar);
+  };
+}
+
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function filterGenericPicks(picks: GenericPick[], meal: string, category: string, seed: number = 0): GenericPick[] {
+  const activeMeal = meal as MealCategory;
+  const catKey = category.toLowerCase();
+  const scored = picks
+    .filter(p => applyMealGuards(p.name, p.protein, p.cal, activeMeal, catKey))
+    .map(p => {
+      const inferred = inferMealType(p.name, undefined, category);
+      let priority = 0;
+      if (inferred === activeMeal) priority = 2;
+      else if (mealMatches(inferred, activeMeal)) priority = 1;
+      return { pick: p, priority };
+    });
+
+  if (scored.length === 0) return picks.slice(0, 3);
+
+  scored.sort((a, b) => b.priority - a.priority);
+  const result: GenericPick[] = [];
+  const maxPri = scored[0].priority;
+  const topTier = scored.filter(s => s.priority === maxPri);
+  const rest = scored.filter(s => s.priority < maxPri);
+
+  const offset = seed % topTier.length;
+  for (let i = 0; i < Math.min(3, topTier.length); i++) {
+    result.push(topTier[(offset + i) % topTier.length].pick);
+  }
+  if (result.length < 3 && rest.length > 0) {
+    const nextPri = rest[0].priority;
+    const nextBatch = rest.filter(s => s.priority === nextPri);
+    const rOff = seed % nextBatch.length;
+    for (let i = 0; result.length < 3 && i < nextBatch.length; i++) {
+      result.push(nextBatch[(rOff + i) % nextBatch.length].pick);
+    }
+  }
+  return result;
+}
 
 interface DOHMHRow {
   dba?: string;
@@ -111,6 +207,24 @@ interface DOHMHRow {
   boro?: string;
   latitude?: string;
   longitude?: string;
+}
+
+interface ApiResult {
+  restaurantId: string;
+  slug: string;
+  restaurantName: string;
+  cuisine: string;
+  priceRange: number;
+  priceTier: string;
+  distance: number;
+  walkMinutes: number;
+  lat: number;
+  lng: number;
+  address: string;
+  grade: string;
+  isGeneric: boolean;
+  category: string;
+  topPicks: { id: string; name: string; calories: number; protein: number; carbs: number; fat: number; fiber: number; pulseScore: number }[];
 }
 
 export async function GET(req: NextRequest) {
@@ -133,69 +247,207 @@ export async function GET(req: NextRequest) {
     const res = await fetch(url, { next: { revalidate: 3600 } });
     const rows: DOHMHRow[] = res.ok ? await res.json() : [];
 
-    const chainMap = new Map<string, { slug: string; lat: number; lng: number; dba: string; cuisine: string; address: string }>();
+    const filterFn = mealFilterFn(meal);
+    const chainResults: ApiResult[] = [];
+    const genericResults: ApiResult[] = [];
+    const seenKeys = new Set<string>();
+
+    let venueGateExcluded = 0;
 
     for (const r of rows) {
-      const slug = matchChain(r.dba || "");
-      if (!slug) continue;
       const rLat = parseFloat(r.latitude || "0");
       const rLng = parseFloat(r.longitude || "0");
       if (rLat === 0) continue;
 
-      const key = `${slug}-${r.building}-${r.street}`;
-      if (chainMap.has(key)) continue;
+      if (!isPrimaryFoodVenue(r.dba || "", r.cuisine_description || "")) {
+        venueGateExcluded++;
+        continue;
+      }
 
-      chainMap.set(key, {
-        slug,
-        lat: rLat,
-        lng: rLng,
-        dba: r.dba || "",
-        cuisine: r.cuisine_description || "",
-        address: [r.building, r.street, r.boro].filter(Boolean).join(" "),
-      });
-    }
+      const address = [r.building, r.street, r.boro].filter(Boolean).join(" ");
+      const distMeters = haversine(latNum, lngNum, rLat, rLng);
+      const walkMinutes = Math.round(distMeters / 80);
 
-    const mealFilter = MEAL_FILTER[meal] || MEAL_FILTER.lunch;
+      const chainSlug = matchChain(r.dba || "");
 
-    const restaurants = [...chainMap.values()]
-      .map((loc) => {
-        const chain = CHAINS.find((c) => c.slug === loc.slug);
-        if (!chain) return null;
+      if (chainSlug) {
+        const key = `${chainSlug}-${r.building}-${r.street}`;
+        if (seenKeys.has(key)) continue;
+        seenKeys.add(key);
 
-        const distMeters = haversine(latNum, lngNum, loc.lat, loc.lng);
-        const walkMinutes = Math.round(distMeters / 80);
+        const chain = CHAINS.find((c) => c.slug === chainSlug);
+        if (!chain) continue;
 
+        if (meal === "coffee" && !COFFEE_ALLOWED_CHAIN_CATS.has(chain.category)) continue;
+
+        const activeMeal = meal as MealCategory;
         const scored = chain.items
-          .filter(mealFilter)
-          .map((item) => ({
-            id: `${loc.slug}-${item.name.replace(/\s+/g, "-").toLowerCase()}`,
-            name: item.name,
-            calories: item.cal,
-            protein: item.protein,
-            carbs: item.carbs,
-            fat: item.fat,
-            fiber: item.fiber ?? 0,
-            pulseScore: pulseScore(item),
-          }))
-          .sort((a, b) => b.pulseScore - a.pulseScore)
+          .filter(filterFn)
+          .map((item) => {
+            const ps = pulseScore(item);
+            const strict = inferMealType(item.name, item.tags) === activeMeal;
+            return {
+              id: `${chainSlug}-${item.name.replace(/\s+/g, "-").toLowerCase()}`,
+              name: item.name,
+              calories: item.cal,
+              protein: item.protein,
+              carbs: item.carbs,
+              fat: item.fat,
+              fiber: item.fiber ?? 0,
+              pulseScore: ps,
+              _sort: ps + (strict ? 10 : 0),
+            };
+          })
+          .sort((a, b) => b._sort - a._sort)
+          .map(({ _sort, ...rest }) => rest)
           .slice(0, 3);
 
-        if (scored.length === 0) return null;
+        if (scored.length === 0) continue;
 
-        return {
-          restaurantId: `${loc.slug}-${loc.lat.toFixed(4)}`,
+        chainResults.push({
+          restaurantId: `${chainSlug}-${rLat.toFixed(4)}`,
+          slug: chainSlug,
           restaurantName: chain.name,
           cuisine: chain.category,
+          priceRange: chain.priceRange,
+          priceTier: priceTierLabel(chain.priceRange),
           distance: Math.round(distMeters),
           walkMinutes,
+          lat: rLat,
+          lng: rLng,
+          address,
+          grade: r.grade || "",
+          isGeneric: false,
+          category: chain.category,
           topPicks: scored,
-        };
-      })
-      .filter((r): r is NonNullable<typeof r> => r !== null)
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, 5);
+        });
+      } else {
+        const template = matchGenericCategory(r.cuisine_description || "");
+        if (!template) continue;
 
-    return NextResponse.json({ restaurants });
+        if (meal === "coffee" && !COFFEE_ALLOWED_CATS.has(template.cuisineKey)) continue;
+
+        const addrKey = `generic-${template.cuisineKey}-${r.building}-${r.street}`;
+        if (seenKeys.has(addrKey)) continue;
+        seenKeys.add(addrKey);
+
+        const dba = r.dba || template.category;
+        const seed = hashStr(dba + (r.building || "") + (r.street || ""));
+
+        const filteredPicks = filterGenericPicks(template.picks, meal, template.category, seed);
+        const topPicks = filteredPicks.map((p, i) => ({
+          id: `${template.cuisineKey}-generic-${seed}-${i}`,
+          name: p.name,
+          calories: p.cal,
+          protein: p.protein,
+          carbs: 0,
+          fat: 0,
+          fiber: 0,
+          pulseScore: p.protein >= 30 ? 80 : p.protein >= 20 ? 65 : p.protein >= 10 ? 45 : 30,
+        }));
+
+        genericResults.push({
+          restaurantId: `generic-${template.cuisineKey}-${rLat.toFixed(4)}`,
+          slug: `generic-${template.cuisineKey}`,
+          restaurantName: dba,
+          cuisine: template.category,
+          priceRange: template.priceRange,
+          priceTier: priceTierLabel(template.priceRange),
+          distance: Math.round(distMeters),
+          walkMinutes,
+          lat: rLat,
+          lng: rLng,
+          address,
+          grade: r.grade || "",
+          isGeneric: true,
+          category: template.category,
+          topPicks,
+        });
+      }
+    }
+
+    chainResults.sort((a, b) => a.distance - b.distance);
+    genericResults.sort((a, b) => a.distance - b.distance);
+
+    // Interleave: aim for 2+ generics in the top 5 when available
+    const mixed: ApiResult[] = [];
+    let ci = 0, gi = 0;
+    const seenSlugs = new Set<string>();
+
+    // Take closest generic first, then alternate
+    while (mixed.length < 10 && (ci < chainResults.length || gi < genericResults.length)) {
+      const genericCount = mixed.filter(r => r.isGeneric).length;
+      const chainCount = mixed.filter(r => !r.isGeneric).length;
+
+      // Prefer generic if we need more to reach the 2-minimum target within first 5
+      const needMoreGeneric = genericCount < 2 && mixed.length < 5 && gi < genericResults.length;
+      const needMoreChain = chainCount < 2 && mixed.length < 5 && ci < chainResults.length;
+
+      let pickGeneric: boolean;
+      if (needMoreGeneric && !needMoreChain) {
+        pickGeneric = true;
+      } else if (needMoreChain && !needMoreGeneric) {
+        pickGeneric = false;
+      } else if (gi < genericResults.length && ci < chainResults.length) {
+        pickGeneric = genericResults[gi].distance <= chainResults[ci].distance;
+      } else {
+        pickGeneric = gi < genericResults.length;
+      }
+
+      if (pickGeneric && gi < genericResults.length) {
+        const spot = genericResults[gi++];
+        const dedup = `${spot.category}-${spot.address}`;
+        if (!seenSlugs.has(dedup)) {
+          seenSlugs.add(dedup);
+          mixed.push(spot);
+        }
+      } else if (ci < chainResults.length) {
+        const spot = chainResults[ci++];
+        if (!seenSlugs.has(spot.slug + "-" + spot.address)) {
+          seenSlugs.add(spot.slug + "-" + spot.address);
+          mixed.push(spot);
+        }
+      } else {
+        break;
+      }
+    }
+
+    const deduped: ApiResult[] = [];
+    const seenPicks = new Set<string>();
+    for (const spot of mixed) {
+      const pickKey = `${spot.topPicks[0]?.name}-${spot.topPicks[0]?.calories}`;
+      if (seenPicks.has(pickKey) && spot.isGeneric) continue;
+      seenPicks.add(pickKey);
+      deduped.push(spot);
+    }
+
+    // Forced bodega minimum: guarantee ≥1 deli/halal in results (except coffee mode)
+    if (meal !== "coffee") {
+      const hasBodega = deduped.some(r => r.isGeneric && BODEGA_CLASS_KEYS.has(r.slug.replace("generic-", "")));
+      if (!hasBodega) {
+        const bodegaCandidate = genericResults.find(r => {
+          const key = r.slug.replace("generic-", "");
+          return BODEGA_CLASS_KEYS.has(key) && !deduped.some(d => d.restaurantId === r.restaurantId);
+        });
+        if (bodegaCandidate) {
+          if (deduped.length >= 5) {
+            deduped.splice(4, 0, bodegaCandidate);
+          } else {
+            deduped.push(bodegaCandidate);
+          }
+        }
+      }
+    }
+
+    const final = deduped.slice(0, 10);
+
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[smart-menu] meal=${meal} venueGateExcluded=${venueGateExcluded} chains=${chainResults.length} generic=${genericResults.length} final=${final.length}`);
+      const bodegaInFinal = final.filter(r => r.isGeneric && BODEGA_CLASS_KEYS.has(r.slug.replace("generic-", "")));
+      if (bodegaInFinal.length > 0) console.log(`[smart-menu] bodega in results: ${bodegaInFinal.map(r => r.restaurantName).join(", ")}`);
+    }
+
+    return NextResponse.json({ restaurants: final });
   } catch (err) {
     console.error("smart-menu/near-me error:", err);
     return NextResponse.json({ restaurants: [] });

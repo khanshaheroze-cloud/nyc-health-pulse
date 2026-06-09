@@ -159,6 +159,22 @@ function MobileOverlay({
 
         {/* Nav links */}
         <div style={{ padding: "8px" }}>
+          <Link
+            href="/app"
+            onClick={onClose}
+            style={{
+              display: "block",
+              padding: "16px",
+              fontSize: "17px",
+              fontWeight: 600,
+              color: pathname === "/app" ? "var(--color-hp-green, #4A7C59)" : "var(--color-text, #1A1D1A)",
+              borderBottom: "1px solid var(--color-border-light, #F0ECE6)",
+              textDecoration: "none",
+              background: "var(--color-surface-sage, #EEF2ED)",
+            }}
+          >
+            📱 Get the app
+          </Link>
           {NAV_ITEMS.map((item) => {
             const isDropdown = !!item.dropdown;
             const isActive = isDropdown
@@ -406,10 +422,12 @@ export function Nav() {
             </Link>
           );
         })}
+        <Link href="/app" className="ml-2 px-3.5 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-full hover:bg-[#333] transition-colors flex-shrink-0 whitespace-nowrap">Get the app</Link>
       </nav>
 
       {/* ── Mobile hamburger button ────────────────────────── */}
-      <div className="md:hidden flex justify-end">
+      <div className="md:hidden flex items-center gap-2 justify-end">
+        <Link href="/app" className="px-3 py-1.5 bg-[#1A1A1A] text-white text-xs font-medium rounded-full hover:bg-[#333] transition-colors flex-shrink-0">Get the app</Link>
         <button
           onClick={() => setMobileOpen(true)}
           className="w-10 h-10 flex items-center justify-center rounded-xl border border-border text-dim hover:text-text hover:bg-surface-warm btn-press transition-colors flex-shrink-0"

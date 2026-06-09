@@ -160,12 +160,12 @@ export default function WeeklyTrends() {
             />
             <XAxis
               dataKey="day"
-              tick={{ fontSize: 12, fill: "#8A918A" }}
+              tick={{ fontSize: 12, fill: "#6B716B" }}
               tickLine={false}
               axisLine={{ stroke: "#E8E4DE" }}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "#8A918A" }}
+              tick={{ fontSize: 11, fill: "#6B716B" }}
               tickLine={false}
               axisLine={false}
               width={45}
@@ -189,13 +189,13 @@ export default function WeeklyTrends() {
             {goalValue != null && goalValue > 0 && (
               <ReferenceLine
                 y={goalValue}
-                stroke="#8A918A"
+                stroke="#6B716B"
                 strokeDasharray="6 4"
                 label={{
                   value: `Goal: ${goalValue}`,
                   position: "insideTopRight",
                   fontSize: 11,
-                  fill: "#8A918A",
+                  fill: "#6B716B",
                 }}
               />
             )}

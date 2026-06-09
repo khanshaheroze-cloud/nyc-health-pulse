@@ -9,7 +9,7 @@ export const colors = {
   borderLight: '#F0ECE6',
   textPrimary: '#1A1D1A',
   textSecondary: '#5C635C',
-  textTertiary: '#8A918A',
+  textTertiary: '#6B716B',
   accentSage: '#4A7C59',
   accentSageLight: '#6B9E7A',
   accentSageBg: '#E8F0EA',

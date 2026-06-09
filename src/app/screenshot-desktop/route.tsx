@@ -48,10 +48,10 @@ export async function GET() {
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: color, borderRadius: "12px 12px 0 0" }} />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4, marginTop: 2 }}>
                 <span style={{ fontSize: 7.5, fontWeight: 700, color: "#5C635C", letterSpacing: 1 }}>{label}</span>
-                <span style={{ fontSize: 7, fontWeight: 700, color: tag === "LIVE" ? "#4A7C59" : "#8A918A", background: tag === "LIVE" ? "rgba(74,124,89,0.1)" : "rgba(0,0,0,0.05)", padding: "1px 5px", borderRadius: 4 }}>{tag}</span>
+                <span style={{ fontSize: 7, fontWeight: 700, color: tag === "LIVE" ? "#4A7C59" : "#6B716B", background: tag === "LIVE" ? "rgba(74,124,89,0.1)" : "rgba(0,0,0,0.05)", padding: "1px 5px", borderRadius: 4 }}>{tag}</span>
               </div>
               <div style={{ fontSize: 20, fontWeight: 700, color, marginBottom: 1 }}>{value}</div>
-              <div style={{ fontSize: 9, color: "#8A918A" }}>{sub}</div>
+              <div style={{ fontSize: 9, color: "#6B716B" }}>{sub}</div>
             </div>
           ))}
         </div>
@@ -129,19 +129,19 @@ export async function GET() {
               "New Report: Bronx Leads City in Heat-Related ER Visits This Summer",
             ].map((h, i) => (
               <div key={i} style={{ borderTop: i > 0 ? "1px solid #E8E4DE" : "none", paddingTop: i > 0 ? 8 : 0 }}>
-                <div style={{ fontSize: 8, color: "#8A918A", marginBottom: 3 }}>NYC DOHMH · {i + 1}h ago</div>
+                <div style={{ fontSize: 8, color: "#6B716B", marginBottom: 3 }}>NYC DOHMH · {i + 1}h ago</div>
                 <div style={{ fontSize: 10, color: "#1A1D1A", lineHeight: 1.4 }}>{h}</div>
               </div>
             ))}
             <div style={{ marginTop: "auto", borderTop: "1px solid #E8E4DE", paddingTop: 8 }}>
-              <span style={{ fontSize: 8, color: "#8A918A" }}>Via Google News · refreshes every 30 min</span>
+              <span style={{ fontSize: 8, color: "#6B716B" }}>Via Google News · refreshes every 30 min</span>
             </div>
           </div>
         </div>
 
         {/* Footer */}
         <div style={{ textAlign: "center", marginTop: 10 }}>
-          <span style={{ fontSize: 9, color: "#8A918A" }}>pulsenyc.app · Data from NYC DOHMH, CDC, U.S. Census, EPA · Updated continuously</span>
+          <span style={{ fontSize: 9, color: "#6B716B" }}>pulsenyc.app · Data from NYC DOHMH, CDC, U.S. Census, EPA · Updated continuously</span>
         </div>
       </div>
     ),

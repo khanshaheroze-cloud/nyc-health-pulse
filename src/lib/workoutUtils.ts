@@ -46,7 +46,7 @@ export function getMuscleCategory(muscle: MuscleGroup): string {
 }
 
 export function getMuscleColor(muscle: string): string {
-  return MUSCLE_COLORS[muscle] ?? "#8A918A";
+  return MUSCLE_COLORS[muscle] ?? "#6B716B";
 }
 
 // ── Streak Calculator ──────────────────────────────────────

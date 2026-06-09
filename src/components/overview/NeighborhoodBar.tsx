@@ -76,9 +76,21 @@ export function NeighborhoodBar() {
         <p className="text-[11px] font-bold tracking-[1.5px] uppercase text-muted">
           📍 Your Neighborhood — {hood.name}
         </p>
-        <Link href={`/neighborhood/${hood.slug}`} className="text-[11px] text-accent font-semibold hover:underline">
-          Full Report →
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              try { localStorage.removeItem("pulse-my-neighborhood"); } catch {}
+              setHood(null);
+              window.dispatchEvent(new CustomEvent("pulse-my-neighborhood-change", { detail: null }));
+            }}
+            className="text-[11px] text-dim hover:text-text font-medium"
+          >
+            Change
+          </button>
+          <Link href={`/neighborhood/${hood.slug}`} className="text-[11px] text-accent font-semibold hover:underline">
+            Full Report →
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">

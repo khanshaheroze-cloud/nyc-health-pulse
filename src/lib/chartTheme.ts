@@ -19,7 +19,7 @@ export const chartTheme = {
   get axis() {
     return {
       stroke: getCSSVar("--color-border-light", "#E8E4DE"),
-      tick: { fill: getCSSVar("--color-muted", "#8A918A"), fontSize: 11 },
+      tick: { fill: getCSSVar("--color-muted", "#6B716B"), fontSize: 11 },
     };
   },
   get tooltip() {

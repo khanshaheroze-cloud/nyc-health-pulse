@@ -77,9 +77,9 @@ export default function NeighborhoodMapImpl({ metric, height }: Props) {
     (layer as unknown as { bindTooltip: (s: string, o: object) => void }).bindTooltip(
       `<div style="font-size:11px;line-height:1.4;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border:1px solid #E8E4DE;border-radius:10px;padding:6px 10px;color:#1A1D1A;box-shadow:0 4px 12px rgba(0,0,0,.12);text-align:center;pointer-events:none">
         <strong style="font-size:11px;display:block;margin-bottom:1px">${name?.split("/")[0]?.split("-")[0]?.trim()}</strong>
-        <span style="font-size:16px;font-weight:700;color:${value != null ? getColor(value, cfg.min, cfg.max, cfg.invert) : '#8A918A'}">${value?.toFixed(1) ?? "—"}</span>
+        <span style="font-size:16px;font-weight:700;color:${value != null ? getColor(value, cfg.min, cfg.max, cfg.invert) : '#6B716B'}">${value?.toFixed(1) ?? "—"}</span>
         <span style="font-size:9px;color:#5C635C"> ${cfg.unit}</span>
-        <div style="font-size:9px;color:#8A918A;margin-top:1px">avg ${Number(cityAvg[metric]).toFixed(1)} · tap for profile</div>
+        <div style="font-size:9px;color:#6B716B;margin-top:1px">avg ${Number(cityAvg[metric]).toFixed(1)} · tap for profile</div>
       </div>`,
       { sticky: false, direction: "center" as "center", className: "leaflet-tooltip-borough" }
     );

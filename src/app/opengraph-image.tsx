@@ -84,7 +84,7 @@ export default function Image() {
         </div>
 
         {/* URL */}
-        <div style={{ color: "#8A918A", fontSize: 15, position: "absolute", bottom: 32, right: 48 }}>
+        <div style={{ color: "#6B716B", fontSize: 15, position: "absolute", bottom: 32, right: 48 }}>
           pulsenyc.app
         </div>
       </div>

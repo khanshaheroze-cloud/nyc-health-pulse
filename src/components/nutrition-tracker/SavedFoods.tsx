@@ -16,7 +16,7 @@ const SOURCE_BADGES: Record<string, { label: string; color: string }> = {
   usda: { label: "USDA", color: "#5b9cf5" },
   openfoodfacts: { label: "OFF", color: "#f59e42" },
   custom: { label: "Custom", color: "#a78bfa" },
-  quick: { label: "Quick", color: "#8A918A" },
+  quick: { label: "Quick", color: "#6B716B" },
 };
 
 export default function SavedFoods({ onSelect }: SavedFoodsProps) {

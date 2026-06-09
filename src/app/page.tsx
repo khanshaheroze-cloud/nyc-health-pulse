@@ -1,15 +1,14 @@
-import { DailyHealthCheck } from "@/components/DailyHealthCheck";
-import { HeroBanner } from "@/components/overview/HeroBanner";
-import { WorkoutWidget } from "@/components/overview/WorkoutWidget";
-import { NutritionWidget } from "@/components/overview/NutritionWidget";
-import { RunOutsideWidget } from "@/components/overview/RunOutsideWidget";
-import { NeighborhoodBar } from "@/components/overview/NeighborhoodBar";
-import { HealthStatusChips } from "@/components/overview/HealthStatusChips";
-import { OverviewBoroughCharts } from "@/components/overview/OverviewBoroughCharts";
-import { AlertBanner } from "@/components/AlertBanner";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { WedgeSection } from "@/components/wedge/WedgeSection";
+import { EnvironmentBackdrop } from "@/components/wedge/EnvironmentBackdrop";
+import { BentoGrid } from "@/components/wedge/BentoGrid";
 import { WeeklyChanges } from "@/components/WeeklyChanges";
 import { EmailSignup } from "@/components/EmailSignup";
-import { HomepageEatSmartHero } from "@/components/eat-smart/HomepageEatSmartHero";
+import { OverviewBoroughCharts } from "@/components/overview/OverviewBoroughCharts";
+import { AlertBanner } from "@/components/AlertBanner";
+import { NeighborhoodBar } from "@/components/overview/NeighborhoodBar";
+import { HealthStatusChips } from "@/components/overview/HealthStatusChips";
 import { chronicOutcomes as staticOutcomes } from "@/lib/data";
 import {
   fetchCovidByBorough,
@@ -22,6 +21,12 @@ import {
   fetchWeatherUV,
   fetchCdcPlacesByBorough,
 } from "@/lib/liveData";
+
+export const metadata: Metadata = {
+  title: "PulseNYC — Healthy food near you, right now",
+  description:
+    "Find the best healthy spots open near you in NYC right now, with what to order. Plus live air quality, run routes, neighborhood health, and building safety — all in one place.",
+};
 
 export default async function OverviewPage() {
   const [covidBorough, rodentData, critViolations, waterQuality, citywideAir, airNow, pollen, weather, cdcPlaces] = await Promise.all([
@@ -36,6 +41,13 @@ export default async function OverviewPage() {
     fetchCdcPlacesByBorough(),
   ]);
 
+  // ── Canonical weather/AQI source — single truth for all homepage components ──
+  const canonicalAqi = airNow?.aqi ?? null;
+  const canonicalAqiCategory = airNow?.category ?? (citywideAir ? (citywideAir.pm25 < 9 ? "Good" : citywideAir.pm25 < 12 ? "Moderate" : "Unhealthy") : "Good");
+  const canonicalTempF = weather?.tempF ?? null;
+  const canonicalUV = weather?.uvIndex ?? null;
+  const canonicalPollenLevel = pollen?.level ?? null;
+
   const totalHosp = covidBorough?.reduce((s, d) => s + d.hosp, 0) || 1763;
 
   let activeRate = 170;
@@ -45,14 +57,12 @@ export default async function OverviewPage() {
     if (rodentTotal > 0) activeRate = Math.round((rodentActive / rodentTotal) * 1000);
   }
 
-  // Derived labels
-  const airLabel = airNow ? airNow.category : citywideAir ? (citywideAir.pm25 < 9 ? "Good" : citywideAir.pm25 < 12 ? "Moderate" : "Unhealthy") : "Good";
+  const airLabel = canonicalAqiCategory;
   const covidLabel = totalHosp < 2000 ? "Low" : totalHosp < 3000 ? "Moderate" : "Elevated";
   const waterSafePct = waterQuality
     ? ((1 - waterQuality.coliformDetected / waterQuality.totalSamples) * 100).toFixed(1)
     : "99.9";
 
-  // Build chart data — prefer live CDC PLACES, fall back to static
   const chronicOutcomes = cdcPlaces
     ? [
         { measure: "Obesity", ...Object.fromEntries(cdcPlaces.map(b => [b.borough, b.obesity ?? 0])) },
@@ -73,77 +83,64 @@ export default async function OverviewPage() {
       ];
 
   return (
-    <div className="space-y-0">
-      {/* 1. TODAY IN NYC ticker */}
-      <DailyHealthCheck
-        airLabel={airLabel}
-        airAqi={airNow?.aqi ?? null}
-        covidLabel={covidLabel}
-        totalHosp={totalHosp}
-        iliRate={3.84}
-        waterSafePct={waterSafePct}
+    <div className="relative space-y-0">
+      <EnvironmentBackdrop weatherLabel={weather?.weatherLabel ?? null} />
+      <div className="relative z-[1]">
+      {/* Emergency alert banner */}
+      <AlertBanner aqi={canonicalAqi} />
+
+      {/* ── WEDGE: Hero + Search + Chips + Results + Waitlist ── */}
+      <Suspense>
+        <WedgeSection />
+      </Suspense>
+
+      {/* ── BENTO GRID: The rest of PulseNYC ── */}
+      <BentoGrid
+        aqi={canonicalAqi}
+        aqiCategory={canonicalAqiCategory}
+        tempF={canonicalTempF}
+        uvIndex={canonicalUV}
+        pollenLevel={canonicalPollenLevel}
       />
 
-      {/* 2. Simplified hero — greeting + AQI mini-ring + weather */}
-      <div className="mt-5">
-        <HeroBanner
-          aqi={airNow?.aqi ?? null}
-          aqiCategory={airNow?.category ?? airLabel}
-          tempF={weather?.tempF ?? null}
-          weatherLabel={weather?.weatherLabel ?? null}
-        />
-      </div>
-
-      {/* Emergency alert banner */}
-      <AlertBanner aqi={airNow?.aqi ?? null} />
-
-      {/* ── EAT SMART HERO — primary daily-use feature ── */}
-      <div className="mt-5">
-        <HomepageEatSmartHero />
-      </div>
-
-      {/* ── Fitness & Nutrition zone — sage tint ── */}
-      <div className="section-tint-sage mt-5 -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <WorkoutWidget />
-          <NutritionWidget />
-          <RunOutsideWidget serverAqi={airNow?.aqi ?? null} serverUV={weather?.uvIndex ?? null} />
-        </div>
-      </div>
-
-      {/* ── Health data zone — sky tint ── */}
-      <div className="section-tint-sky -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 space-y-4">
-        <OverviewBoroughCharts chronicOutcomes={chronicOutcomes} inactivityData={inactivityData} />
+      {/* ── What's Happening (demoted below bento, not deleted) ── */}
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-16">
         <WeeklyChanges
           totalHosp={totalHosp}
           iliRate={3.84}
           rodentActive={activeRate}
-          airAqi={airNow?.aqi ?? null}
+          airAqi={canonicalAqi}
           airLabel={airLabel}
           critViolations={critViolations}
-          pollenLevel={pollen?.level ?? null}
+          pollenLevel={canonicalPollenLevel}
           lastUpdated={new Date().toISOString()}
         />
       </div>
 
-      {/* ── Stay informed — warm tint ── */}
-      <div className="section-tint-warm -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 space-y-4">
+      {/* ── Health data zone ── */}
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-8">
+        <OverviewBoroughCharts chronicOutcomes={chronicOutcomes} inactivityData={inactivityData} />
+      </div>
+
+      {/* ── Stay informed ── */}
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-8 space-y-4">
         <EmailSignup />
         <NeighborhoodBar />
       </div>
 
       {/* Health Status chips */}
-      <div className="mt-5">
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-8 mb-4">
         <HealthStatusChips
           airLabel={airLabel}
-          airAqi={airNow?.aqi ?? null}
+          airAqi={canonicalAqi}
           covidLabel={covidLabel}
           totalHosp={totalHosp}
           iliRate={3.84}
           waterSafePct={waterSafePct}
-          pollenLevel={pollen?.level ?? null}
+          pollenLevel={canonicalPollenLevel}
           rodentActive={activeRate}
         />
+      </div>
       </div>
     </div>
   );

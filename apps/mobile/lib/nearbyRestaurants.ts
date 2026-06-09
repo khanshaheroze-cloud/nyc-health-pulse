@@ -79,7 +79,7 @@ function diversifyByCuisine(restaurants: DOHMHRestaurant[], limit: number): DOHM
 export async function fetchNearbyRestaurants(
   lat: number,
   lng: number,
-  radiusMeters = 1200,
+  radiusMeters = 1500,
 ): Promise<DOHMHRestaurant[]> {
   const latKey = roundCoord(lat);
   const lngKey = roundCoord(lng);
@@ -100,12 +100,30 @@ export async function fetchNearbyRestaurants(
   } catch {}
 
   // Fetch from DOHMH
+  const query = [
+    `$where=within_circle(location, ${lat}, ${lng}, ${radiusMeters})`,
+    `$select=camis,dba,cuisine_description,grade,latitude,longitude,building,street,boro,action`,
+    `$order=inspection_date DESC`,
+    `$limit=500`,
+  ].join("&");
+  const url = `https://data.cityofnewyork.us/resource/43nn-pn8j.json?${query}`;
+  console.log("[NYC] fetch", url);
+
   try {
-    const query = `$where=within_circle(latitude, longitude, ${lat}, ${lng}, ${radiusMeters})&$select=camis,dba,cuisine_description,grade,latitude,longitude,building,street,boro&$group=camis,dba,cuisine_description,grade,latitude,longitude,building,street,boro&$limit=200`;
-    const url = `https://data.cityofnewyork.us/resource/43nn-pn8j.json?${query}`;
     const res = await fetch(url);
-    if (!res.ok) return [];
+    console.log("[NYC] response", { status: res.status });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error("[NYC] bad response", res.status, body.slice(0, 200));
+      return [];
+    }
     const data: any[] = await res.json();
+
+    if (!Array.isArray(data)) {
+      console.error("[NYC] non-array response", data);
+      return [];
+    }
+    console.log("[NYC] raw rows", data.length);
 
     const seen = new Set<string>();
     const restaurants: DOHMHRestaurant[] = [];
@@ -113,11 +131,12 @@ export async function fetchNearbyRestaurants(
     for (const row of data) {
       if (!row.camis || !row.latitude || !row.longitude) continue;
       if (seen.has(row.camis)) continue;
+      if (row.action === "Establishment Closed by DOHMH") continue;
       seen.add(row.camis);
 
       const rLat = parseFloat(row.latitude);
       const rLng = parseFloat(row.longitude);
-      if (isNaN(rLat) || isNaN(rLng)) continue;
+      if (!Number.isFinite(rLat) || !Number.isFinite(rLng)) continue;
 
       restaurants.push({
         camis: row.camis,
@@ -132,8 +151,9 @@ export async function fetchNearbyRestaurants(
       });
     }
 
+    console.log("[NYC] unique restaurants", restaurants.length);
     restaurants.sort((a, b) => a.distance - b.distance);
-    const diversified = diversifyByCuisine(restaurants, 35);
+    const diversified = diversifyByCuisine(restaurants, 50);
 
     // Cache
     try {
@@ -146,7 +166,8 @@ export async function fetchNearbyRestaurants(
     } catch {}
 
     return diversified;
-  } catch {
+  } catch (e) {
+    console.error("[NYC] fetch failed", e);
     return [];
   }
 }

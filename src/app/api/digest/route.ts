@@ -98,7 +98,7 @@ export async function GET(req: Request) {
       <div style="background:#ffffff;border:1px solid #E8E4DE;border-radius:12px;overflow:hidden">
         ${headlines.map((h, i) => `
         <a href="${h.url}" style="display:block;padding:14px 16px;text-decoration:none;${i > 0 ? "border-top:1px solid #e2e8e4;" : ""}">
-          <div style="color:#8A918A;font-size:10px;margin-bottom:4px">${h.source}</div>
+          <div style="color:#6B716B;font-size:10px;margin-bottom:4px">${h.source}</div>
           <div style="color:#1A1D1A;font-size:13px;line-height:1.4">${h.title}</div>
         </a>`).join("")}
       </div>
@@ -114,9 +114,9 @@ export async function GET(req: Request) {
           <div style="color:#5C635C;font-size:11px">${spotlight.borough} · Pop. ${spotlight.population.toLocaleString()}</div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-          <div><div style="color:#8A918A;font-size:9px;text-transform:uppercase;letter-spacing:1px">Asthma ED</div><div style="color:#dc2626;font-size:14px;font-weight:600">${spotlight.metrics.asthmaED}/10K</div></div>
-          <div><div style="color:#8A918A;font-size:9px;text-transform:uppercase;letter-spacing:1px">Life Exp.</div><div style="color:#4A7C59;font-size:14px;font-weight:600">${spotlight.metrics.lifeExp}y</div></div>
-          <div><div style="color:#8A918A;font-size:9px;text-transform:uppercase;letter-spacing:1px">Poverty</div><div style="color:#d97706;font-size:14px;font-weight:600">${spotlight.metrics.poverty}%</div></div>
+          <div><div style="color:#6B716B;font-size:9px;text-transform:uppercase;letter-spacing:1px">Asthma ED</div><div style="color:#dc2626;font-size:14px;font-weight:600">${spotlight.metrics.asthmaED}/10K</div></div>
+          <div><div style="color:#6B716B;font-size:9px;text-transform:uppercase;letter-spacing:1px">Life Exp.</div><div style="color:#4A7C59;font-size:14px;font-weight:600">${spotlight.metrics.lifeExp}y</div></div>
+          <div><div style="color:#6B716B;font-size:9px;text-transform:uppercase;letter-spacing:1px">Poverty</div><div style="color:#d97706;font-size:14px;font-weight:600">${spotlight.metrics.poverty}%</div></div>
         </div>
         <a href="https://pulsenyc.app/neighborhood/${spotlight.slug}" style="display:inline-block;margin-top:12px;color:#2850AD;font-size:11px;font-weight:600;text-decoration:none">View full profile →</a>
       </div>
@@ -131,7 +131,7 @@ export async function GET(req: Request) {
 
     <!-- Footer -->
     <div style="border-top:1px solid #e2e8e4;padding-top:16px;text-align:center">
-      <p style="color:#8A918A;font-size:10px;margin:0">Pulse NYC · pulsenyc.app · Weekly digest</p>
+      <p style="color:#6B716B;font-size:10px;margin:0">Pulse NYC · pulsenyc.app · Weekly digest</p>
     </div>
   </div>
 </body>

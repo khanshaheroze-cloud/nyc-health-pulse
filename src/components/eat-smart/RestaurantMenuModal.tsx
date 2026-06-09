@@ -194,9 +194,9 @@ export function RestaurantMenuModal({ menu, distance, grade, tabContext, open, o
               {isCuisineTemplate && menu && (
                 <div className="mt-3 px-3 py-2 rounded-xl bg-caution/8 border border-caution/20">
                   <p className="text-[11px] text-dim leading-relaxed">
-                    ℹ️ <strong>Generic menu — ±15% variance expected.</strong>{" "}
-                    This is a typical menu for a {menu.cuisine.toLowerCase()} spot.
-                    {" "}{menu.restaurantName}&apos;s actual items and prices may differ.
+                    <strong>PulseNYC pick</strong> · ±15% variance expected.{" "}
+                    These are our recommended healthy choices for a typical {menu.cuisine.toLowerCase()} like this.
+                    {" "}{menu.restaurantName}&apos;s actual items and prices may differ slightly.
                     Macros based on standard USDA composition.
                   </p>
                 </div>

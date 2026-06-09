@@ -40,7 +40,7 @@ const TYPE_MARKER_COLORS: Record<FacilityType, string> = {
   "substance-use": "#a78bfa",
   "urgent-care": "#f59e42",
   nursing: "#22d3ee",
-  other: "#8A918A",
+  other: "#6B716B",
 };
 
 function FitBounds({ facilities, userLat, userLng }: { facilities: Facility[]; userLat: number | null; userLng: number | null }) {

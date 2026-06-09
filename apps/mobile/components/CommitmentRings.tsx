@@ -5,7 +5,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  withDelay,
+  withTiming,
+  Easing,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { colors, fonts, radius } from "../theme/tokens";
@@ -15,6 +16,61 @@ import { colors, fonts, radius } from "../theme/tokens";
 const RING_SIZE = 130;
 const CENTER = RING_SIZE / 2;
 const STROKE = 10;
+
+/* ── Confetti burst (pure reanimated) ──────────────────── */
+
+const CONFETTI_COUNT = 20;
+const CONFETTI_COLORS = ["#4A7C59", "#FF8C42", "#4FC3F7", "#FFD700", "#FF6B9D", "#A78BFA"];
+
+function ConfettiParticle({ angle, speed, color, size, progress }: {
+  angle: number; speed: number; color: string; size: number; progress: { value: number };
+}) {
+  const style = useAnimatedStyle(() => {
+    const t = progress.value;
+    const x = Math.cos(angle) * speed * t;
+    const y = Math.sin(angle) * speed * t - 20 * t + 40 * t * t;
+    return {
+      position: "absolute" as const,
+      left: RING_SIZE / 2 + x - size / 2,
+      top: RING_SIZE / 2 + y - size / 2,
+      width: size,
+      height: size,
+      borderRadius: size / 2,
+      backgroundColor: color,
+      opacity: 1 - t,
+      transform: [{ scale: 1 - t * 0.5 }],
+    };
+  });
+  return <Animated.View style={style} />;
+}
+
+const PARTICLES = Array.from({ length: CONFETTI_COUNT }, (_, i) => ({
+  angle: (i / CONFETTI_COUNT) * Math.PI * 2 + (i * 0.37 % 0.5),
+  speed: 60 + (i * 17 % 80),
+  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+  size: 4 + (i * 13 % 4),
+}));
+
+function ConfettiBurst({ trigger }: { trigger: boolean }) {
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    if (trigger) {
+      progress.value = 0;
+      progress.value = withTiming(1, { duration: 1200, easing: Easing.out(Easing.cubic) });
+    }
+  }, [trigger]);
+
+  if (!trigger) return null;
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {PARTICLES.map((p, i) => (
+        <ConfettiParticle key={i} {...p} progress={progress} />
+      ))}
+    </View>
+  );
+}
 
 const RINGS = [
   { key: "eat", label: "Eat", r: 52, color: "#4A7C59", track: "rgba(74,124,89,0.15)" },
@@ -80,6 +136,7 @@ export function CommitmentRings({
   ];
 
   const [animated, setAnimated] = useState([0, 0, 0]);
+  const [showConfetti, setShowConfetti] = useState(false);
   const ringScale = useSharedValue(0.9);
 
   useEffect(() => {
@@ -97,6 +154,8 @@ export function CommitmentRings({
         const allClosed = fractions.every((f) => f >= 0.95);
         if (allClosed) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 1500);
         }
       }
     };
@@ -123,6 +182,7 @@ export function CommitmentRings({
       <View style={styles.row}>
         {/* ── Rings ─────────────── */}
         <Animated.View style={[styles.ringContainer, ringAnimStyle]}>
+          <ConfettiBurst trigger={showConfetti} />
           <Svg width={RING_SIZE} height={RING_SIZE}>
             {RINGS.map((ring, i) => {
               const circumference = 2 * Math.PI * ring.r;
@@ -164,7 +224,7 @@ export function CommitmentRings({
 
           <View style={styles.streakPill}>
             <Text style={styles.streakText}>
-              {streak}-day streak · best {bestStreak}
+              {streak > 0 ? `${streak}-day streak · best ${bestStreak}` : "Start your streak today"}
             </Text>
           </View>
         </View>
@@ -189,7 +249,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   row: { flexDirection: "row", alignItems: "center" },
-  ringContainer: { width: RING_SIZE, height: RING_SIZE, flexShrink: 0 },
+  ringContainer: { width: RING_SIZE, height: RING_SIZE, flexShrink: 0, overflow: "visible" },
   info: { flex: 1, marginLeft: 14, justifyContent: "center" },
   microcopy: {
     fontSize: 12, fontStyle: "italic", color: colors.textSecondary,

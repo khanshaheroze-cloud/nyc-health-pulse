@@ -25,15 +25,17 @@ import * as Haptics from "expo-haptics";
 import { colors, radius, fonts } from "../../theme/tokens";
 import { Card } from "../../components/ui/Card";
 import { SectionLabel } from "../../components/ui/SectionLabel";
-import { Chip } from "../../components/ui/Chip";
 import { MacroBar } from "../../components/ui/MacroBar";
 import { ButtonPrimary } from "../../components/ui/ButtonPrimary";
 import { ButtonOutline } from "../../components/ui/ButtonOutline";
 import { AnimatedHero } from "../../components/home/AnimatedHero";
+import { AnimatedNumber } from "../../components/ui/AnimatedNumber";
 import { CommitmentRings } from "../../components/CommitmentRings";
 import { PicksNearYouCarousel } from "../../components/PicksNearYouCarousel";
 import { useEnvironment } from "../../lib/useEnvironment";
 import { useTimeTheme } from "../../lib/theme/useTimeTheme";
+import { getLocationDebug } from "../../lib/location";
+import { DebugOverlay } from "../../components/DebugOverlay";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -170,9 +172,11 @@ function CalRing({ cal, goal, size = 72 }: { cal: number; goal: number; size?: n
         )}
       </Svg>
       <View style={{ position: "absolute", alignItems: "center" }}>
-        <Text style={{ fontFamily: `${fonts.display}_400Regular`, fontSize: 18, color: colors.textPrimary }}>
-          {cal.toLocaleString()}
-        </Text>
+        <AnimatedNumber
+          value={cal}
+          duration={800}
+          style={{ fontFamily: `${fonts.display}_400Regular`, fontSize: 18, color: colors.textPrimary }}
+        />
         <Text style={{ fontSize: 8, fontWeight: "700", color: colors.textTertiary, marginTop: -2 }}>
           /{goal.toLocaleString()} CAL
         </Text>
@@ -204,14 +208,6 @@ interface Neighborhood {
 }
 
 const DEFAULT_GOALS: NutritionGoals = { calories: 2000, protein: 150, carbs: 200, fat: 65 };
-
-const HEALTH_STATUS: { label: string; variant: "good" | "warn" | "alert" }[] = [
-  { label: "COVID Low", variant: "good" },
-  { label: "Flu Declining", variant: "good" },
-  { label: "Water Safe", variant: "good" },
-  { label: "Pollen Moderate", variant: "warn" },
-  { label: "Rats High", variant: "alert" },
-];
 
 /* ------------------------------------------------------------------ */
 /*  Screen                                                             */
@@ -302,22 +298,26 @@ export default function HealthTab() {
       {/* ── 1. ANIMATED HERO (time-of-day theme) ── */}
       <AnimatedHero theme={timeTheme} weather={env.weather} aqiBand={env.aqiBand}>
         <View style={styles.skyContent}>
-          <Text style={styles.heroDate}>{formatDateHeader()}</Text>
-          <Text style={styles.heroGreeting}>{getGreeting()}{greetingName}</Text>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onLongPress={() => {
-              if (env.debug) {
-                Alert.alert("Weather Debug", `URL: ${env.debug.apiUrl}\nField: ${env.debug.field}\nValue: ${env.debug.rawValue}\nFetched: ${env.debug.fetchedAt}`);
-              }
-            }}
-          >
-            <Text style={styles.heroSub}>
-              {neighborhood ? `📍 ${neighborhood.name} · ` : ""}{env.tempLabel} {env.weather === "clear" ? "Clear" : env.weather === "cloudy" ? "Cloudy" : env.weather === "rain" ? "Rain" : env.weather === "snow" ? "Snow" : "Foggy"}
-            </Text>
-          </TouchableOpacity>
           <View style={styles.skyAqi}>
-            <PulsingAQIRing value={aqi} size={52} accent={timeTheme.ringStroke} />
+            <PulsingAQIRing value={aqi} size={72} accent={timeTheme.ringStroke} />
+          </View>
+          <View style={styles.skyText}>
+            <Text style={styles.heroDate}>{formatDateHeader()}</Text>
+            <Text style={styles.heroGreeting}>{getGreeting()}{greetingName}</Text>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onLongPress={async () => {
+                const locDebug = await getLocationDebug();
+                const weatherInfo = env.debug
+                  ? `Weather: ${env.debug.field}=${env.debug.rawValue}\nFetched: ${env.debug.fetchedAt}`
+                  : "Weather: no debug info";
+                Alert.alert("Debug Info", `${locDebug}\n\n${weatherInfo}`);
+              }}
+            >
+              <Text style={styles.heroSub}>
+                {new Date().toLocaleTimeString([], {hour: "numeric", minute: "2-digit"})} · {neighborhood ? `${neighborhood.name} · ` : ""}{env.tempLabel} {env.weather === "clear" ? "Clear" : env.weather === "cloudy" ? "Cloudy" : env.weather === "rain" ? "Rain" : env.weather === "snow" ? "Snow" : "Foggy"}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </AnimatedHero>
@@ -331,6 +331,11 @@ export default function HealthTab() {
         <Text style={styles.tickerBody} numberOfLines={1}>
           COVID Low · Flu Declining · Water Safe ✓ · Pollen Moderate
         </Text>
+      </Animated.View>
+
+      {/* ── PICKS NEAR YOU ── */}
+      <Animated.View entering={FadeInUp.delay(250).duration(500)}>
+      <PicksNearYouCarousel />
       </Animated.View>
 
       {/* ── 2. TODAY'S PROGRESS (3-ring widget) ── */}
@@ -348,7 +353,7 @@ export default function HealthTab() {
 
       {/* ── 3. TODAY'S WORKOUT ── */}
       <Animated.View entering={FadeInUp.delay(400).duration(500)}>
-      <SectionLabel icon="🏋️">TODAY'S WORKOUT</SectionLabel>
+      <SectionLabel icon="🏋️">WORKOUT</SectionLabel>
       {workout ? (
         <Card accent>
           <Text style={styles.workoutTitle}>{workout.name}</Text>
@@ -364,15 +369,27 @@ export default function HealthTab() {
         </Card>
       ) : (
         <Card>
-          <Text style={styles.emptyText}>Choose a routine to get started</Text>
-          <ButtonOutline label="Choose a routine →" onPress={() => router.push("/profile" as any)} style={{ marginTop: 10 }} />
+          <Text style={{fontSize: 13, color: colors.textSecondary, fontFamily: `${fonts.body}_400Regular`, textAlign: "center", marginBottom: 12}}>Quick-start a routine</Text>
+          <View style={{flexDirection: "row", gap: 8}}>
+            {[
+              {name: "20-min Push", desc: "Bench · OHP · Tricep", icon: "💪"},
+              {name: "30-min Pull", desc: "Rows · Curls · Back", icon: "🏋️"},
+              {name: "15-min Core", desc: "Plank · Crunch · Twist", icon: "🔥"},
+            ].map((r) => (
+              <TouchableOpacity key={r.name} style={{flex: 1, backgroundColor: colors.surfaceWarm, borderRadius: radius.sm, padding: 10, alignItems: "center"}} activeOpacity={0.7} onPress={() => Alert.alert("Coming Soon", "Workout tracking is being built!")}>
+                <Text style={{fontSize: 18, marginBottom: 4}}>{r.icon}</Text>
+                <Text style={{fontSize: 11, fontWeight: "700", color: colors.textPrimary, fontFamily: `${fonts.body}_700Bold`, textAlign: "center"}}>{r.name}</Text>
+                <Text style={{fontSize: 9, color: colors.textTertiary, fontFamily: `${fonts.body}_400Regular`, textAlign: "center", marginTop: 2}}>{r.desc}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </Card>
       )}
       </Animated.View>
 
       {/* ── 4. TODAY'S NUTRITION ── */}
       <Animated.View entering={FadeInUp.delay(500).duration(500)}>
-      <SectionLabel icon="🍽">TODAY'S NUTRITION</SectionLabel>
+      <SectionLabel icon="🍽">NUTRITION</SectionLabel>
       <Card>
         <View style={styles.nutritionRow}>
           <CalRing cal={todayCal} goal={goals.calories} />
@@ -407,11 +424,6 @@ export default function HealthTab() {
       </Card>
       </Animated.View>
 
-      {/* ── 5. PICKS NEAR YOU ── */}
-      <Animated.View entering={FadeInUp.delay(600).duration(500)}>
-      <PicksNearYouCarousel />
-      </Animated.View>
-
       {/* ── 6. YOUR NEIGHBORHOOD ── */}
       {neighborhood && (
         <>
@@ -437,20 +449,28 @@ export default function HealthTab() {
                 <Text style={styles.hoodStatVal}>92</Text>
                 <Text style={styles.hoodStatLabel}>WALK</Text>
               </View>
+              <View style={styles.hoodStat}>
+                <Text style={styles.hoodStatVal}>12</Text>
+                <Text style={styles.hoodStatLabel}>PICKS</Text>
+              </View>
             </View>
+            <Text style={{fontSize: 12, color: "rgba(255,255,255,0.85)", fontFamily: `${fonts.body}_400Regular`, marginTop: 10, textAlign: "center"}}>
+              {aqi <= 50 ? "AQI good — perfect for a walk to dinner" : aqi <= 100 ? "AQI moderate — consider delivery" : "AQI high — stay indoors, order in"}
+            </Text>
           </TouchableOpacity>
         </>
       )}
 
-      {/* ── 6. NYC HEALTH STATUS ── */}
-      <SectionLabel icon="📊">NYC HEALTH STATUS</SectionLabel>
-      <View style={styles.chipGrid}>
-        {HEALTH_STATUS.map((s) => (
-          <Chip key={s.label} label={s.label} variant={s.variant} />
-        ))}
-      </View>
+      {/* ── NYC HEALTH STATUS (compressed pill) ── */}
+      <TouchableOpacity style={{backgroundColor: colors.surfaceWarm, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4}} activeOpacity={0.7} onPress={() => Alert.alert("NYC Health Status", "COVID Low\nFlu Declining\nWater Safe\nPollen Moderate\nRats High")}>
+        <View style={{width: 6, height: 6, borderRadius: 3, backgroundColor: colors.good}} />
+        <Text style={{fontSize: 11, color: colors.textSecondary, fontFamily: `${fonts.body}_500Medium`}} numberOfLines={1}>
+          COVID Low · Flu Declining · Water Safe · Pollen Moderate
+        </Text>
+      </TouchableOpacity>
 
-      <View style={{ height: tabBarHeight + 20 }} />
+      <View style={{ height: tabBarHeight + 40 }} />
+      {__DEV__ && <DebugOverlay />}
     </ScrollView>
   );
 }
@@ -507,14 +527,20 @@ const styles = StyleSheet.create({
   /* Sky hero content */
   skyContent: {
     flex: 1,
-    justifyContent: "flex-end",
     padding: 20,
     paddingBottom: 24,
   },
+  skyText: {
+    flex: 1,
+    justifyContent: "flex-end",
+    paddingRight: 80,
+  },
   skyAqi: {
     position: "absolute",
+    top: 20,
     right: 20,
-    bottom: 24,
+    width: 72,
+    height: 72,
   },
 
   /* Hero */
@@ -562,13 +588,6 @@ const styles = StyleSheet.create({
     fontFamily: `${fonts.body}_400Regular`,
     textAlign: "center",
     marginTop: 10,
-  },
-  emptyText: {
-    fontSize: 13,
-    color: colors.textTertiary,
-    fontFamily: `${fonts.body}_400Regular`,
-    textAlign: "center",
-    paddingVertical: 8,
   },
 
   /* Nutrition */
@@ -651,11 +670,4 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  /* Chip grid */
-  chipGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 4,
-  },
 });

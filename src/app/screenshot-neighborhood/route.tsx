@@ -72,7 +72,7 @@ export async function GET() {
               <span style={{ fontSize: 10, fontWeight: 600, color: "#1A1D1A", width: 60, textAlign: "right" }}>{value}</span>
             </div>
           ))}
-          <div style={{ fontSize: 8, color: "#8A918A", marginTop: 4 }}>Bars show position vs. citywide range</div>
+          <div style={{ fontSize: 8, color: "#6B716B", marginTop: 4 }}>Bars show position vs. citywide range</div>
         </div>
 
         {/* Mini KPI row */}
@@ -85,7 +85,7 @@ export async function GET() {
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: color, borderRadius: "12px 12px 0 0" }} />
               <div style={{ fontSize: 7, fontWeight: 700, color: "#5C635C", letterSpacing: 1, marginBottom: 4, marginTop: 2 }}>{label}</div>
               <div style={{ fontSize: 18, fontWeight: 700, color, marginBottom: 1 }}>{value}</div>
-              <div style={{ fontSize: 8, color: "#8A918A" }}>{sub}</div>
+              <div style={{ fontSize: 8, color: "#6B716B" }}>{sub}</div>
             </div>
           ))}
         </div>
@@ -100,7 +100,7 @@ export async function GET() {
 
         {/* Footer */}
         <div style={{ textAlign: "center", marginTop: "auto", paddingTop: 12 }}>
-          <span style={{ fontSize: 9, color: "#8A918A" }}>pulsenyc.app · 42 neighborhood health profiles</span>
+          <span style={{ fontSize: 9, color: "#6B716B" }}>pulsenyc.app · 42 neighborhood health profiles</span>
         </div>
       </div>
     ),

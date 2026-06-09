@@ -105,7 +105,7 @@ export function SectionOG({
       </div>
 
       {/* URL */}
-      <div style={{ color: "#8A918A", fontSize: 15, position: "absolute", bottom: 48, right: 80 }}>
+      <div style={{ color: "#6B716B", fontSize: 15, position: "absolute", bottom: 48, right: 80 }}>
         pulsenyc.app
       </div>
     </div>

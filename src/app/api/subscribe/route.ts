@@ -3,7 +3,7 @@ import { Resend } from "resend";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
-  const { email, frequency } = body as { email?: string; frequency?: string };
+  const { email, frequency, list } = body as { email?: string; frequency?: string; list?: string };
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
@@ -25,6 +25,7 @@ export async function POST(req: Request) {
       audienceId,
       unsubscribed: false,
       firstName: freq,
+      lastName: list || undefined,
     });
     return NextResponse.json({ ok: true });
   } catch (err) {

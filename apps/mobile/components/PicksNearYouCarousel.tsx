@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet, Dimensions,
+  View, Text, FlatList, TouchableOpacity, Pressable, StyleSheet, Dimensions,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeInRight } from "react-native-reanimated";
@@ -10,6 +10,8 @@ import { SkeletonShimmer } from "./ui/SkeletonShimmer";
 import { getMenuForRestaurant } from "../lib/core/smart-menu/menuResolver";
 import { getTopPicks, letterGrade } from "../lib/core/smart-menu/topPicks";
 import { getUserLocation, NYC_DEFAULT } from "../lib/location";
+import { getBundledNearby } from "../lib/bundledRestaurants";
+import { detectChainSlug } from "../lib/nearbyRestaurants";
 import type { RestaurantMenu } from "../lib/core/smart-menu/types";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -64,54 +66,65 @@ interface Props {
 export function PicksNearYouCarousel({ onRestaurantPress }: Props) {
   const [picks, setPicks] = useState<PickCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [mealWindow] = useState<MealWindow>(currentMealWindow);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const loc = (await getUserLocation()) ?? NYC_DEFAULT;
-        if (cancelled) return;
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const loc = (await getUserLocation()) ?? NYC_DEFAULT;
+      console.log("[PicksCarousel] location", loc);
 
-        const res = await fetch(
-          `https://pulsenyc.app/api/nearby-food?lat=${loc.lat}&lng=${loc.lng}&radius=1200`
-        );
-        if (!res.ok || cancelled) return;
-        const data = await res.json();
-        const restaurants: NearbyRestaurant[] = (data.results ?? []).slice(0, 30);
+      // Bundled data — instant, no network
+      const bundled = getBundledNearby(loc.lat, loc.lng, 2500, 30);
+      console.log("[PicksCarousel] bundled count:", bundled.length);
 
-        const cards: PickCard[] = [];
-        for (const r of restaurants) {
-          const menu = getMenuForRestaurant(r.chainSlug, r.cuisine, r.name);
-          if (!menu) continue;
-          const topPicks = getTopPicks(menu, 1);
-          if (topPicks.length === 0) continue;
-          const top = topPicks[0];
-          const scoreable = menu.items.filter((i) => i.pulseScore > 0);
-          const avg = scoreable.length > 0
-            ? Math.round(scoreable.reduce((s, i) => s + i.pulseScore, 0) / scoreable.length)
-            : 0;
-          cards.push({
-            restaurant: r,
-            menu,
-            topItem: {
-              name: top.name,
-              pulseScore: top.pulseScore,
-              calories: top.calories,
-              protein: top.protein,
-              whyLine: top.whyLine,
-            },
-            avgScore: avg,
-          });
-        }
+      const cards: PickCard[] = [];
+      for (const r of bundled) {
+        const chainSlug = r.chainSlug ?? detectChainSlug(r.name);
+        const menu = getMenuForRestaurant(chainSlug ?? null, r.cuisine, r.name);
+        if (!menu) continue;
+        const topPicks = getTopPicks(menu, 1);
+        if (topPicks.length === 0) continue;
+        const top = topPicks[0];
+        const scoreable = menu.items.filter((i) => i.pulseScore > 0);
+        const avg = scoreable.length > 0
+          ? Math.round(scoreable.reduce((s, i) => s + i.pulseScore, 0) / scoreable.length)
+          : 0;
+        cards.push({
+          restaurant: {
+            name: r.name,
+            cuisine: r.cuisine,
+            grade: r.grade,
+            address: r.address,
+            lat: r.lat,
+            lng: r.lng,
+            distance: r.distance,
+            chainSlug: chainSlug ?? null,
+            isHealthy: top.pulseScore >= 75,
+          },
+          menu,
+          topItem: {
+            name: top.name,
+            pulseScore: top.pulseScore,
+            calories: top.calories,
+            protein: top.protein,
+            whyLine: top.whyLine,
+          },
+          avgScore: avg,
+        });
+      }
 
-        cards.sort((a, b) => b.topItem.pulseScore - a.topItem.pulseScore);
-        if (!cancelled) setPicks(cards.slice(0, 8));
-      } catch {}
-      if (!cancelled) setLoading(false);
-    })();
-    return () => { cancelled = true; };
+      cards.sort((a, b) => b.topItem.pulseScore - a.topItem.pulseScore);
+      setPicks(cards.slice(0, 8));
+    } catch (e: any) {
+      console.error("[PicksCarousel] failed", e);
+      setError(e?.message ?? "Failed to load nearby picks");
+    }
+    setLoading(false);
   }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   if (loading) {
     return (
@@ -132,6 +145,23 @@ export function PicksNearYouCarousel({ onRestaurantPress }: Props) {
               <SkeletonShimmer width="60%" height={11} />
             </View>
           ))}
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={s.container}>
+        <View style={s.headerRow}>
+          <Text style={s.sectionTitle}>Picks Near You</Text>
+        </View>
+        <View style={s.errorCard}>
+          <Text style={s.errorTitle}>Couldn't load nearby restaurants</Text>
+          <Text style={s.errorBody}>{error}</Text>
+          <Pressable onPress={load} style={s.retryBtn}>
+            <Text style={s.retryBtnText}>Retry</Text>
+          </Pressable>
         </View>
       </View>
     );
@@ -323,5 +353,39 @@ const s = StyleSheet.create({
     fontWeight: "600",
     color: colors.accentSage,
     fontFamily: `${fonts.body}_600SemiBold`,
+  },
+  errorCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: 20,
+    alignItems: "center",
+  },
+  errorTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    fontFamily: `${fonts.body}_700Bold`,
+    marginBottom: 4,
+  },
+  errorBody: {
+    fontSize: 12,
+    color: colors.textTertiary,
+    fontFamily: `${fonts.body}_400Regular`,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  retryBtn: {
+    backgroundColor: colors.accentSage,
+    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  retryBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    fontFamily: `${fonts.body}_700Bold`,
   },
 });

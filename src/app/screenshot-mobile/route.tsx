@@ -45,7 +45,7 @@ export async function GET() {
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: color, borderRadius: "12px 12px 0 0" }} />
               <div style={{ fontSize: 8, fontWeight: 700, color: "#5C635C", letterSpacing: 1, marginBottom: 4, marginTop: 2 }}>{label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color, marginBottom: 2 }}>{value}</div>
-              <div style={{ fontSize: 9, color: "#8A918A" }}>{sub}</div>
+              <div style={{ fontSize: 9, color: "#6B716B" }}>{sub}</div>
             </div>
           ))}
         </div>
@@ -58,7 +58,7 @@ export async function GET() {
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: color, borderRadius: "12px 12px 0 0" }} />
               <div style={{ fontSize: 8, fontWeight: 700, color: "#5C635C", letterSpacing: 1, marginBottom: 4, marginTop: 2 }}>{label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color, marginBottom: 2 }}>{value}</div>
-              <div style={{ fontSize: 9, color: "#8A918A" }}>{sub}</div>
+              <div style={{ fontSize: 9, color: "#6B716B" }}>{sub}</div>
             </div>
           ))}
         </div>
@@ -66,7 +66,7 @@ export async function GET() {
         {/* Neighborhood search box */}
         <div style={{ background: "#fff", border: "1px solid #E8E4DE", borderRadius: 12, padding: "12px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 14 }}>📍</span>
-          <span style={{ fontSize: 12, color: "#8A918A" }}>Search 42 neighborhoods…</span>
+          <span style={{ fontSize: 12, color: "#6B716B" }}>Search 42 neighborhoods…</span>
         </div>
 
         {/* Quick chips */}
@@ -98,14 +98,14 @@ export async function GET() {
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
             {["Mar", "Jun", "Sep", "Dec", "Mar"].map(m => (
-              <span key={m} style={{ fontSize: 8, color: "#8A918A" }}>{m}</span>
+              <span key={m} style={{ fontSize: 8, color: "#6B716B" }}>{m}</span>
             ))}
           </div>
         </div>
 
         {/* Bottom tagline */}
         <div style={{ textAlign: "center", marginTop: 14 }}>
-          <span style={{ fontSize: 9, color: "#8A918A" }}>pulsenyc.app · 25+ live APIs from official city data</span>
+          <span style={{ fontSize: 9, color: "#6B716B" }}>pulsenyc.app · 25+ live APIs from official city data</span>
         </div>
       </div>
     ),

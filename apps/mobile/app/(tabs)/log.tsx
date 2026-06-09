@@ -204,6 +204,7 @@ export default function LogScreen() {
   const dinnerSnacks = entries.filter((e) => e.mealSlot === "dinner" || e.mealSlot === "snack");
 
   return (
+    <View style={{flex: 1}}>
     <ScrollView
       style={s.screen}
       contentContainerStyle={[s.content, { paddingTop: insets.top + 12 }]}
@@ -251,27 +252,49 @@ export default function LogScreen() {
         </View>
       </Card>
 
+      {/* ── Suggested action chips when empty ── */}
+      {entries.length === 0 && (
+        <View style={{flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14, marginTop: 10}}>
+          {[
+            {label: "☕ Add coffee", cal: 5, protein: 0, carbs: 0, fat: 0},
+            {label: "🥣 Log breakfast", cal: 0, protein: 0, carbs: 0, fat: 0},
+            {label: "⚡ Quick add", cal: 0, protein: 0, carbs: 0, fat: 0},
+          ].map((chip) => (
+            <TouchableOpacity
+              key={chip.label}
+              style={{backgroundColor: colors.accentSageBg, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12}}
+              activeOpacity={0.7}
+              onPress={() => {
+                if (chip.cal > 0) {
+                  const entry: LogEntry = {id: Date.now().toString(), name: "Coffee", calories: chip.cal, protein: 0, carbs: 0, fat: 0, mealSlot: "breakfast"};
+                  const key = `pulse-log-${todayKey()}`;
+                  AsyncStorage.getItem(key).then((raw) => {
+                    const existing: LogEntry[] = raw ? (() => { try { const p = JSON.parse(raw); return Array.isArray(p) ? p : p.entries ?? []; } catch { return []; } })() : [];
+                    existing.push(entry);
+                    AsyncStorage.setItem(key, JSON.stringify(existing)).then(() => loadLog());
+                  });
+                } else {
+                  openFoodModal();
+                }
+              }}
+            >
+              <Text style={{fontSize: 12, fontWeight: "600", color: colors.accentSage, fontFamily: `${fonts.body}_600SemiBold`}}>{chip.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       {/* ── Meals ── */}
       <SectionLabel icon="☀">BREAKFAST</SectionLabel>
-      <MealCard entries={breakfast} />
+      <MealCard entries={breakfast} slot="breakfast" />
 
       <SectionLabel icon="🌤">LUNCH</SectionLabel>
-      <MealCard entries={lunch} />
+      <MealCard entries={lunch} slot="lunch" />
 
       <SectionLabel icon="🌙">DINNER & SNACKS</SectionLabel>
-      <MealCard entries={dinnerSnacks} />
+      <MealCard entries={dinnerSnacks} slot="dinner" />
 
-      {/* ── Buttons ── */}
-      <View style={{ marginTop: 24 }}>
-        <ButtonPrimary label="+ Log Food" onPress={openFoodModal} />
-        <ButtonOutline
-          label="+ Log Workout"
-          onPress={() => Alert.alert("Coming Soon", "Workout logging coming soon!")}
-          style={{ marginTop: 10 }}
-        />
-      </View>
-
-      <View style={{ height: 100 }} />
+      <View style={{ height: 140 }} />
 
       {/* ══════════════════════════════════════════════════════════════ */}
       {/*  FOOD LOG MODAL                                               */}
@@ -380,6 +403,11 @@ export default function LogScreen() {
         </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
+    <View style={{position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: 100, paddingTop: 12, backgroundColor: colors.bg, borderTopWidth: 1, borderTopColor: colors.borderLight}}>
+      <ButtonPrimary label="+ Log Food" onPress={openFoodModal} />
+      <ButtonOutline label="+ Log Workout" onPress={() => Alert.alert("Coming Soon", "Workout logging coming soon!")} style={{ marginTop: 8 }} />
+    </View>
+    </View>
   );
 }
 
@@ -387,11 +415,16 @@ export default function LogScreen() {
 /*  Meal card                                                          */
 /* ------------------------------------------------------------------ */
 
-function MealCard({ entries }: { entries: LogEntry[] }) {
+function MealCard({ entries, slot }: { entries: LogEntry[]; slot?: string }) {
   if (entries.length === 0) {
+    const hints: Record<string, string> = {
+      breakfast: "Most users log breakfast by 9 AM",
+      lunch: "Tap to add lunch · ~600 cal target",
+      dinner: "Dinner picks ready in Eat Smart →",
+    };
     return (
       <Card>
-        <Text style={s.emptyText}>Nothing logged yet</Text>
+        <Text style={s.emptyText}>{hints[slot ?? ""] ?? "Tap + to log"}</Text>
       </Card>
     );
   }

@@ -32,16 +32,12 @@ export function EatSmartMap({ userLat, userLng, picks, delay = 800 }: Props) {
   }, [delay]);
 
   const html = useMemo(() => {
-    const markersJs = picks
-      .map((p) => {
-        const isChain = !!p.chainSlug;
-        const bg = isChain ? "#4A7C59" : "#ffffff";
-        const fg = isChain ? "white" : "#374151";
-        const escapedName = p.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-        const escapedCuisine = p.item.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-        return `addPin(map,[${p.lng},${p.lat}],'${escapedName}','${escapedCuisine}','${bg}','${fg}',${isChain});`;
-      })
-      .join("\n");
+    const features = picks.map((p) => {
+      const isChain = !!p.chainSlug;
+      const escapedName = p.name.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      const escapedCuisine = p.item.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      return `{"type":"Feature","geometry":{"type":"Point","coordinates":[${p.lng},${p.lat}]},"properties":{"name":"${escapedName}","cuisine":"${escapedCuisine}","isChain":${isChain}}}`;
+    }).join(",");
 
     const boundsJs = picks.map((p) => `bounds.extend([${p.lng},${p.lat}]);`).join("\n");
 
@@ -61,23 +57,6 @@ export function EatSmartMap({ userLat, userLng, picks, delay = 800 }: Props) {
 try{
 mapboxgl.accessToken='${MAPBOX_TOKEN}';
 
-function addPin(map,lnglat,name,cuisine,bg,fg,isChain){
-  var w=document.createElement('div');
-  w.style.cssText='display:flex;flex-direction:column;align-items:center';
-  var c=document.createElement('div');
-  c.style.cssText='width:'+(isChain?34:28)+'px;height:'+(isChain?34:28)+'px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:'+(isChain?14:12)+'px;font-weight:700;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.25);background:'+bg+';color:'+fg;
-  c.textContent=name.charAt(0);
-  var t=document.createElement('div');
-  t.style.cssText='width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid '+bg+';margin-top:-1px';
-  w.appendChild(c);w.appendChild(t);
-
-  new mapboxgl.Marker({element:w,anchor:'bottom'})
-    .setLngLat(lnglat)
-    .setPopup(new mapboxgl.Popup({offset:16,closeButton:false,maxWidth:'200px'})
-      .setHTML('<b style="font-size:12px">'+name+'</b><br><span style="font-size:10px;color:#666">'+cuisine+'</span>'))
-    .addTo(map);
-}
-
 var map=new mapboxgl.Map({
   container:'map',
   style:'mapbox://styles/mapbox/light-v11',
@@ -92,7 +71,61 @@ var userEl=document.createElement('div');
 userEl.style.cssText='width:14px;height:14px;border-radius:50%;background:#5b9cf5;border:3px solid white;box-shadow:0 0 0 2px #5b9cf5,0 2px 8px rgba(0,0,0,.3)';
 new mapboxgl.Marker({element:userEl}).setLngLat([${userLng},${userLat}]).addTo(map);
 
-${markersJs}
+map.on('load',function(){
+  map.addSource('restaurants',{
+    type:'geojson',
+    data:{type:'FeatureCollection',features:[${features}]},
+    cluster:true,
+    clusterMaxZoom:15,
+    clusterRadius:40
+  });
+
+  map.addLayer({
+    id:'clusters',type:'circle',source:'restaurants',filter:['has','point_count'],
+    paint:{
+      'circle-color':'#4A7C59',
+      'circle-radius':['step',['get','point_count'],16,5,22,10,28],
+      'circle-stroke-width':2.5,'circle-stroke-color':'#fff',
+      'circle-opacity':0.9
+    }
+  });
+  map.addLayer({
+    id:'cluster-count',type:'symbol',source:'restaurants',filter:['has','point_count'],
+    layout:{'text-field':['get','point_count_abbreviated'],'text-size':11},
+    paint:{'text-color':'#ffffff'}
+  });
+
+  map.addLayer({
+    id:'unclustered-point',type:'circle',source:'restaurants',filter:['!',['has','point_count']],
+    paint:{
+      'circle-color':['case',['get','isChain'],'#4A7C59','#ffffff'],
+      'circle-radius':12,
+      'circle-stroke-width':2.5,'circle-stroke-color':'#fff',
+      'circle-opacity':0.95
+    }
+  });
+  map.addLayer({
+    id:'unclustered-label',type:'symbol',source:'restaurants',filter:['!',['has','point_count']],
+    layout:{'text-field':['slice',['get','name'],0,1],'text-size':11,'text-font':['DIN Pro Bold','Arial Unicode MS Bold']},
+    paint:{'text-color':['case',['get','isChain'],'#ffffff','#374151']}
+  });
+
+  map.on('click','clusters',function(e){
+    var f=map.queryRenderedFeatures(e.point,{layers:['clusters']})[0];
+    map.getSource('restaurants').getClusterExpansionZoom(f.properties.cluster_id,function(err,z){
+      if(!err)map.easeTo({center:f.geometry.coordinates,zoom:z});
+    });
+  });
+  map.on('click','unclustered-point',function(e){
+    var f=e.features[0];var p=f.properties;
+    new mapboxgl.Popup({offset:16,closeButton:false,maxWidth:'200px'})
+      .setLngLat(f.geometry.coordinates)
+      .setHTML('<b style="font-size:12px">'+p.name+'</b><br><span style="font-size:10px;color:#666">'+p.cuisine+'</span>')
+      .addTo(map);
+  });
+  map.on('mouseenter','clusters',function(){map.getCanvas().style.cursor='pointer'});
+  map.on('mouseleave','clusters',function(){map.getCanvas().style.cursor=''});
+});
 
 var bounds=new mapboxgl.LngLatBounds();
 bounds.extend([${userLng},${userLat}]);

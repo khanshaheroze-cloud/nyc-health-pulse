@@ -269,6 +269,14 @@ export default function ProfileScreen() {
     : "Set your neighborhood";
   const supportRows = user ? SUPPORT_AUTH : SUPPORT_GUEST;
 
+  const SETTINGS_SUBTITLES: Record<string, string> = {
+    "Goals & Targets": `${calGoal} cal · ${goalProtein ?? "150"}g protein`,
+    "Neighborhood": neighborhood ? neighborhood.name : "Not set",
+    "Workout Plan": "No plan set",
+    "Notifications": "On",
+    "Connected Apps": "0 connected",
+  };
+
   const renderMenuRow = (item: MenuRow, index: number, total: number) => {
     const isLast = index === total - 1;
     const onPress = () => {
@@ -295,15 +303,22 @@ export default function ProfileScreen() {
         <View style={styles.menuIconWrap}>
           <item.IconComp size={20} color={iconColor} />
         </View>
-        <Text
-          style={[
-            styles.menuLabel,
-            item.isSignOut && { color: colors.alert },
-            item.isSignIn && { color: colors.accentSage },
-          ]}
-        >
-          {item.label}
-        </Text>
+        <View style={{flex: 1, marginLeft: 12}}>
+          <Text
+            style={[
+              {fontSize: 14, fontFamily: `${fonts.body}_500Medium`, fontWeight: "500", color: colors.textPrimary},
+              item.isSignOut && { color: colors.alert },
+              item.isSignIn && { color: colors.accentSage },
+            ]}
+          >
+            {item.label}
+          </Text>
+          {!item.isSignOut && !item.isSignIn && SETTINGS_SUBTITLES[item.label] && (
+            <Text style={{fontSize: 10, color: colors.textTertiary, fontFamily: `${fonts.body}_400Regular`, marginTop: 1}}>
+              {SETTINGS_SUBTITLES[item.label]}
+            </Text>
+          )}
+        </View>
         {!item.isSignOut && !item.isSignIn && (
           <IconChevronRight size={16} color={colors.textTertiary} />
         )}
@@ -347,6 +362,18 @@ export default function ProfileScreen() {
           <Text style={styles.statLabel}>CAL GOAL</Text>
         </View>
       </View>
+
+      {/* ── Sign-in prompt for guests ── */}
+      {!user && (
+        <TouchableOpacity
+          style={{backgroundColor: colors.accentSage, borderRadius: radius.md, padding: 16, alignItems: "center", marginBottom: 6, marginTop: 10}}
+          activeOpacity={0.8}
+          onPress={() => router.push("/signin")}
+        >
+          <Text style={{fontSize: 15, fontWeight: "700", color: "#FFFFFF", fontFamily: `${fonts.body}_700Bold`}}>Sign in to save your progress</Text>
+          <Text style={{fontSize: 11, color: "rgba(255,255,255,0.8)", fontFamily: `${fonts.body}_400Regular`, marginTop: 4}}>Sync across devices · Back up your data</Text>
+        </TouchableOpacity>
+      )}
 
       {/* ── Settings ── */}
       <SectionLabel>SETTINGS</SectionLabel>
@@ -676,12 +703,10 @@ const styles = StyleSheet.create({
   },
   menuIconWrap: { width: 24, alignItems: "center" },
   menuLabel: {
-    flex: 1,
     fontSize: 14,
     fontFamily: `${fonts.body}_500Medium`,
     fontWeight: "500",
     color: colors.textPrimary,
-    marginLeft: 12,
   },
 
   /* ── Modals ── */

@@ -86,13 +86,20 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: {
           position: "absolute" as const,
-          backgroundColor: "rgba(255,255,255,0.92)",
-          borderTopWidth: 1,
-          borderTopColor: colors.borderLight,
-          height: 88,
-          paddingBottom: 18,
+          backgroundColor: "rgba(255,255,255,0.95)",
+          borderTopWidth: 0,
+          height: 72,
+          paddingBottom: 8,
           paddingTop: 10,
           paddingHorizontal: 8,
+          marginHorizontal: 16,
+          marginBottom: 20,
+          borderRadius: 24,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          elevation: 8,
         },
         tabBarLabelStyle: {
           fontSize: 10,
@@ -133,6 +140,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: "Profile",
+          tabBarBadge: undefined,
           tabBarIcon: ({ focused }) => (
             <TabBarIcon Icon={IconUser} focused={focused} />
           ),

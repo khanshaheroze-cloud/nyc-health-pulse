@@ -5,7 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const CACHE_KEY = "pulse-location-cache";
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
-export const NYC_DEFAULT = { lat: 40.7128, lng: -74.006 };
+export const NYC_DEFAULT = { lat: 40.7440, lng: -73.9485 };
 
 export interface LocationResult {
   lat: number;
@@ -48,21 +48,26 @@ export function getUserLocation(): Promise<LocationResult | null> {
   if (pendingPromise) return pendingPromise;
 
   pendingPromise = (async (): Promise<LocationResult | null> => {
-    // Try cache first for instant response
     const cached = await getCachedLocation();
-    if (cached) return cached;
+    if (cached) {
+      console.log("[useUserLocation] using cache", cached);
+      return cached;
+    }
 
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log("[useUserLocation] permission", status);
       if (status !== "granted") return null;
 
-      // Fast fix with Balanced accuracy
       const loc = await Promise.race([
         Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
         new Promise<null>((r) => setTimeout(() => r(null), 8000)),
       ]);
 
-      if (!loc) return null;
+      if (!loc) {
+        console.warn("[useUserLocation] location timed out");
+        return null;
+      }
 
       const result: LocationResult = {
         lat: loc.coords.latitude,
@@ -71,9 +76,16 @@ export function getUserLocation(): Promise<LocationResult | null> {
         source: "gps",
       };
 
+      console.log("[useUserLocation] GPS fix", { lat: result.lat, lng: result.lng, accuracy: result.accuracy });
+
+      if (result.accuracy != null && result.accuracy > 5000) {
+        console.warn("[useUserLocation] low-accuracy fix", result.accuracy, "m — likely wifi/IP");
+      }
+
       await saveLocationCache(result);
       return result;
-    } catch {
+    } catch (e) {
+      console.error("[useUserLocation] failed", e);
       return null;
     }
   })().finally(() => { pendingPromise = null; });
