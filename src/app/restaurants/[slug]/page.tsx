@@ -3,15 +3,35 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { CHAINS } from "@/lib/restaurantData";
 import { ChainMenu } from "@/components/ChainMenu";
+import { getMenuVerifiedVenues, getVenueBySlug } from "@/lib/verifiedVenues";
+import { VerifiedVenuePage } from "@/components/VerifiedVenuePage";
 
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateStaticParams() {
-  return CHAINS.map(c => ({ slug: c.slug }));
+  // Chains + every in-person-verified independent venue
+  return [
+    ...CHAINS.map(c => ({ slug: c.slug })),
+    ...getMenuVerifiedVenues().map(v => ({ slug: v.slug })),
+  ];
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+
+  const venue = getVenueBySlug(slug);
+  if (venue && venue.verification.status === "verified" && venue.menuItems.length > 0) {
+    const title = `${venue.name} — Verified Menu, Prices & Macros`;
+    const description = `Hand-verified menu at ${venue.name} (${venue.neighborhood}): real prices, calories, and protein for every recommended order. Checked in person by PulseNYC.`;
+    return {
+      title,
+      description,
+      alternates: { canonical: `/restaurants/${slug}` },
+      openGraph: { title, description, url: `/restaurants/${slug}` },
+      twitter: { card: "summary_large_image", title, description },
+    };
+  }
+
   const chain = CHAINS.find(c => c.slug === slug);
   if (!chain) return {};
   const title = `${chain.name} Nutrition Guide`;
@@ -35,6 +55,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ChainPage({ params }: Props) {
   const { slug } = await params;
+
+  // Verified independents get the real detail page (menu, prices, macros,
+  // hours, badge) — this is what closes the generic-* 404s permanently
+  const venue = getVenueBySlug(slug);
+  if (venue && venue.verification.status === "verified" && venue.menuItems.length > 0) {
+    return <VerifiedVenuePage venue={venue} />;
+  }
+
   const chain = CHAINS.find(c => c.slug === slug);
   if (!chain) notFound();
 

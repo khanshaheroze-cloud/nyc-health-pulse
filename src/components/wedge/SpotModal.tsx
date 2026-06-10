@@ -123,6 +123,11 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
             <p className="text-[12px] text-[#6B716B] mt-0.5">
               {displayCategory}{displayPrice ? ` · ${"$".repeat(displayPrice)}` : ""}{spot.walkMinutes != null ? ` · ${spot.walkMinutes} min walk` : ""}{spot.grade ? ` · Grade ${spot.grade}` : ""}{inspectedLabel ? ` · Inspected ${inspectedLabel}` : ""}
             </p>
+            {spot.verifiedBadge === "verified" && (
+              <p className="text-[11px] font-bold text-[#2F8F4D] mt-0.5">
+                ✓ Menu verified by PulseNYC — we check menus, prices, and hours in person
+              </p>
+            )}
             {(spot.locationCount ?? 1) > 1 && spot.otherLocations && spot.otherLocations.length > 0 && (
               <details className="mt-1">
                 <summary className="text-[12px] text-[#2A6BC9] cursor-pointer select-none">
@@ -289,10 +294,10 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
                 How PulseScore works
               </a>
             </div>
-            {/* Generic venues have no /restaurants/* page — linking would 404 */}
-            {!isGeneric && (
+            {/* Un-verified generic venues have no /restaurants/* page — linking would 404 */}
+            {(!isGeneric || spot.verifiedSlug) && (
               <a
-                href={`/restaurants/${spot.slug}`}
+                href={`/restaurants/${spot.verifiedSlug ?? spot.slug}`}
                 className="text-[12px] text-[#2A6BC9] font-medium hover:underline"
               >
                 Open full page &rarr;

@@ -45,6 +45,9 @@ interface ApiRestaurant {
   locationCount?: number;
   otherLocations?: { address: string; walkMinutes: number; grade: string }[];
   orderingTip?: string;
+  verifiedBadge?: "verified" | "needs-recheck" | null;
+  verifiedAt?: string | null;
+  verifiedSlug?: string | null;
 }
 
 function readCachedMeal(): MealCategory | null {
@@ -64,7 +67,9 @@ function readCachedMeal(): MealCategory | null {
 function wedgeScore(r: ResultSpot): number {
   const base = r.topPickScore ?? 0;
   const under15 = r.topPickPrice != null ? r.topPickPrice <= 15 : r.priceRange <= 2;
-  return base + (under15 ? 8 : 0) - (r.priceRange >= 3 ? 8 : 0);
+  // +2 verified bump: at equal PulseScore, "we walked in and checked" beats
+  // a chain's corporate nutrition PDF
+  return base + (under15 ? 8 : 0) - (r.priceRange >= 3 ? 8 : 0) + (r.verifiedBadge === "verified" ? 2 : 0);
 }
 
 function syncNeighborhood(lat: number, lng: number, source: "gps" | "manual") {
@@ -204,6 +209,9 @@ export function WedgeSection() {
           locationCount: r.locationCount ?? 1,
           otherLocations: r.otherLocations ?? [],
           orderingTip: r.orderingTip,
+          verifiedBadge: r.verifiedBadge ?? null,
+          verifiedAt: r.verifiedAt ?? null,
+          verifiedSlug: r.verifiedSlug ?? null,
         };
       });
 

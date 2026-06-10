@@ -1,6 +1,6 @@
 "use client";
 
-import { formatRelative } from "@/lib/freshness";
+import { formatRelative, formatMonthYear } from "@/lib/freshness";
 
 export type SortKey = "score" | "protein" | "calories" | "distance" | "protein-per-dollar";
 
@@ -28,6 +28,9 @@ export interface ResultSpot {
   locationCount?: number;
   otherLocations?: { address: string; walkMinutes: number; grade: string }[];
   orderingTip?: string;
+  verifiedBadge?: "verified" | "needs-recheck" | null;
+  verifiedAt?: string | null;
+  verifiedSlug?: string | null;
 }
 
 interface LiveResultsStripProps {
@@ -157,21 +160,28 @@ export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, 
       {!loading && spots.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
           {spots.map((spot) => {
-            const Card = spot.isGeneric ? ("button" as const) : ("a" as const);
+            // Verified independents have a real detail page; un-verified
+            // generics render as <button> (no crawlable 404 href)
+            const detailHref = spot.verifiedSlug
+              ? `/restaurants/${spot.verifiedSlug}`
+              : !spot.isGeneric
+                ? `/restaurants/${spot.slug}`
+                : null;
+            const Card = detailHref ? ("a" as const) : ("button" as const);
             return (
             <Card
               key={spot.slug + spot.walkMinutes}
-              {...(spot.isGeneric
-                ? { type: "button" as const, onClick: () => onSpotClick?.(spot.slug) }
-                : {
-                    href: `/restaurants/${spot.slug}`,
+              {...(detailHref
+                ? {
+                    href: detailHref,
                     onClick: (e: React.MouseEvent) => {
                       if (onSpotClick && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
                         e.preventDefault();
                         onSpotClick(spot.slug);
                       }
                     },
-                  })}
+                  }
+                : { type: "button" as const, onClick: () => onSpotClick?.(spot.slug) })}
               className="bg-white border border-[#E6E5DE] rounded-2xl p-4 hover:-translate-y-0.5 transition-transform duration-150 block text-left w-full focus:outline-none focus:ring-2 focus:ring-[#2F8F4D]/40 focus:ring-offset-2"
             >
               {spot.isGeneric && spot.category && (
@@ -182,6 +192,16 @@ export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, 
               <p className="font-semibold text-[15px] text-[#1A1A1A] mb-0.5">
                 {spot.name}
               </p>
+              {spot.verifiedBadge === "verified" && (
+                <span data-testid="card-verified-badge" className="inline-flex items-center gap-1 bg-[#E5F1E8] text-[#2F8F4D] text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-[#2F8F4D]/25 mb-1">
+                  ✓ Menu verified{spot.verifiedAt ? ` ${formatMonthYear(spot.verifiedAt)}` : ""}
+                </span>
+              )}
+              {spot.verifiedBadge === "needs-recheck" && (
+                <span className="inline-flex items-center gap-1 bg-[#FBF6E8] text-[#8A6A1C] text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-[#F0E3B5] mb-1">
+                  ⟳ Verified — needs re-check
+                </span>
+              )}
               {(spot.locationCount ?? 1) > 1 && (
                 <p className="text-[11px] text-[#6B716B] mb-1.5">
                   {spot.locationCount} locations nearby · nearest {spot.walkMinutes} min

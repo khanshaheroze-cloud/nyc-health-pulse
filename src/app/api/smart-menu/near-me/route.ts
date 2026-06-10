@@ -4,6 +4,7 @@ import { inferMealType, mealMatches, type MealCategory } from "@/lib/inferMealTy
 import { matchGenericCategory, type GenericTemplate, type GenericPick } from "@/lib/genericRestaurants";
 import { canonicalBrand, normalizeVenueName, healthyPickEligibility } from "@/lib/venue-normalize";
 import { snapCoords, snapPadMeters, GRID_FINE } from "@/lib/geoSnap";
+import { getVenueByCamis, badgeState, type BadgeState } from "@/lib/verifiedVenues";
 
 export const dynamic = "force-dynamic";
 
@@ -169,6 +170,7 @@ function filterGenericPicks(picks: GenericPick[], meal: string, category: string
 }
 
 interface DOHMHRow {
+  camis?: string;
   dba?: string;
   cuisine_description?: string;
   grade?: string;
@@ -217,6 +219,11 @@ interface ApiResult {
   otherLocations: { address: string; walkMinutes: number; grade: string }[];
   /** Generic-template ordering guidance shown when no coherent pick exists */
   orderingTip?: string;
+  /** Set when this venue has an in-person-verified menu (the data moat) */
+  verifiedBadge?: BadgeState | null;
+  verifiedAt?: string | null;
+  /** Slug of the real /restaurants/{slug} detail page (verified venues only) */
+  verifiedSlug?: string | null;
 }
 
 export async function GET(req: NextRequest) {
@@ -239,7 +246,7 @@ export async function GET(req: NextRequest) {
     const snapped = snapCoords(latNum, lngNum, GRID_FINE);
     const paddedRadius = RADIUS_M + snapPadMeters(GRID_FINE);
     const where = `within_circle(location, ${snapped.lat}, ${snapped.lng}, ${paddedRadius}) AND grade IN('A','B')`;
-    const url = `https://data.cityofnewyork.us/resource/43nn-pn8j.json?$where=${encodeURIComponent(where)}&$select=dba,cuisine_description,grade,building,street,boro,latitude,longitude,inspection_date&$limit=800&$order=grade ASC`;
+    const url = `https://data.cityofnewyork.us/resource/43nn-pn8j.json?$where=${encodeURIComponent(where)}&$select=camis,dba,cuisine_description,grade,building,street,boro,latitude,longitude,inspection_date&$limit=800&$order=grade ASC`;
 
     const res = await fetch(url, { next: { revalidate: 3600 } });
     const rows: DOHMHRow[] = res.ok ? await res.json() : [];
@@ -350,6 +357,69 @@ export async function GET(req: NextRequest) {
           continue;
         }
 
+        // ── Verified-venue match (the data moat) ────────────────────────
+        // In-person-verified menus replace template estimates entirely: real
+        // dish names, real prices, real macros, and a working detail page.
+        const vv = r.camis ? getVenueByCamis(r.camis) : undefined;
+        if (vv && vv.verification.status === "verified" && vv.menuItems.length > 0) {
+          const vKey = `verified-${vv.slug}`;
+          if (seenKeys.has(vKey)) continue;
+          seenKeys.add(vKey);
+
+          const ranked = [...vv.menuItems]
+            .map((m) => ({
+              m,
+              ps: pulseScore({
+                name: m.name,
+                cal: m.calories ?? 0,
+                protein: m.protein ?? 0,
+                fat: m.fat ?? 0,
+                carbs: m.carbs ?? 0,
+                sodium: m.sodium ?? 0,
+              } as ChainMenuItem),
+            }))
+            .sort((a, b) => Number(b.m.isRecommended) - Number(a.m.isRecommended) || b.ps - a.ps);
+
+          chainResults.push({
+            restaurantId: vv.id,
+            slug: vv.slug,
+            restaurantName: vv.name,
+            cuisine: vv.venueType,
+            priceRange: vv.priceBand ?? 2,
+            priceTier: priceTierLabel(vv.priceBand ?? 2),
+            distance: Math.round(distMeters),
+            walkMinutes,
+            lat: rLat,
+            lng: rLng,
+            address,
+            grade: r.grade || vv.dohmhGrade || "",
+            inspectedAt: r.inspection_date ?? vv.dohmhInspectedAt,
+            isGeneric: false,
+            category: vv.venueType,
+            topPicks: ranked.slice(0, 3).map(({ m, ps }, i) => ({
+              id: `${vv.slug}-verified-${i}`,
+              name: m.name,
+              calories: m.calories ?? 0,
+              protein: m.protein ?? 0,
+              carbs: m.carbs ?? 0,
+              fat: m.fat ?? 0,
+              fiber: 0,
+              pulseScore: ps,
+              estPrice: m.price,
+            })),
+            bestDrink: null,
+            locationCount: 1,
+            otherLocations: [],
+            verifiedBadge: badgeState(vv.verification),
+            verifiedAt: vv.verification.verifiedAt,
+            verifiedSlug: vv.slug,
+          });
+          continue;
+        }
+        // Matched but not yet menu-verified: use the curated clean name, keep
+        // template picks, no badge, no detail link.
+        const cleanName = vv?.name;
+
         const template = matchGenericCategory(r.cuisine_description || "");
         if (!template) continue;
 
@@ -359,7 +429,7 @@ export async function GET(req: NextRequest) {
         if (seenKeys.has(addrKey)) continue;
         seenKeys.add(addrKey);
 
-        const dba = normalizeVenueName(r.dba || template.category);
+        const dba = cleanName ?? normalizeVenueName(r.dba || template.category);
         const seed = hashStr(dba + (r.building || "") + (r.street || ""));
 
         const filteredPicks = filterGenericPicks(template.picks, meal, template.category, seed);
