@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { GUIDES, getGuide, resolveGuideSpots } from "@/lib/guides";
 import { formatMonthYear } from "@/lib/freshness";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
+import { TrackView } from "@/components/TrackView";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -45,6 +46,7 @@ export default async function GuidePage({ params }: Props) {
 
   return (
     <article className="max-w-[720px] mx-auto py-10 px-4">
+      <TrackView event="guide_view" />
       <p className="text-[11px] font-bold tracking-[1.5px] uppercase text-hp-green mb-2">
         {guide.neighborhood} · {guide.priceAnchor} · 🚇 {spots[0]?.subwayStop}
       </p>

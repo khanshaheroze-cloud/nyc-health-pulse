@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatMonthYear } from "@/lib/freshness";
 import { badgeState, type VerifiedVenue } from "@/lib/verifiedVenues";
+import { TrackView } from "@/components/TrackView";
 
 // Detail page for an in-person-verified independent venue — the data-moat
 // surface. Real menu, real prices, real macros, freshness visible.
@@ -17,6 +18,7 @@ export function VerifiedVenuePage({ venue }: { venue: VerifiedVenue }) {
 
   return (
     <div>
+      <TrackView event="venue_detail_view" />
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 mb-4 text-[11px] text-dim">
         <Link href="/" className="hover:text-text transition-colors">← Find Food</Link>

@@ -11,6 +11,7 @@ import { LiveResultsStrip, type ResultSpot, type SortKey } from "./LiveResultsSt
 import { SpotModal } from "./SpotModal";
 import { AppWaitlistCapture } from "../AppWaitlistCapture";
 import { detectMealType, type MealCategory } from "@/lib/inferMealType";
+import { trackEvent } from "@/lib/analytics";
 import { fetchWithTimeout } from "@/lib/fetchWithTimeout";
 import { reverseGeocode } from "@/lib/geocode";
 import { findNearestNeighborhood } from "@/lib/nearestNeighborhood";
@@ -178,6 +179,7 @@ export function WedgeSection() {
   const fetchResults = useCallback(async (lat: number, lng: number, meal: MealCategory) => {
     setLoading(true);
     setFetchError(false);
+    trackEvent("find_food_search", { meta: { meal } });
     try {
       const res = await fetchWithTimeout(`/api/smart-menu/near-me?lat=${lat}&lng=${lng}&meal=${meal}`);
       if (!res.ok) throw new Error("fetch failed");
@@ -332,6 +334,7 @@ export function WedgeSection() {
   }, []);
 
   const handleSpotClick = useCallback((slug: string) => {
+    trackEvent("result_card_click", { meta: { slug } });
     const params = new URLSearchParams(searchParams.toString());
     params.set("spot", slug);
     router.replace(`?${params.toString()}`, { scroll: false });

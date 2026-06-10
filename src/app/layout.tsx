@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { Analytics } from "@vercel/analytics/next";
 import { Nav } from "@/components/Nav";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { NycSkyline } from "@/components/NycSkyline";
@@ -267,6 +268,7 @@ export default function RootLayout({
         </div>
         </AuthProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );

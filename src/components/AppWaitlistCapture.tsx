@@ -3,6 +3,16 @@
 import { useState } from "react";
 
 type Status = "idle" | "loading" | "success" | "error";
+
+// utm_source passthrough — the signup event is logged SERVER-side in
+// /api/subscribe (single counter, no client/server double-count)
+function utmSource(): string {
+  try {
+    return new URLSearchParams(window.location.search).get("utm_source") ?? "direct";
+  } catch {
+    return "direct";
+  }
+}
 type DigestStatus = "idle" | "loading" | "done";
 
 export function AppWaitlistCapture() {
@@ -33,7 +43,7 @@ export function AppWaitlistCapture() {
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, frequency: "weekly", list: "app_waitlist" }),
+        body: JSON.stringify({ email, frequency: "weekly", list: "app_waitlist", source: utmSource() }),
       });
       const data = await res.json();
       if (res.ok && data.ok) {
