@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["mapbox-gl", "react-map-gl"],
+  // Static generation hits ~25 live NYC Open Data APIs; throttled environments
+  // (CI runners, cold Vercel builds) regularly blow the 60s default and fail
+  // the whole build. Fallback data exists for every fetch, so give slow
+  // upstreams room instead of failing the build.
+  staticPageGenerationTimeout: 180,
   async redirects() {
     return [
       { source: "/neighborhoods", destination: "/neighborhood", permanent: true },

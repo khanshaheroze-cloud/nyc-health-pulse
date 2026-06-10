@@ -12,6 +12,8 @@ jobs:
     env:
       # Public token only used client-side; tests degrade gracefully without it
       NEXT_PUBLIC_MAPBOX_TOKEN: ${{ secrets.NEXT_PUBLIC_MAPBOX_TOKEN }}
+      # Lifts Socrata throttling during the build's live-data prerenders
+      NYC_OPEN_DATA_APP_TOKEN: ${{ secrets.NYC_OPEN_DATA_APP_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
