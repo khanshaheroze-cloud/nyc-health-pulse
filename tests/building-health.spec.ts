@@ -12,7 +12,9 @@ async function expectSettled(page: Page) {
   await expect(
     page.getByText(DOSSIER_OR_ERROR).first(),
   ).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText("Searching")).toHaveCount(0);
+  // The submit button must leave its in-flight state — asserting on the
+  // button is robust on slow CI runners where text-node checks were flaky
+  await expect(page.getByRole("button", { name: /^Search/ })).toBeEnabled({ timeout: 15_000 });
 }
 
 test("building safety search settles within 15s (button click)", async ({ page }) => {

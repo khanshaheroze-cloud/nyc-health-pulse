@@ -54,7 +54,11 @@ export default async function OverviewPage() {
   ]);
 
   // ── Canonical weather/AQI source — single truth for all homepage components ──
-  const canonicalAqi = airNow?.aqi ?? null;
+  // Fallback chain MUST mirror /air-quality's AirQualityHero (AirNow, else
+  // NYCCAS pm2.5 * 4.2, else the static seed) — the homepage previously fell
+  // back to a hardcoded 42 while /air-quality estimated ~26 from NYCCAS,
+  // which was the recurring May–June AQI drift between the two surfaces.
+  const canonicalAqi = airNow?.aqi ?? Math.round((citywideAir?.pm25 ?? 6.66) * 4.2);
   const canonicalAqiCategory = airNow?.category ?? (citywideAir ? (citywideAir.pm25 < 9 ? "Good" : citywideAir.pm25 < 12 ? "Moderate" : "Unhealthy") : "Good");
   const canonicalTempF = weather?.tempF ?? null;
   const canonicalUV = weather?.uvIndex ?? null;
