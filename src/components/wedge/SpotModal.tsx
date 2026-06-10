@@ -8,6 +8,7 @@ import { openDirections } from "@/lib/openDirections";
 import { GENERIC_TEMPLATES, type GenericTemplate } from "@/lib/genericRestaurants";
 import { type MealCategory } from "@/lib/inferMealType";
 import { formatMonthYear } from "@/lib/freshness";
+import { ShareOrderButton } from "@/components/ShareOrderButton";
 import type { ResultSpot } from "./LiveResultsStrip";
 
 interface SpotModalProps {
@@ -290,6 +291,15 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
               >
                 Report an error
               </button>
+              {visiblePicks.length > 0 && (
+                <ShareOrderButton
+                  venue={displayName}
+                  order={visiblePicks[0].name}
+                  calories={visiblePicks[0].calories}
+                  protein={visiblePicks[0].protein}
+                  price={spot.topPickPrice ?? null}
+                />
+              )}
               <a href="/methodology" className="text-[12px] text-[#6B716B] hover:text-[#1A1A1A] hover:underline">
                 How PulseScore works
               </a>

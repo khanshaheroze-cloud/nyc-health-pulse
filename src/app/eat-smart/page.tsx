@@ -4,6 +4,7 @@ import { EatSmartChainCard } from "@/components/EatSmartChainCard";
 import { NutritionSearch } from "@/components/NutritionSearch";
 import { EatSmartMapHero } from "@/components/eat-smart/EatSmartMapHero";
 import { CHAINS, CHALLENGE_STATS } from "@/lib/eatSmartData";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
 import Link from "next/link";
 
 export const revalidate = 3600; // re-render hourly so crawlers never see stale prerendered HTML
@@ -56,6 +57,10 @@ export default function EatSmartPage() {
             See the neighborhood guides →
           </Link>
         </p>
+      </div>
+
+      <div className="mb-6">
+        <NewsletterSignup source="eat-smart" />
       </div>
 
       {/* ── Or browse by chain ── */}
