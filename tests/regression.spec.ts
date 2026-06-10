@@ -5,8 +5,9 @@ import { test, expect } from "@playwright/test";
 test.describe("Eat Smart rendered results", () => {
   test("homepage cards: no raw DOHMH names, no duplicate brands, cal+protein+grade shown", async ({ page }) => {
     await page.goto("/");
-    // Default location (Times Square) renders results without geolocation
-    const cards = page.locator('a[href^="/restaurants/"]').filter({ hasText: /min walk/ });
+    // Default location (Times Square) renders results without geolocation.
+    // Cards are <a> for chains/verified venues and <button> for generics.
+    const cards = page.locator('a[href^="/restaurants/"], button:has-text("min walk")').filter({ hasText: /min walk/ });
     await expect(cards.first()).toBeVisible({ timeout: 20_000 });
     const count = await cards.count();
     expect(count).toBeGreaterThan(0);
