@@ -1,9 +1,12 @@
 "use client";
 
-export type ChipId = "high-protein" | "quick" | "price-1" | "price-2" | "price-3";
+export type ChipId = "high-protein" | "quick" | "under-15";
 
+// "Under $15" replaced the abstract $/$$/$$$ tier pills — the wedge is a
+// price-anchored sentence, so the filter is the same sentence.
 const CHIPS: { id: ChipId; emoji: string; label: string }[] = [
   { id: "high-protein", emoji: "🥩", label: "High protein" },
+  { id: "under-15", emoji: "💸", label: "Under $15" },
   { id: "quick", emoji: "⚡", label: "Quick (under 5 min)" },
 ];
 
@@ -11,12 +14,6 @@ interface QuickFilterChipsProps {
   active: Set<ChipId>;
   onToggle: (id: ChipId) => void;
 }
-
-const PRICE_TIERS: { id: ChipId; label: string }[] = [
-  { id: "price-1", label: "$" },
-  { id: "price-2", label: "$$" },
-  { id: "price-3", label: "$$$" },
-];
 
 export function QuickFilterChips({ active, onToggle }: QuickFilterChipsProps) {
   return (
@@ -38,29 +35,6 @@ export function QuickFilterChips({ active, onToggle }: QuickFilterChipsProps) {
           </button>
         );
       })}
-
-      {/* Connected price-tier pill group */}
-      <div className="inline-flex rounded-full border border-[#E6E5DE] overflow-hidden">
-        {PRICE_TIERS.map((tier, i) => {
-          const isActive = active.has(tier.id);
-          return (
-            <button
-              key={tier.id}
-              onClick={() => onToggle(tier.id)}
-              className={`px-3 py-2 text-[13px] transition-colors cursor-pointer ${
-                i > 0 ? "border-l border-[#E6E5DE]" : ""
-              } ${
-                isActive
-                  ? "bg-[#1A1A1A] text-white"
-                  : "bg-white text-[#1A1A1A] hover:bg-[#F8F8F5]"
-              }`}
-              aria-pressed={isActive}
-            >
-              {tier.label}
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }

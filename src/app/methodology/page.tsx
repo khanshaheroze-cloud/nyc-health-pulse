@@ -76,11 +76,19 @@ export default function MethodologyPage() {
           </div>
         ))}
       </div>
-      <p className="text-[13px] text-dim leading-relaxed mb-8">
+      <p className="text-[13px] text-dim leading-relaxed mb-4">
         The components sum and clamp to 0–100. When you filter by meal (breakfast, lunch, dinner), items
         matching that meal get a 10-point ranking bonus, and the headline &ldquo;best order&rdquo; must be a real
         meal — at least 200 calories and not a beverage. The best drink, if any, is shown separately so a
         5-calorie cold brew can never claim a restaurant&apos;s top pick.
+      </p>
+      <p className="text-[13px] text-dim leading-relaxed mb-8">
+        <strong className="text-text">The under-$15 anchor.</strong> The default venue ranking adds the
+        price wedge on top of PulseScore: orders estimated at $15 or less (or venues in the $/$$ band when
+        the exact order price is unknown) get +8 ranking points, and $$$ venues get −8. Sorting by
+        Protein, Calories, Distance, or Protein per $ bypasses the anchor. Every card shows the estimated
+        order price — an exact &ldquo;~$11&rdquo; when we know it, a &ldquo;~$10–15&rdquo; band when we don&apos;t. Price is
+        never hidden.
       </p>
 
       <h2 className="font-display text-[20px] text-text mb-3">Where the data comes from</h2>

@@ -185,7 +185,10 @@ export function canonicalBrand(raw: string): Brand | null {
 // "BAR" is excluded only when it is not a healthy bar type (juice/salad/poke/etc.)
 const HEALTHY_BAR_RE = /\b(juice|salad|poke|smoothie|acai|grain|soup|veggie|wellness)\s+bar\b/i;
 const EXCLUDED_NAME_RE =
-  /\b(lounge|cabaret|night\s*club|nightclub|tavern|saloon|speakeasy|brewery|brewing|taproom|tap\s*room|wine\s*bar|whiskey|cocktail|pastry|patisserie|donut|doughnut|cupcake|creamery|gelato|ice\s*cream|candy|chocolatier|dessert|main\s*kitchen|banquet|room\s*service|employee\s*(cafeteria|dining)|catering)\b/i;
+  /\b(lounge|cabaret|night\s*club|nightclub|tavern|saloon|speakeasy|brewery|brewing|taproom|tap\s*room|wine\s*bar|whiskey|cocktail|pastry|patisserie|donut|doughnut|cupcake|creamery|gelato|ice\s*cream|candy|chocolatier|dessert|main\s*kitchen|banquet|room\s*service|employee\s*(cafeteria|dining)|catering|caterers?|commissary|test\s*kitchen|events?\s+(center|space|hall|venue))\b/i;
+// Venues whose name ENDS in "EVENT(S)" are event spaces, not walk-in lunch
+// ("HILTON EVENTS") — separate pattern because $ can't live inside the \b group
+const EVENTS_SUFFIX_RE = /\bevents?\s*$/i;
 const BAR_WORD_RE = /\bbar\b/i;
 const EXCLUDED_CUISINE_RE =
   /^(bottled beverages|donuts|bakery products\/desserts|frozen desserts|coffee\/tea|not listed\/not applicable)$/i;
@@ -204,8 +207,8 @@ export function healthyPickEligibility(
 ): EligibilityResult {
   if (isBrandMatched) return { eligible: true };
   const name = rawName || "";
-  if (EXCLUDED_NAME_RE.test(name)) {
-    return { eligible: false, reason: "nightlife/dessert venue" };
+  if (EXCLUDED_NAME_RE.test(name) || EVENTS_SUFFIX_RE.test(name)) {
+    return { eligible: false, reason: "nightlife/dessert/event venue" };
   }
   if (BAR_WORD_RE.test(name) && !HEALTHY_BAR_RE.test(name)) {
     return { eligible: false, reason: "bar" };

@@ -40,7 +40,7 @@ interface ApiRestaurant {
   inspectedAt?: string | null;
   isGeneric: boolean;
   category: string;
-  topPicks: { name: string; calories: number; protein: number; pulseScore: number }[];
+  topPicks: { name: string; calories: number; protein: number; pulseScore: number; estPrice?: number | null }[];
   bestDrink?: { name: string; calories: number; protein: number } | null;
   locationCount?: number;
   otherLocations?: { address: string; walkMinutes: number; grade: string }[];
@@ -57,6 +57,15 @@ function readCachedMeal(): MealCategory | null {
 
 // Nearest-neighborhood lookup lives in src/lib/nearestNeighborhood.ts
 // (multi-anchor + cos-scaled — fixes Hunters Point resolving to Greenpoint)
+
+// Wedge-weighted default ranking: PulseScore with the under-$15 anchor baked
+// in, so the default order IS "macro-friendly under $15". Documented on
+// /methodology.
+function wedgeScore(r: ResultSpot): number {
+  const base = r.topPickScore ?? 0;
+  const under15 = r.topPickPrice != null ? r.topPickPrice <= 15 : r.priceRange <= 2;
+  return base + (under15 ? 8 : 0) - (r.priceRange >= 3 ? 8 : 0);
+}
 
 function syncNeighborhood(lat: number, lng: number, source: "gps" | "manual") {
   const hood = findNearestNeighborhood(lat, lng);
@@ -80,7 +89,12 @@ export function WedgeSection() {
   // and ask for confirmation instead of silently using it
   const [lowConfidenceHood, setLowConfidenceHood] = useState<string | null>(null);
 
-  const [activeChips, setActiveChips] = useState<Set<ChipId>>(() => new Set(["high-protein"]));
+  // "Under $15" defaults ON for Lunch — the default view IS the wedge
+  const [activeChips, setActiveChips] = useState<Set<ChipId>>(() => {
+    const base: ChipId[] = ["high-protein"];
+    if (detectMealType() === "lunch") base.push("under-15");
+    return new Set(base);
+  });
   const [mealType, setMealType] = useState<MealCategory>(() => detectMealType());
 
   const [allSpots, setAllSpots] = useState<ResultSpot[]>([]);
@@ -93,22 +107,17 @@ export function WedgeSection() {
 
   const spotSlug = searchParams.get("spot");
 
-  const anyPriceFilter = activeChips.has("price-1") || activeChips.has("price-2") || activeChips.has("price-3");
-
   // Filter spots by active chips, then sort by the selected key
   const spots = useMemo(() => {
     let filtered = allSpots;
     if (activeChips.has("quick")) {
       filtered = filtered.filter(r => r.walkMinutes <= 5);
     }
-    if (anyPriceFilter) {
-      filtered = filtered.filter(r => {
-        const tier = r.priceTier || (r.priceRange <= 1 ? "$" : r.priceRange <= 2 ? "$$" : "$$$");
-        if (activeChips.has("price-1") && tier === "$") return true;
-        if (activeChips.has("price-2") && tier === "$$") return true;
-        if (activeChips.has("price-3") && tier === "$$$") return true;
-        return false;
-      });
+    if (activeChips.has("under-15")) {
+      // Known order price wins; unknown falls back to the venue's price band
+      filtered = filtered.filter(r =>
+        r.topPickPrice != null ? r.topPickPrice <= 15 : r.priceRange <= 2,
+      );
     }
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
@@ -119,11 +128,11 @@ export function WedgeSection() {
           return (b.topPickProtein ?? 0) / Math.max(1, b.priceRange) - (a.topPickProtein ?? 0) / Math.max(1, a.priceRange);
         case "score":
         default:
-          return (b.topPickScore ?? 0) - (a.topPickScore ?? 0);
+          return wedgeScore(b) - wedgeScore(a);
       }
     });
     return sorted.slice(0, 5);
-  }, [allSpots, activeChips, anyPriceFilter, sortBy]);
+  }, [allSpots, activeChips, sortBy]);
 
   const activeSpot = useMemo(() => {
     if (!spotSlug) return null;
@@ -180,6 +189,7 @@ export function WedgeSection() {
           topPickProtein: topPick?.protein ?? 0,
           topPickCalories: topPick?.calories ?? 0,
           topPickScore: topPick?.pulseScore ?? 0,
+          topPickPrice: topPick?.estPrice ?? null,
           topPicks: r.topPicks,
           bestDrink: r.bestDrink ?? null,
           priceRange: r.priceRange,

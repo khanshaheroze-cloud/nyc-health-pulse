@@ -189,6 +189,8 @@ interface TopPick {
   fat: number;
   fiber: number;
   pulseScore: number;
+  /** Estimated price of this order in dollars; null = unknown (UI shows the ~$ band) */
+  estPrice: number | null;
 }
 
 interface ApiResult {
@@ -291,6 +293,7 @@ export async function GET(req: NextRequest) {
               fat: item.fat,
               fiber: item.fiber ?? 0,
               pulseScore: ps,
+              estPrice: null, // chain item prices arrive with verified-venue data
               _sort: ps + (strict ? 10 : 0),
             };
           })
@@ -369,6 +372,7 @@ export async function GET(req: NextRequest) {
           fat: 0,
           fiber: 0,
           pulseScore: p.protein >= 30 ? 80 : p.protein >= 20 ? 65 : p.protein >= 10 ? 45 : 30,
+          estPrice: p.estimatedPrice ?? null,
         }));
 
         genericResults.push({

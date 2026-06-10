@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { forwardGeocode, type GeocodeSuggestion } from "@/lib/geocode";
+import { searchStations } from "@/lib/subwayStations";
 import type { LocationStatus } from "@/lib/locationStore";
 
 interface WedgeSearchProps {
@@ -83,11 +84,22 @@ export function WedgeSearch({ locationLabel, onRequestLocation, onManualLocation
       setNoResults(false);
       return;
     }
+    // Subway-stop awareness: station matches rank above addresses — typing
+    // "vernon" offers "near Vernon Blvd-Jackson Av" at the station's coords
+    const stationSugs: GeocodeSuggestion[] = searchStations(query).map((s) => ({
+      label: `near ${s.name}`,
+      shortLabel: `near ${s.name}`,
+      neighborhood: `🚇 ${s.routes} · ${s.borough}`,
+      borough: undefined,
+      lat: s.lat,
+      lng: s.lng,
+    }));
     const results = await forwardGeocode(query);
-    setSuggestions(results);
+    const merged = [...stationSugs, ...results].slice(0, 6);
+    setSuggestions(merged);
     setSuggestionsOpen(true);
     setSelectedIdx(-1);
-    setNoResults(results.length === 0);
+    setNoResults(merged.length === 0);
   }, []);
 
   useEffect(() => {

@@ -12,6 +12,8 @@ export interface ResultSpot {
   topPickProtein: number;
   topPickCalories?: number;
   topPickScore?: number;
+  /** Estimated price of the recommended order; null = show the ~$ band */
+  topPickPrice?: number | null;
   topPicks?: { name: string; calories: number; protein: number; pulseScore: number }[];
   bestDrink?: { name: string; calories: number; protein: number } | null;
   priceRange: number;
@@ -55,6 +57,14 @@ function priceTierFallback(range: number): string {
   if (range <= 1) return "$";
   if (range <= 2) return "$$";
   return "$$$";
+}
+
+// Price is never hidden: exact estimate when known, a ~$ band when not
+function orderPriceLabel(spot: ResultSpot): string {
+  if (spot.topPickPrice != null) return `~$${spot.topPickPrice}`;
+  if (spot.priceRange <= 1) return "~$5–10";
+  if (spot.priceRange <= 2) return "~$10–15";
+  return "~$15+";
 }
 
 export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, loading, mealLabel, onSpotClick, fetchedAt, sortBy = "score", onSortChange, fetchError, onRetry }: LiveResultsStripProps) {
@@ -204,6 +214,7 @@ export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, 
                 {spot.topPickName ? (
                   <>
                     <strong className="text-[#1A1A1A]">Order:</strong> {spot.topPickName}
+                    <span className="text-[#1A1A1A] font-semibold whitespace-nowrap"> — {orderPriceLabel(spot)}</span>
                     {spot.isGeneric && <span className="text-[11px] text-[#9A9F9A] ml-1">est.</span>}
                   </>
                 ) : (

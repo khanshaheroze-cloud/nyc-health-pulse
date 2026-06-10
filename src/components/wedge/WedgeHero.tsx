@@ -56,9 +56,9 @@ export function WedgeHero() {
         right now.
       </h1>
 
-      {/* Subtitle */}
+      {/* Subtitle — the wedge sentence */}
       <p className="text-[18px] text-[#6B716B] max-w-[580px] mx-auto mb-2" style={{ fontFamily: "var(--font-sans)" }}>
-        Tell us where you are. We&apos;ll show you the 5 best healthy spots open in the next 10 minutes — with what to order.
+        The 5 best macro-friendly meals under $15, within a 10-minute walk — with exactly what to order.
       </p>
 
       {/* Moat line */}

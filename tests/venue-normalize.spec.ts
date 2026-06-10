@@ -60,6 +60,17 @@ test.describe("healthyPickEligibility", () => {
     expect(healthyPickEligibility("O'MALLEY'S TAVERN", "American", false).eligible).toBe(false);
   });
 
+  test("excludes hotel kitchens, catering, and event spaces (can't serve walk-in lunch)", () => {
+    expect(healthyPickEligibility("MARRIOTT MARQUIS - MAIN KITCHEN", "American", false).eligible).toBe(false);
+    expect(healthyPickEligibility("GREAT PERFORMANCES CATERING", "American", false).eligible).toBe(false);
+    expect(healthyPickEligibility("ABIGAIL KIRSCH CATERERS", "American", false).eligible).toBe(false);
+    expect(healthyPickEligibility("HILTON MIDTOWN EVENTS", "American", false).eligible).toBe(false);
+    expect(healthyPickEligibility("CHELSEA EVENT SPACE", "American", false).eligible).toBe(false);
+    expect(healthyPickEligibility("RESTAURANT ASSOCIATES COMMISSARY", "American", false).eligible).toBe(false);
+    // "event" mid-name must NOT exclude a real restaurant
+    expect(healthyPickEligibility("MAIN EVENT DINER", "American", false).eligible).toBe(true);
+  });
+
   test("keeps healthy bar types and brand-matched venues", () => {
     expect(healthyPickEligibility("LIQUITERIA JUICE BAR", "Juice, Smoothies", false).eligible).toBe(true);
     expect(healthyPickEligibility("POKE BAR NYC", "Hawaiian", false).eligible).toBe(true);
