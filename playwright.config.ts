@@ -4,6 +4,10 @@ export default defineConfig({
   testDir: "./tests",
   timeout: 60_000,
   fullyParallel: true,
+  // Local runs hit the dev server, which cold-compiles routes AND fetches live
+  // APIs — 14+ parallel first-hits starve it into goto timeouts. CI uses the
+  // prebuilt prod server and can parallelize freely.
+  workers: process.env.CI ? undefined : 6,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: {

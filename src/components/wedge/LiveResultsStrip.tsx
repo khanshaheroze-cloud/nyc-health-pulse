@@ -142,20 +142,27 @@ export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, 
         </div>
       )}
 
-      {/* Cards grid */}
+      {/* Cards grid. Generic venues render as <button> — they have no
+          /restaurants/* page, and a crawlable/cmd-clickable href would 404. */}
       {!loading && spots.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-          {spots.map((spot) => (
-            <a
+          {spots.map((spot) => {
+            const Card = spot.isGeneric ? ("button" as const) : ("a" as const);
+            return (
+            <Card
               key={spot.slug + spot.walkMinutes}
-              href={`/restaurants/${spot.slug}`}
-              onClick={(e) => {
-                if (onSpotClick && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
-                  e.preventDefault();
-                  onSpotClick(spot.slug);
-                }
-              }}
-              className="bg-white border border-[#E6E5DE] rounded-2xl p-4 hover:-translate-y-0.5 transition-transform duration-150 block focus:outline-none focus:ring-2 focus:ring-[#2F8F4D]/40 focus:ring-offset-2"
+              {...(spot.isGeneric
+                ? { type: "button" as const, onClick: () => onSpotClick?.(spot.slug) }
+                : {
+                    href: `/restaurants/${spot.slug}`,
+                    onClick: (e: React.MouseEvent) => {
+                      if (onSpotClick && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
+                        e.preventDefault();
+                        onSpotClick(spot.slug);
+                      }
+                    },
+                  })}
+              className="bg-white border border-[#E6E5DE] rounded-2xl p-4 hover:-translate-y-0.5 transition-transform duration-150 block text-left w-full focus:outline-none focus:ring-2 focus:ring-[#2F8F4D]/40 focus:ring-offset-2"
             >
               {spot.isGeneric && spot.category && (
                 <span className="text-[11px] tracking-[1px] uppercase text-[#6B716B] font-semibold block mb-1">
@@ -206,8 +213,9 @@ export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, 
                   </>
                 )}
               </div>
-            </a>
-          ))}
+            </Card>
+            );
+          })}
         </div>
       )}
     </div>

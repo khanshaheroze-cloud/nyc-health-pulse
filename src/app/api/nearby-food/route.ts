@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { canonicalBrand, normalizeVenueName } from "@/lib/venue-normalize";
+import { snapCoords, snapPadMeters, GRID_COARSE } from "@/lib/geoSnap";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +95,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid numeric parameters", results: [] }, { status: 400 });
     }
 
-    let where = `within_circle(location, ${latNum}, ${lngNum}, ${radiusNum})`;
+    // Snap the upstream query center to a ~1km grid so nearby users share one
+    // cached DOHMH response (fixes the 15s cold start on the flagship surface).
+    // Radius is padded by the worst-case snap displacement; results are
+    // re-filtered by TRUE distance below, so output is unchanged.
+    const snapped = snapCoords(latNum, lngNum, GRID_COARSE);
+    const paddedRadius = radiusNum + snapPadMeters(GRID_COARSE);
+    let where = `within_circle(location, ${snapped.lat}, ${snapped.lng}, ${paddedRadius})`;
     if (gradeA) {
       where += ` AND grade='A'`;
     }
@@ -150,7 +157,10 @@ export async function GET(req: NextRequest) {
           isHealthy: HEALTHY_CUISINES.includes(cuisine.toLowerCase()),
         };
       })
-      .filter((r): r is NonNullable<typeof r> => r !== null);
+      .filter((r): r is NonNullable<typeof r> => r !== null)
+      // True-distance filter: drops the snap padding so users only see venues
+      // within the radius they actually asked for
+      .filter((r) => r.distance <= radiusNum);
 
     // Sort: chains first, then healthy, then by distance
     results.sort((a, b) => {

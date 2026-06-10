@@ -289,12 +289,15 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
                 How PulseScore works
               </a>
             </div>
-            <a
-              href={`/restaurants/${spot.slug}`}
-              className="text-[12px] text-[#2A6BC9] font-medium hover:underline"
-            >
-              Open full page &rarr;
-            </a>
+            {/* Generic venues have no /restaurants/* page — linking would 404 */}
+            {!isGeneric && (
+              <a
+                href={`/restaurants/${spot.slug}`}
+                className="text-[12px] text-[#2A6BC9] font-medium hover:underline"
+              >
+                Open full page &rarr;
+              </a>
+            )}
           </div>
         </div>
       </div>

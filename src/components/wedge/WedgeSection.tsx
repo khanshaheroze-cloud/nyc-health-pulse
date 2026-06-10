@@ -13,7 +13,7 @@ import { AppWaitlistCapture } from "../AppWaitlistCapture";
 import { detectMealType, type MealCategory } from "@/lib/inferMealType";
 import { fetchWithTimeout } from "@/lib/fetchWithTimeout";
 import { reverseGeocode } from "@/lib/geocode";
-import { neighborhoods } from "@/lib/neighborhoodData";
+import { findNearestNeighborhood } from "@/lib/nearestNeighborhood";
 import {
   readLocation,
   writeLocation,
@@ -55,61 +55,8 @@ function readCachedMeal(): MealCategory | null {
   return null;
 }
 
-function findNearestNeighborhood(lat: number, lng: number) {
-  let best = neighborhoods[0];
-  let bestDist = Infinity;
-  for (const n of neighborhoods) {
-    const centroid = NEIGHBORHOOD_CENTROIDS[n.slug];
-    if (!centroid) continue;
-    const d = (lat - centroid.lat) ** 2 + (lng - centroid.lng) ** 2;
-    if (d < bestDist) { bestDist = d; best = n; }
-  }
-  return best;
-}
-
-const NEIGHBORHOOD_CENTROIDS: Record<string, { lat: number; lng: number }> = {
-  "kingsbridge-riverdale": { lat: 40.8840, lng: -73.9070 },
-  "northeast-bronx": { lat: 40.8680, lng: -73.8470 },
-  "fordham-bronx-park": { lat: 40.8610, lng: -73.8820 },
-  "pelham-throgs-neck": { lat: 40.8280, lng: -73.8240 },
-  "crotona-tremont": { lat: 40.8440, lng: -73.8930 },
-  "high-bridge-morrisania": { lat: 40.8310, lng: -73.9140 },
-  "hunts-point-mott-haven": { lat: 40.8150, lng: -73.9050 },
-  "greenpoint": { lat: 40.7270, lng: -73.9510 },
-  "downtown-heights-slope": { lat: 40.6870, lng: -73.9780 },
-  "bedford-stuyvesant-crown-heights": { lat: 40.6810, lng: -73.9390 },
-  "east-new-york": { lat: 40.6640, lng: -73.8790 },
-  "sunset-park": { lat: 40.6500, lng: -74.0020 },
-  "borough-park": { lat: 40.6350, lng: -73.9920 },
-  "east-flatbush-flatbush": { lat: 40.6490, lng: -73.9560 },
-  "canarsie-flatlands": { lat: 40.6390, lng: -73.9010 },
-  "bensonhurst-bay-ridge": { lat: 40.6230, lng: -74.0080 },
-  "coney-island-sheepshead-bay": { lat: 40.5830, lng: -73.9530 },
-  "williamsburg-bushwick": { lat: 40.7030, lng: -73.9260 },
-  "washington-heights-inwood": { lat: 40.8520, lng: -73.9310 },
-  "central-harlem-morningside-heights": { lat: 40.8100, lng: -73.9540 },
-  "east-harlem": { lat: 40.7940, lng: -73.9430 },
-  "upper-west-side": { lat: 40.7870, lng: -73.9730 },
-  "upper-east-side-gramercy": { lat: 40.7680, lng: -73.9580 },
-  "chelsea-clinton": { lat: 40.7500, lng: -73.9960 },
-  "greenwich-village-soho": { lat: 40.7280, lng: -74.0010 },
-  "union-square-lower-east-side": { lat: 40.7200, lng: -73.9870 },
-  "lower-manhattan": { lat: 40.7100, lng: -74.0100 },
-  "long-island-city-astoria": { lat: 40.7560, lng: -73.9240 },
-  "west-queens": { lat: 40.7390, lng: -73.8810 },
-  "flushing-clearview": { lat: 40.7650, lng: -73.8120 },
-  "bayside-meadows": { lat: 40.7620, lng: -73.7700 },
-  "ridgewood-forest-hills": { lat: 40.7120, lng: -73.8600 },
-  "fresh-meadows": { lat: 40.7360, lng: -73.7830 },
-  "southwest-queens": { lat: 40.6810, lng: -73.8350 },
-  "jamaica": { lat: 40.7030, lng: -73.7900 },
-  "southeast-queens": { lat: 40.6700, lng: -73.7600 },
-  "rockaways": { lat: 40.5930, lng: -73.7820 },
-  "port-richmond": { lat: 40.6330, lng: -74.1370 },
-  "stapleton-st-george": { lat: 40.6290, lng: -74.0770 },
-  "willowbrook": { lat: 40.5920, lng: -74.1380 },
-  "south-beach-tottenville": { lat: 40.5530, lng: -74.1420 },
-};
+// Nearest-neighborhood lookup lives in src/lib/nearestNeighborhood.ts
+// (multi-anchor + cos-scaled — fixes Hunters Point resolving to Greenpoint)
 
 function syncNeighborhood(lat: number, lng: number, source: "gps" | "manual") {
   const hood = findNearestNeighborhood(lat, lng);

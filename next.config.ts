@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
   staticPageGenerationTimeout: 180,
   async redirects() {
     return [
+      // Old service-worker caches and stale references still request the .png
+      // paths; the icons are generated routes. Redirect instead of 404ing.
+      { source: "/apple-icon.png", destination: "/apple-icon", permanent: true },
+      { source: "/icon.png", destination: "/icon", permanent: true },
       { source: "/neighborhoods", destination: "/neighborhood", permanent: true },
       { source: "/building-safety", destination: "/building-health", permanent: true },
       { source: "/street-safety", destination: "/safety", permanent: true },

@@ -3,6 +3,7 @@ import { CHAINS, type MenuItem as ChainMenuItem } from "@/lib/restaurantData";
 import { inferMealType, mealMatches, type MealCategory } from "@/lib/inferMealType";
 import { matchGenericCategory, type GenericTemplate, type GenericPick } from "@/lib/genericRestaurants";
 import { canonicalBrand, normalizeVenueName, healthyPickEligibility } from "@/lib/venue-normalize";
+import { snapCoords, snapPadMeters, GRID_FINE } from "@/lib/geoSnap";
 
 export const dynamic = "force-dynamic";
 
@@ -230,8 +231,13 @@ export async function GET(req: NextRequest) {
     const latNum = parseFloat(lat);
     const lngNum = parseFloat(lng);
 
-    const where = `within_circle(location, ${latNum}, ${lngNum}, 800) AND grade IN('A','B')`;
-    const url = `https://data.cityofnewyork.us/resource/43nn-pn8j.json?$where=${encodeURIComponent(where)}&$select=dba,cuisine_description,grade,building,street,boro,latitude,longitude,inspection_date&$limit=500&$order=grade ASC`;
+    // Snapped query center → shared Next data-cache entry for everyone in the
+    // same ~500m cell; padded radius + true-distance filter keep results exact
+    const RADIUS_M = 800;
+    const snapped = snapCoords(latNum, lngNum, GRID_FINE);
+    const paddedRadius = RADIUS_M + snapPadMeters(GRID_FINE);
+    const where = `within_circle(location, ${snapped.lat}, ${snapped.lng}, ${paddedRadius}) AND grade IN('A','B')`;
+    const url = `https://data.cityofnewyork.us/resource/43nn-pn8j.json?$where=${encodeURIComponent(where)}&$select=dba,cuisine_description,grade,building,street,boro,latitude,longitude,inspection_date&$limit=800&$order=grade ASC`;
 
     const res = await fetch(url, { next: { revalidate: 3600 } });
     const rows: DOHMHRow[] = res.ok ? await res.json() : [];
@@ -255,6 +261,7 @@ export async function GET(req: NextRequest) {
 
       const address = [r.building, r.street, r.boro].filter(Boolean).join(" ");
       const distMeters = haversine(latNum, lngNum, rLat, rLng);
+      if (distMeters > RADIUS_M) continue; // outside the user's true radius (snap padding)
       const walkMinutes = Math.round(distMeters / 80);
 
       const chainSlug = matchChain(r.dba || "");
