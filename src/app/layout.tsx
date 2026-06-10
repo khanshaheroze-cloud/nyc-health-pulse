@@ -206,36 +206,34 @@ export default function RootLayout({
                   <p className="text-[12px] text-muted leading-relaxed mt-1">Data from NYC DOHMH, CDC, EPA &amp; more</p>
                 </div>
 
-                {/* Explore */}
+                {/* Food — first-class, mirrors the nav */}
                 <div>
-                  <p className="text-[11px] font-bold tracking-[1.5px] uppercase text-muted mb-3">Explore</p>
+                  <p className="text-[11px] font-bold tracking-[1.5px] uppercase text-muted mb-3">Food</p>
                   <div className="flex flex-col gap-2">
                     {[
-                      { href: "/", label: "Overview" },
-                      { href: "/air-quality", label: "Air Quality" },
-                      { href: "/food-safety", label: "Food Safety" },
-                      { href: "/neighborhood", label: "Neighborhoods" },
-                      { href: "/find-care", label: "Find Care" },
-                      { href: "/building-health", label: "Building Safety" },
-                      { href: "/nutrition-tracker", label: "Nutrition Tracker" },
-                      { href: "/run-routes", label: "Run Routes" },
+                      { href: "/", label: "Find Food" },
+                      { href: "/eat-smart", label: "Eat Smart" },
+                      { href: "/guides", label: "Neighborhood Guides" },
+                      { href: "/restaurants", label: "Restaurant Guide" },
+                      { href: "/methodology", label: "How PulseScore Works" },
+                      { href: "/app", label: "Get the App" },
                     ].map((link) => (
                       <a key={link.href} href={link.href} className="text-[12px] text-dim hover:text-hp-green transition-colors">{link.label}</a>
                     ))}
                   </div>
                 </div>
 
-                {/* Health Data */}
+                {/* NYC Health Data */}
                 <div>
-                  <p className="text-[11px] font-bold tracking-[1.5px] uppercase text-muted mb-3">Health Data</p>
+                  <p className="text-[11px] font-bold tracking-[1.5px] uppercase text-muted mb-3">NYC Health Data</p>
                   <div className="flex flex-col gap-2">
                     {[
+                      { href: "/air-quality", label: "Air Quality" },
+                      { href: "/neighborhood", label: "Neighborhoods" },
                       { href: "/covid", label: "COVID-19" },
-                      { href: "/flu", label: "Flu Tracker" },
                       { href: "/chronic-disease", label: "Chronic Disease" },
-                      { href: "/maternal-health", label: "Maternal Health" },
-                      { href: "/overdose", label: "Overdose" },
-                      { href: "/demographics", label: "Demographics" },
+                      { href: "/building-health", label: "Building Safety" },
+                      { href: "/health-data", label: "All Health Data" },
                     ].map((link) => (
                       <a key={link.href} href={link.href} className="text-[12px] text-dim hover:text-hp-green transition-colors">{link.label}</a>
                     ))}

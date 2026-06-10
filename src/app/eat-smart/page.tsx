@@ -8,21 +8,23 @@ import Link from "next/link";
 
 export const revalidate = 3600; // re-render hourly so crawlers never see stale prerendered HTML
 
+const EAT_SMART_TITLE = "Eat Smart NYC — Chains Are the Fallback. Independents Are the Find.";
+const EAT_SMART_DESCRIPTION =
+  "Healthy food under $15 near you: the best orders at NYC's independent spots, with the 30-chain guide as your fallback. Real macros, DOHMH grades, exact orders.";
+
 export const metadata: Metadata = {
-  title: "Eat Smart NYC — Best Low-Calorie Orders at 30 NYC Chains",
-  description:
-    "Find the healthiest menu items at Chipotle, Sweetgreen, McDonald's, CAVA, Taco Bell and 25+ NYC chains. Search 500K+ foods with USDA + Open Food Facts data.",
+  title: EAT_SMART_TITLE,
+  description: EAT_SMART_DESCRIPTION,
   alternates: { canonical: "/eat-smart" },
   openGraph: {
-    title: "Eat Smart NYC — Best Low-Calorie Orders at 30 NYC Chains",
-    description: "Standing in line? Find the best order under 600 calories at any NYC chain.",
+    title: EAT_SMART_TITLE,
+    description: "Standing in line? Know the best order before you get there — chains and independents.",
     url: "/eat-smart",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Eat Smart NYC — Best Low-Calorie Orders at 30 NYC Chains",
-    description:
-      "Find the healthiest menu items at Chipotle, Sweetgreen, McDonald's, CAVA, Taco Bell and 25+ NYC chains. Search 500K+ foods with USDA + Open Food Facts data.",
+    title: EAT_SMART_TITLE,
+    description: EAT_SMART_DESCRIPTION,
   },
 };
 
@@ -40,10 +42,26 @@ export default function EatSmartPage() {
       {/* ── HERO: Map-first discovery ── */}
       <EatSmartMapHero />
 
+      {/* ── Reframe: independents are the find, chains are the fallback ── */}
+      <div className="mt-10 mb-6 bg-surface border border-border-light rounded-2xl px-5 py-4">
+        <h2 className="font-display text-[18px] text-text mb-1">
+          Chains: the fallback. Independents: the find.
+        </h2>
+        <p className="text-[12px] text-dim leading-relaxed">
+          Anyone can tell you what to get at Chipotle. The map above finds the independent spots near
+          you — the gyro salad, the kabab house falafel, the ramen place&apos;s grilled option — with
+          estimated macros and DOHMH grades. We&apos;re verifying independent menus in person, starting in
+          Long Island City; verified venues carry a ✓ badge.{" "}
+          <Link href="/guides" className="text-hp-green font-semibold hover:underline">
+            See the neighborhood guides →
+          </Link>
+        </p>
+      </div>
+
       {/* ── Or browse by chain ── */}
-      <div className="flex items-center gap-3 mt-10 mb-4">
+      <div className="flex items-center gap-3 mt-2 mb-4">
         <h2 className="text-[11px] font-bold tracking-[2px] uppercase text-muted whitespace-nowrap">
-          Or browse by chain — {totalChains} NYC chains ranked by PulseScore
+          The chain fallback — {totalChains} NYC chains ranked by PulseScore
         </h2>
         <div className="flex-1 h-px bg-border-light" />
       </div>

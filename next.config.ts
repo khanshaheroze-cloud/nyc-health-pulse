@@ -14,6 +14,8 @@ const nextConfig: NextConfig = {
       { source: "/apple-icon.png", destination: "/apple-icon", permanent: true },
       { source: "/icon.png", destination: "/icon", permanent: true },
       { source: "/neighborhoods", destination: "/neighborhood", permanent: true },
+      // Legacy "/overview" was a styled-less 404; the overview IS the homepage
+      { source: "/overview", destination: "/", permanent: true },
       { source: "/building-safety", destination: "/building-health", permanent: true },
       { source: "/street-safety", destination: "/safety", permanent: true },
       { source: "/fitness", destination: "/workouts", permanent: true },

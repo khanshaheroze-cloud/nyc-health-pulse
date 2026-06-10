@@ -4,11 +4,9 @@ import { WedgeSection } from "@/components/wedge/WedgeSection";
 import { EnvironmentBackdrop } from "@/components/wedge/EnvironmentBackdrop";
 import { BentoGrid } from "@/components/wedge/BentoGrid";
 import { WeeklyChanges } from "@/components/WeeklyChanges";
-import { OverviewBoroughCharts } from "@/components/overview/OverviewBoroughCharts";
 import { AlertBanner } from "@/components/AlertBanner";
 import { NeighborhoodBar } from "@/components/overview/NeighborhoodBar";
 import { HealthStatusChips } from "@/components/overview/HealthStatusChips";
-import { chronicOutcomes as staticOutcomes } from "@/lib/data";
 import {
   fetchCovidByBorough,
   fetchRodentByBorough,
@@ -18,30 +16,22 @@ import {
   fetchAirNowAQI,
   fetchPollenForecast,
   fetchWeatherUV,
-  fetchCdcPlacesByBorough,
 } from "@/lib/liveData";
 
+const WEDGE_TITLE = "PulseNYC — Healthy food under $15 near you, right now";
+const WEDGE_DESCRIPTION =
+  "The 5 best macro-friendly meals under $15, within a 10-minute walk — with exactly what to order. Live DOHMH grades, real macros, and subway-stop-aware search across NYC.";
+
 export const metadata: Metadata = {
-  title: "PulseNYC — Healthy food near you, right now",
-  description:
-    "Find the best healthy spots open near you in NYC right now, with what to order. Plus live air quality, run routes, neighborhood health, and building safety — all in one place.",
+  title: WEDGE_TITLE,
+  description: WEDGE_DESCRIPTION,
   alternates: { canonical: "/" },
-  openGraph: {
-    title: "PulseNYC — Healthy food near you, right now",
-    description:
-      "Find the best healthy spots open near you in NYC right now, with what to order. Plus live air quality, run routes, neighborhood health, and building safety — all in one place.",
-    url: "/",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "PulseNYC — Healthy food near you, right now",
-    description:
-      "Find the best healthy spots open near you in NYC right now, with what to order. Plus live air quality, run routes, neighborhood health, and building safety — all in one place.",
-  },
+  openGraph: { title: WEDGE_TITLE, description: WEDGE_DESCRIPTION, url: "/" },
+  twitter: { card: "summary_large_image", title: WEDGE_TITLE, description: WEDGE_DESCRIPTION },
 };
 
 export default async function OverviewPage() {
-  const [covidBorough, rodentData, critViolations, waterQuality, citywideAir, airNow, pollen, weather, cdcPlaces] = await Promise.all([
+  const [covidBorough, rodentData, critViolations, waterQuality, citywideAir, airNow, pollen, weather] = await Promise.all([
     fetchCovidByBorough(),
     fetchRodentByBorough(),
     fetchCriticalViolationsCount(),
@@ -50,7 +40,6 @@ export default async function OverviewPage() {
     fetchAirNowAQI(),
     fetchPollenForecast(),
     fetchWeatherUV(),
-    fetchCdcPlacesByBorough(),
   ]);
 
   // ── Canonical weather/AQI source — single truth for all homepage components ──
@@ -78,25 +67,6 @@ export default async function OverviewPage() {
   const waterSafePct = waterQuality
     ? ((1 - waterQuality.coliformDetected / waterQuality.totalSamples) * 100).toFixed(1)
     : "99.9";
-
-  const chronicOutcomes = cdcPlaces
-    ? [
-        { measure: "Obesity", ...Object.fromEntries(cdcPlaces.map(b => [b.borough, b.obesity ?? 0])) },
-        { measure: "Diabetes", ...Object.fromEntries(cdcPlaces.map(b => [b.borough, b.diabetes ?? 0])) },
-        { measure: "Depression", ...Object.fromEntries(cdcPlaces.map(b => [b.borough, b.depression ?? 0])) },
-        { measure: "High BP", ...Object.fromEntries(cdcPlaces.map(b => [b.borough, b.highBP ?? 0])) },
-      ]
-    : staticOutcomes;
-
-  const inactivityData = cdcPlaces
-    ? cdcPlaces.map(b => ({ borough: b.borough, pct: b.inactivity ?? 0 }))
-    : [
-        { borough: "Bronx", pct: 34.7 },
-        { borough: "Brooklyn", pct: 28.9 },
-        { borough: "Manhattan", pct: 22.1 },
-        { borough: "Queens", pct: 28.6 },
-        { borough: "Staten Is.", pct: 29.4 },
-      ];
 
   return (
     <div className="relative space-y-0">
@@ -133,10 +103,9 @@ export default async function OverviewPage() {
         />
       </div>
 
-      {/* ── Health data zone ── */}
-      <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-8">
-        <OverviewBoroughCharts chronicOutcomes={chronicOutcomes} inactivityData={inactivityData} />
-      </div>
+      {/* Borough chronic-disease/inactivity charts removed from the homepage —
+          they dilute the food story; they live on /health-data and
+          /chronic-disease */}
 
       {/* ── Stay informed ── */}
       {/* Digest signup demoted: the app waitlist (in WedgeSection, with a

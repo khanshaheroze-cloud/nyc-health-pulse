@@ -13,20 +13,14 @@ interface NavItem {
   dropdown?: string;
 }
 
+// Food is first-class; ALL health/fitness legacy pages live under one
+// "NYC Health Data" dropdown. The nav says "healthy food near you", not
+// "42 health dashboards".
 const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Overview" },
+  { href: "/", label: "Find Food" },
   { href: "/eat-smart", label: "Eat Smart", dropdown: "eatout" },
-  { href: "/workouts", label: "Fitness", dropdown: "fitness" },
-  { href: "/air-quality", label: "Air Quality" },
-  { href: "/neighborhood", label: "Neighborhoods" },
+  { href: "/guides", label: "Guides" },
   { href: "/health-data", label: "NYC Health Data", dropdown: "health" },
-];
-
-const FITNESS_ITEMS = [
-  { href: "/workouts", label: "Workouts" },
-  { href: "/nutrition-tracker", label: "Nutrition Tracker" },
-  { href: "/run-outside", label: "Run Outside" },
-  { href: "/run-routes", label: "Run Routes" },
 ];
 
 const EATOUT_ITEMS = [
@@ -34,10 +28,12 @@ const EATOUT_ITEMS = [
   { href: "/restaurants", label: "Restaurant Guide" },
   { href: "/grocery", label: "Grocery Prices" },
   { href: "/food-safety", label: "Food Safety" },
-  { href: "/find-care", label: "Find Care" },
+  { href: "/methodology", label: "How PulseScore Works" },
 ];
 
 const HEALTH_ITEMS = [
+  { href: "/air-quality", label: "Air Quality" },
+  { href: "/neighborhood", label: "Neighborhoods" },
   { href: "/covid", label: "COVID-19" },
   { href: "/flu", label: "Flu / ILI" },
   { href: "/chronic-disease", label: "Chronic Disease" },
@@ -47,8 +43,15 @@ const HEALTH_ITEMS = [
   { href: "/environment", label: "Environment" },
   { href: "/safety", label: "Street Safety" },
   { href: "/building-health", label: "Building Safety" },
+  { href: "/find-care", label: "Find Care" },
   { href: "/wellness", label: "Wellness" },
+  { href: "/workouts", label: "Workouts" },
+  { href: "/nutrition-tracker", label: "Nutrition Tracker" },
+  { href: "/run-routes", label: "Run Routes" },
 ];
+
+// Legacy alias so existing dropdown plumbing keeps working
+const FITNESS_ITEMS: { href: string; label: string }[] = [];
 
 /* ── Chevron icon ─────────────────────────────────────────── */
 function Chevron({ open }: { open: boolean }) {
