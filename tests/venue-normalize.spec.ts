@@ -28,6 +28,31 @@ test.describe("normalizeVenueName", () => {
   test("leaves already mixed-case names alone", () => {
     expect(normalizeVenueName("by CHLOE.")).toBe("by CHLOE.");
   });
+
+  test("neighborhood acronyms keep their casing", () => {
+    // Live audit June 2026: "MERCATO LIC" rendered as "Mercato Lic"
+    expect(normalizeVenueName("MERCATO LIC")).toBe("Mercato LIC");
+    expect(normalizeVenueName("POKE BAR NYC")).toBe("Poke Bar NYC");
+    expect(normalizeVenueName("MIGHTY QUINN'S BBQ")).toBe("Mighty Quinn's BBQ");
+    expect(normalizeVenueName("UES BAGELS")).toBe("UES Bagels");
+    expect(normalizeVenueName("UWS DINER")).toBe("UWS Diner");
+    expect(normalizeVenueName("LES PIZZA CO")).toBe("LES Pizza");
+    expect(normalizeVenueName("DUMBO KITCHEN")).toBe("DUMBO Kitchen");
+    expect(normalizeVenueName("SOHO SALADS")).toBe("SoHo Salads");
+    expect(normalizeVenueName("NOHO CAFE")).toBe("NoHo Cafe");
+    expect(normalizeVenueName("JFK DELI")).toBe("JFK Deli");
+    expect(normalizeVenueName("PATSY'S PIZZERIA II")).toBe("Patsy's Pizzeria II");
+    expect(normalizeVenueName("SPARKS STEAKHOUSE III")).toBe("Sparks Steakhouse III");
+  });
+
+  test("splits digit runs glued to known acronyms", () => {
+    // Live audit June 2026: "4747LIC" rendered as "4747lic"
+    expect(normalizeVenueName("4747LIC")).toBe("4747 LIC");
+    expect(normalizeVenueName("4747LIC CAFE")).toBe("4747 LIC Cafe");
+    expect(normalizeVenueName("212NYC BAR")).toBe("212 NYC Bar");
+    // Unknown letter runs stay glued — "21CLUB" is a name, not an acronym
+    expect(normalizeVenueName("21CLUB")).toBe("21club");
+  });
 });
 
 test.describe("canonicalBrand", () => {

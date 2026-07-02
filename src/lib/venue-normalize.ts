@@ -23,7 +23,19 @@ const CASE_OVERRIDES: Record<string, string> = {
   "chick-fil-a": "Chick-fil-A",
   cava: "CAVA",
   "a&w": "A&W",
+  lic: "LIC",
+  ues: "UES",
+  uws: "UWS",
+  les: "LES",
+  dumbo: "DUMBO",
+  soho: "SoHo",
+  noho: "NoHo",
+  jfk: "JFK",
 };
+
+// Acronyms that can be glued to a leading digit run: "4747LIC" -> "4747 LIC".
+// Only split when the letter run is a known acronym — "21CLUB" stays intact.
+const DIGIT_GLUE_ACRONYMS = new Set(["lic", "nyc", "bbq", "ues", "uws", "les", "jfk"]);
 
 // Small words stay lowercase unless they start the name
 const SMALL_WORDS = new Set(["of", "the", "and", "a", "an", "at", "on", "in", "by", "de", "la", "del", "y"]);
@@ -59,6 +71,13 @@ export function normalizeVenueName(raw: string): string {
 
   return s
     .split(" ")
+    .flatMap((tok) => {
+      const glued = tok.match(/^(\d+)([a-z]+)$/i);
+      if (glued && DIGIT_GLUE_ACRONYMS.has(glued[2].toLowerCase())) {
+        return [glued[1], glued[2]];
+      }
+      return [tok];
+    })
     .map((tok, i) => {
       // Keep "&" and single punctuation as-is
       if (/^[&+·]$/.test(tok)) return tok;
