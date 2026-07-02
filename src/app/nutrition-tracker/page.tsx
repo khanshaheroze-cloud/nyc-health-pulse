@@ -1,4 +1,24 @@
+import type { Metadata } from "next";
 import TrackerApp from "@/components/nutrition-tracker/TrackerApp";
+
+export const metadata: Metadata = {
+  title: "Nutrition Tracker",
+  description:
+    "Track meals with 500K+ foods from USDA and Open Food Facts, plus NYC's curated database — halal carts, bodega sandwiches, and the menus of 30+ local chains.",
+  alternates: { canonical: "/nutrition-tracker" },
+  openGraph: {
+    title: "Nutrition Tracker",
+    description:
+      "Track meals with 500K+ foods from USDA and Open Food Facts, plus NYC's curated database — halal carts, bodega sandwiches, and the menus of 30+ local chains.",
+    url: "/nutrition-tracker",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Nutrition Tracker",
+    description:
+      "Track meals with 500K+ foods from USDA and Open Food Facts, plus NYC's curated database.",
+  },
+};
 
 // Server-rendered shell: heading, description, and explainer content are real
 // HTML for crawlers and no-JS users; the interactive tracker hydrates inside.
