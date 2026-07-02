@@ -84,8 +84,13 @@ export function EatSmartMapHero() {
   // Last coords we fetched for — lets the store subscription ignore echoes of
   // our own writeLocation() calls (which would re-fetch and reset the radius)
   const lastFetchedRef = useRef<{ lat: number; lng: number } | null>(null);
+  // Last coords we ATTEMPTED (set before the fetch, unlike lastFetchedRef) —
+  // "Try again" retries against these instead of dropping to the empty
+  // share-your-location state when a saved location's first fetch fails
+  const lastAttemptRef = useRef<{ lat: number; lng: number; radiusMi: number } | null>(null);
 
   const fetchNearby = useCallback(async (lat: number, lng: number, radiusMi: number = 0.5) => {
+    lastAttemptRef.current = { lat, lng, radiusMi };
     setLoading(true);
     setError("");
     try {
@@ -124,11 +129,16 @@ export function EatSmartMapHero() {
       setHasLocation(true);
       setMapPanned(false);
     } catch {
-      setError("Couldn't load restaurants. Try again.");
+      setError("Couldn't load restaurants.");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const retryLastFetch = useCallback(() => {
+    const a = lastAttemptRef.current;
+    if (a) fetchNearby(a.lat, a.lng, a.radiusMi);
+  }, [fetchNearby]);
 
   useEffect(() => {
     setMounted(true);
@@ -442,6 +452,19 @@ export function EatSmartMapHero() {
               <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 shadow-sm border border-border/50 z-10 sm:hidden">
                 <span className="text-[9px] text-dim font-medium">{filtered.length} results</span>
               </div>
+              {/* Fetch errors after the map is shown (radius change, "search
+                  this area") were previously silent — surface them with retry */}
+              {error && !loading && (
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md border border-border/50 flex items-center gap-2.5">
+                  <span className="text-[11px] text-hp-red font-medium">{error}</span>
+                  <button
+                    onClick={retryLastFetch}
+                    className="text-[11px] font-bold text-accent hover:underline"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             /* No-location state */
@@ -479,7 +502,21 @@ export function EatSmartMapHero() {
                       Go
                     </button>
                   </div>
-                  {error && <p className="text-[11px] text-hp-red mt-2">{error}</p>}
+                  {error && (
+                    <p className="text-[11px] text-hp-red mt-2 flex items-center gap-2">
+                      {error}
+                      {/* A saved location whose first fetch failed lands here —
+                          retry against it rather than making the user re-share */}
+                      {lastAttemptRef.current && (
+                        <button
+                          onClick={retryLastFetch}
+                          className="font-bold text-accent hover:underline"
+                        >
+                          Try again
+                        </button>
+                      )}
+                    </p>
+                  )}
                 </>
               )}
             </div>

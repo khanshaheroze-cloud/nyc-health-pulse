@@ -3,6 +3,11 @@ import { canonicalBrand, normalizeVenueName } from "@/lib/venue-normalize";
 import { snapCoords, snapPadMeters, GRID_COARSE } from "@/lib/geoSnap";
 
 export const dynamic = "force-dynamic";
+// Cap the function so a slow Socrata cold path can never hold a request for
+// 15s+ like the June 2026 live audit observed — clients time out at 12s.
+export const maxDuration = 15;
+
+const SOURCE_TIMEOUT_MS = 8000;
 
 /**
  * Nearby Food API — searches NYC DOHMH Restaurant Inspections for all restaurants
@@ -59,7 +64,8 @@ interface DOHMHRow {
   longitude?: string;
 }
 
-async function fetchDOHMH(where: string, offset: number, limit: number): Promise<DOHMHRow[]> {
+// null = upstream failure (distinct from a genuine empty result set)
+async function fetchDOHMH(where: string, offset: number, limit: number): Promise<DOHMHRow[] | null> {
   const select = "dba,cuisine_description,grade,score,building,street,boro,zipcode,latitude,longitude";
   const url = new URL("https://data.cityofnewyork.us/resource/43nn-pn8j.json");
   url.searchParams.set("$where", where);
@@ -68,9 +74,23 @@ async function fetchDOHMH(where: string, offset: number, limit: number): Promise
   url.searchParams.set("$offset", String(offset));
   url.searchParams.set("$order", "grade ASC, score ASC");
 
-  const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
-  if (!res.ok) return [];
-  return res.json();
+  const token = process.env.NYC_OPEN_DATA_APP_TOKEN;
+  const started = Date.now();
+  try {
+    const res = await fetch(url.toString(), {
+      next: { revalidate: 3600 },
+      headers: token ? { "X-App-Token": token } : undefined,
+      signal: AbortSignal.timeout(SOURCE_TIMEOUT_MS),
+    });
+    const ms = Date.now() - started;
+    // <100ms means the Next fetch cache answered; slower means a live Socrata hit
+    console.log(`nearby-food upstream offset=${offset} ${ms}ms ${ms < 100 ? "cache-HIT" : "cache-MISS"}`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch (err) {
+    console.error(`nearby-food upstream offset=${offset} failed after ${Date.now() - started}ms:`, err);
+    return null;
+  }
 }
 
 /* ── Main handler ─────────────────────────────────────────── */
@@ -112,7 +132,17 @@ export async function GET(req: NextRequest) {
       fetchDOHMH(where, 500, 500),
     ]);
 
-    const allData = [...page1, ...page2];
+    // Both pages failing means Socrata is down/slow, not an empty area —
+    // surface a 502 so the client shows its error + retry state instead of
+    // rendering "no restaurants nearby".
+    if (page1 === null && page2 === null) {
+      return NextResponse.json(
+        { error: "Restaurant data source unavailable", results: [] },
+        { status: 502 },
+      );
+    }
+
+    const allData = [...(page1 ?? []), ...(page2 ?? [])];
 
     // Deduplicate: keep best grade per DBA+address
     const dedupMap = new Map<string, DOHMHRow>();
