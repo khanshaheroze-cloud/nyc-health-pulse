@@ -1,10 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getTimeBand, isDarkBand } from "@/lib/timeBand";
 
 export function WedgeHero() {
   const [time, setTime] = useState("");
   const [hood, setHood] = useState("NYC");
+  // Client-only like `time` above: SSR renders the light variant, mount
+  // corrects it — same pattern EnvironmentBackdrop uses for its gradient
+  const [dark, setDark] = useState(false);
 
   useEffect(() => {
     const fmt = () => {
@@ -13,6 +17,7 @@ export function WedgeHero() {
       const m = d.getMinutes().toString().padStart(2, "0");
       const ampm = h >= 12 ? "PM" : "AM";
       setTime(`${h % 12 || 12}:${m} ${ampm}`);
+      setDark(isDarkBand(getTimeBand()));
     };
     fmt();
     const id = setInterval(fmt, 30_000);
@@ -48,21 +53,31 @@ export function WedgeHero() {
         </span>
       </div>
 
-      {/* H1 */}
-      <h1 className="font-display leading-[1.05] tracking-[-0.5px] mb-4" style={{ fontSize: "clamp(40px, 6vw, 64px)" }}>
+      {/* H1 — light cream on the dusk/night backdrop (June 2026 audit: dark
+          text on the #1B1F36 night gradient failed 4.5:1) */}
+      <h1
+        className={`font-display leading-[1.05] tracking-[-0.5px] mb-4 ${dark ? "text-[#FAFAF7]" : ""}`}
+        style={{ fontSize: "clamp(40px, 6vw, 64px)" }}
+      >
         Healthy food,{" "}
-        <em className="text-[#2F8F4D]">near you</em>,
+        <em className={dark ? "text-[#6FD39A]" : "text-[#2F8F4D]"}>near you</em>,
         <br />
         right now.
       </h1>
 
       {/* Subtitle — the wedge sentence */}
-      <p className="text-[18px] text-[#6B716B] max-w-[580px] mx-auto mb-2" style={{ fontFamily: "var(--font-sans)" }}>
+      <p
+        className={`text-[18px] max-w-[580px] mx-auto mb-2 ${dark ? "text-[#E9E8E0]" : "text-[#6B716B]"}`}
+        style={{ fontFamily: "var(--font-sans)" }}
+      >
         The 5 best macro-friendly meals under $15, within a 10-minute walk — with exactly what to order.
       </p>
 
       {/* Moat line */}
-      <p className="text-[13px] text-[#6B716B] max-w-[580px] mx-auto mb-8" style={{ fontFamily: "var(--font-sans)" }}>
+      <p
+        className={`text-[13px] max-w-[580px] mx-auto mb-8 ${dark ? "text-[#CFCFC6]" : "text-[#6B716B]"}`}
+        style={{ fontFamily: "var(--font-sans)" }}
+      >
         We pick the dish. Macros, walk time, what to order — even at the bodega.
       </p>
     </div>
