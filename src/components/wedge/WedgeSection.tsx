@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { WedgeHero } from "./WedgeHero";
 import { WedgeSearch } from "./WedgeSearch";
@@ -85,7 +85,6 @@ function syncNeighborhood(lat: number, lng: number, source: "gps" | "manual") {
 
 export function WedgeSection() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [coords, setCoords] = useState<{ lat: number; lng: number }>(TIMES_SQUARE);
   const [locationLabel, setLocationLabel] = useState("Set location");
@@ -111,7 +110,17 @@ export function WedgeSection() {
   const [fetchError, setFetchError] = useState(false);
   const [sortBy, setSortBy] = useState<SortKey>("score");
 
-  const spotSlug = searchParams.get("spot");
+  // ?spot= is read from window.location instead of useSearchParams: the hook
+  // opts this whole section out of the static prerender, which stripped the
+  // hero/H1/waitlist from crawler HTML. Deep links resolve on mount; the
+  // modal is client-only anyway.
+  const [spotSlug, setSpotSlug] = useState<string | null>(null);
+  useEffect(() => {
+    const read = () => setSpotSlug(new URLSearchParams(window.location.search).get("spot"));
+    read();
+    window.addEventListener("popstate", read);
+    return () => window.removeEventListener("popstate", read);
+  }, []);
 
   // Filter spots by active chips, then sort by the selected key
   const spots = useMemo(() => {
@@ -335,17 +344,19 @@ export function WedgeSection() {
 
   const handleSpotClick = useCallback((slug: string) => {
     trackEvent("result_card_click", { meta: { slug } });
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(window.location.search);
     params.set("spot", slug);
+    setSpotSlug(slug);
     router.replace(`?${params.toString()}`, { scroll: false });
-  }, [searchParams, router]);
+  }, [router]);
 
   const handleModalClose = useCallback(() => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(window.location.search);
     params.delete("spot");
+    setSpotSlug(null);
     const qs = params.toString();
     router.replace(qs ? `?${qs}` : "/", { scroll: false });
-  }, [searchParams, router]);
+  }, [router]);
 
   return (
     <>
