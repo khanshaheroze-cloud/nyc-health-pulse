@@ -60,14 +60,51 @@ export default async function ChainPage({ params }: Props) {
   // hours, badge) — this is what closes the generic-* 404s permanently
   const venue = getVenueBySlug(slug);
   if (venue && venue.verification.status === "verified" && venue.menuItems.length > 0) {
-    return <VerifiedVenuePage venue={venue} />;
+    const venueLd = {
+      "@context": "https://schema.org",
+      "@type": "Restaurant",
+      name: venue.name,
+      url: `https://pulsenyc.app/restaurants/${venue.slug}`,
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: venue.address,
+        addressLocality: "New York",
+        addressRegion: "NY",
+      },
+      geo: { "@type": "GeoCoordinates", latitude: venue.lat, longitude: venue.lng },
+      servesCuisine: venue.venueType,
+      ...(venue.priceBand ? { priceRange: "$".repeat(venue.priceBand) } : {}),
+    };
+    return (
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(venueLd) }}
+        />
+        <VerifiedVenuePage venue={venue} />
+      </>
+    );
   }
 
   const chain = CHAINS.find(c => c.slug === slug);
   if (!chain) notFound();
 
+  const chainLd = {
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    name: chain.name,
+    url: `https://pulsenyc.app/restaurants/${chain.slug}`,
+    servesCuisine: chain.category,
+    priceRange: "$".repeat(chain.priceRange),
+    address: { "@type": "PostalAddress", addressLocality: "New York", addressRegion: "NY" },
+  };
+
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(chainLd) }}
+      />
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 mb-4 text-[11px] text-dim">
         <Link href="/restaurants" className="hover:text-text transition-colors">← All Restaurants</Link>

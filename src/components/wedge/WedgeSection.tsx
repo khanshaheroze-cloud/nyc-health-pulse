@@ -357,6 +357,11 @@ export function WedgeSection() {
             onManualLocation={handleManualLocation}
             locationStatus={locationStatus}
           />
+          {/* Social proof — verifiable numbers only: 30 chains in eatSmartData,
+              27,678 distinct graded restaurants in DOHMH 43nn-pn8j (July 2026) */}
+          <p className="text-center text-[11px] text-[#8A8F8A] mt-2 px-4">
+            30 chains with full nutrition · menus verified in person · 27,000+ NYC restaurants rated
+          </p>
           {lowConfidenceHood && (
             <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-2">
               <div className="flex flex-wrap items-center gap-2 bg-[#FBF6E8] border border-[#F0E3B5] rounded-xl px-3 py-2 text-[12px] text-[#8A6A1C]">

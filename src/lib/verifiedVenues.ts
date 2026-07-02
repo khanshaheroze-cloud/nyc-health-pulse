@@ -47,6 +47,9 @@ export interface VerifiedVenue {
   hours: { days: string; open: string; close: string }[];
   verification: Verification;
   menuItems: VerifiedMenuItem[];
+  // Delivery/order deep link (DoorDash/UberEats affiliate later). Optional —
+  // UI renders an "Order" link only when populated. No venue has it seeded yet.
+  orderUrl?: string | null;
 }
 
 const VENUES = venuesJson as unknown as VerifiedVenue[];

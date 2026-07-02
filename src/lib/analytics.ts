@@ -5,7 +5,8 @@
 // /admin/metrics can query totals without a third-party analytics plan).
 // Vercel Analytics handles pageviews; this handles the funnel:
 //   find_food_search | result_card_click | venue_detail_view | guide_view |
-//   waitlist_signup | newsletter_signup
+//   waitlist_signup | newsletter_signup | see_menu_click | directions_click |
+//   i_ate_this  (the last three feed affiliate-deal and app-feature counts)
 
 export type FunnelEvent =
   | "find_food_search"
@@ -13,7 +14,10 @@ export type FunnelEvent =
   | "venue_detail_view"
   | "guide_view"
   | "waitlist_signup"
-  | "newsletter_signup";
+  | "newsletter_signup"
+  | "see_menu_click"
+  | "directions_click"
+  | "i_ate_this";
 
 /** UTM source passthrough: utm_source wins, else the explicit source, else direct */
 function resolveSource(explicit?: string): string {

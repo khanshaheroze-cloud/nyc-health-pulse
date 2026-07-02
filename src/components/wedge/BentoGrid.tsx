@@ -157,8 +157,9 @@ export function BentoGrid({ aqi, aqiCategory, tempF, uvIndex, pollenLevel }: Ben
         {/* D — Today's Workout */}
         <Tile href="/workouts" iconBg="#FBEAE7" iconColor="#C24A37" emoji="💪" label="Today's workout" title="Ready to train" />
 
-        {/* E — NYC Health Data */}
-        <Tile href="/health-data" iconBg="#F3EAFB" iconColor="#7A4FB5" emoji="📊" label="NYC Health Data" title="8 categories" />
+        {/* E — NYC Health Data (Find Care + Street Safety folded in here —
+            fewer, stronger homepage tiles for the Eat/Move/Breathe/Live story) */}
+        <Tile href="/health-data" iconBg="#F3EAFB" iconColor="#7A4FB5" emoji="📊" label="NYC Health Data" title="10 categories" />
       </div>
 
       {/* Secondary row */}
@@ -167,8 +168,6 @@ export function BentoGrid({ aqi, aqiCategory, tempF, uvIndex, pollenLevel }: Ben
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5" style={{ gridAutoRows: "120px" }}>
         <SecondaryTile href="/building-health" emoji="🏢" label="Building Safety" title="Is my building safe?" />
-        <SecondaryTile href="/find-care" emoji="🩺" label="Find Care" title="Clinics + crisis" />
-        <SecondaryTile href="/safety" emoji="🚦" label="Street Safety" title="Vision Zero data" />
       </div>
     </div>
   );

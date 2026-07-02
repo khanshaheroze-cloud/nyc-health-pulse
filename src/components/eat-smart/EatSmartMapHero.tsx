@@ -13,6 +13,7 @@ import { LazyMenuModal, preloadMenuModal } from "./LazyMenuModal";
 import { QuickLogToast } from "./QuickLogToast";
 import { readLocation, writeLocation, subscribeLocation, requestBrowserLocation } from "@/lib/locationStore";
 import { fetchWithTimeout } from "@/lib/fetchWithTimeout";
+import { trackEvent } from "@/lib/analytics";
 
 const MapImpl = dynamic(() => import("./_EatSmartMapHeroImpl"), { ssr: false });
 
@@ -171,12 +172,18 @@ export function EatSmartMapHero() {
       const target = e.target as HTMLElement;
       const menuBtn = target.closest("[data-menu-open]") as HTMLElement | null;
       const logBtn = target.closest("[data-quick-log]") as HTMLElement | null;
+      const dirLink = target.closest("[data-directions]") as HTMLElement | null;
+
+      if (dirLink) trackEvent("directions_click");
 
       if (menuBtn) {
         try {
           const d = JSON.parse(menuBtn.getAttribute("data-menu-open") ?? "{}");
           const menu = getRestaurantMenu(d.chainSlug, d.cuisine, d.name, d.name);
-          if (menu) setModalMenu({ menu, distance: d.distance, grade: d.grade });
+          if (menu) {
+            setModalMenu({ menu, distance: d.distance, grade: d.grade });
+            trackEvent("see_menu_click", { meta: { venue: d.name ?? "" } });
+          }
         } catch { /* ignore */ }
       }
 
@@ -195,6 +202,7 @@ export function EatSmartMapHero() {
             });
             logBtn.textContent = "\u2713 Logged";
             logBtn.style.opacity = "0.7";
+            trackEvent("i_ate_this", { meta: { venue: menu.restaurantName } });
             setToastData({
               itemName: topItem.name,
               restaurantName: menu.restaurantName,

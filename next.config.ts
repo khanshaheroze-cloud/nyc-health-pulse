@@ -20,6 +20,8 @@ const nextConfig: NextConfig = {
       { source: "/street-safety", destination: "/safety", permanent: true },
       { source: "/fitness", destination: "/workouts", permanent: true },
       { source: "/active", destination: "/run-routes", permanent: true },
+      // Brand path for the scoring explainer — /methodology is the canonical page
+      { source: "/pulsescore", destination: "/methodology", permanent: true },
     ];
   },
   async headers() {

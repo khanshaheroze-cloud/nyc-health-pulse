@@ -183,7 +183,7 @@ export default function EatSmartMapHeroImpl({ center, restaurants, selectedId, o
             <button data-menu-open="${menuBtnData}" style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid #ddd;background:white;color:#333;font-size:11px;font-weight:600;cursor:pointer;">See menu →</button>
             <button data-quick-log="${menuBtnData}" style="flex:1;padding:6px 10px;border-radius:8px;border:none;background:#4A7C59;color:white;font-size:11px;font-weight:600;cursor:pointer;">+ I ate this</button>
           </div>
-          <a href="${dirUrl}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px;padding:5px 10px;border-radius:8px;border:1px solid #e5e5e5;color:#666;font-size:10px;font-weight:500;text-decoration:none;text-align:center;">🧭 Directions</a>
+          <a href="${dirUrl}" data-directions target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px;padding:5px 10px;border-radius:8px;border:1px solid #e5e5e5;color:#666;font-size:10px;font-weight:500;text-decoration:none;text-align:center;">🧭 Directions</a>
         </div>
       `;
 

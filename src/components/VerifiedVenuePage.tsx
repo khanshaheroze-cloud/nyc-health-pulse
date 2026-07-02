@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatMonthYear } from "@/lib/freshness";
 import { badgeState, type VerifiedVenue } from "@/lib/verifiedVenues";
 import { TrackView } from "@/components/TrackView";
+import { getDirectionsUrl } from "@/lib/cuisineTips";
 
 // Detail page for an in-person-verified independent venue — the data-moat
 // surface. Real menu, real prices, real macros, freshness visible.
@@ -36,6 +37,26 @@ export function VerifiedVenuePage({ venue }: { venue: VerifiedVenue }) {
             {venue.venueType} · {venue.address}
             {venue.dohmhGrade ? ` · DOHMH Grade ${venue.dohmhGrade}` : ""}
             {venue.priceBand ? ` · ${"$".repeat(venue.priceBand)}` : ""}
+          </p>
+          <p className="text-[12px] mt-1.5 flex items-center gap-3">
+            <a
+              href={getDirectionsUrl(venue.lat, venue.lng, venue.name, venue.address)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-hp-blue font-medium hover:underline"
+            >
+              🧭 Directions
+            </a>
+            {venue.orderUrl && (
+              <a
+                href={venue.orderUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-hp-green font-medium hover:underline"
+              >
+                Order ↗
+              </a>
+            )}
           </p>
         </div>
       </div>

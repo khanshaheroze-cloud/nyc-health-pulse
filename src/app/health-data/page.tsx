@@ -27,6 +27,8 @@ const sections = [
   { href: "/demographics", icon: "📊", title: "Demographics", desc: "Race, poverty, income, uninsured rates from Census ACS" },
   { href: "/environment", icon: "🐀", title: "Environment", desc: "Rodent activity, water quality, noise, beach water, Citi Bike" },
   { href: "/nutrition", icon: "🥗", title: "Nutrition", desc: "NHANES dietary data, sodium, sugar, fruit & vegetable intake" },
+  { href: "/find-care", icon: "🩺", title: "Find Care", desc: "Clinics, hospitals, and crisis resources near you" },
+  { href: "/safety", icon: "🚦", title: "Street Safety", desc: "Vision Zero crash data, trends, and contributing factors" },
 ];
 
 export default function HealthDataPage() {
