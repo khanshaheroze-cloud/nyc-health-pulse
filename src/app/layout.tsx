@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, DM_Serif_Display } from "next/font/google";
+import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Analytics } from "@vercel/analytics/next";
@@ -11,18 +11,6 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserMenu } from "@/components/UserMenu";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { OnboardingTrigger } from "@/components/OnboardingTrigger";
-
-const plusJakarta = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
-
-const dmSerifDisplay = DM_Serif_Display({
-  variable: "--font-dm-serif-display",
-  subsets: ["latin"],
-  weight: ["400"],
-});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -70,7 +58,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${plusJakarta.variable} ${dmSerifDisplay.variable}`}>
+    <html lang="en" className={fontVariables}>
       <head>
         {/* Prevent flash of wrong theme — runs before paint */}
         <script

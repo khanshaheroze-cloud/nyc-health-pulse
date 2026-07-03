@@ -117,7 +117,7 @@ export default function NutritionSummaryCard() {
         </div>
 
         {hasEntries ? (
-          <div>
+          <div className="tabular-nums">
             <div className="flex items-baseline gap-1">
               <span className="text-[22px] font-extrabold text-text">{todayCals.toLocaleString()}</span>
               <span className="text-[12px] text-dim">/ {targetCals.toLocaleString()} cal</span>

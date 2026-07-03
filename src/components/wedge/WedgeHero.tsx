@@ -60,7 +60,7 @@ export function WedgeHero() {
         style={{ fontSize: "clamp(40px, 6vw, 64px)" }}
       >
         Healthy food,{" "}
-        <em className={dark ? "text-[#6FD39A]" : "text-[#2F8F4D]"}>near you</em>,
+        <span className={`hero-swipe ${dark ? "text-[#6FD39A]" : "text-[#2F8F4D]"}`}>near you</span>,
         <br />
         right now.
       </h1>

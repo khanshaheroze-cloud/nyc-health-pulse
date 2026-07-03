@@ -207,7 +207,7 @@ export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, 
                   {spot.locationCount} locations nearby · nearest {spot.walkMinutes} min
                 </p>
               )}
-              <div className="flex flex-wrap gap-1.5 mb-3 mt-1.5">
+              <div className="flex flex-wrap gap-1.5 mb-3 mt-1.5 tabular-nums">
                 <span className="bg-[#E6EEF9] text-[#2A6BC9] text-[11px] px-2 py-0.5 rounded-full">
                   {spot.walkMinutes} min walk
                 </span>

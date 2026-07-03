@@ -66,9 +66,10 @@
   --color-borough-queens: #B933AD;
   --color-borough-si: #6CBE45;
 
-  /* Fonts — Plus Jakarta Sans + DM Serif Display */
-  --font-sans: var(--font-plus-jakarta-sans), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --font-display: var(--font-dm-serif-display), Georgia, serif;
+  /* Fonts — active theme is set by src/lib/fonts (build-time FONT_THEME).
+     Components consume these tokens only; the faces bind via --font-*-face. */
+  --font-sans: var(--font-body-face), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-display: var(--font-display-face), Georgia, serif;
 }
 
 /* ===================================================================
@@ -756,6 +757,41 @@ body {
   background-image:
     radial-gradient(ellipse 80% 50% at 0% 0%, rgba(110, 207, 138, 0.04) 0%, transparent 60%),
     radial-gradient(ellipse 60% 40% at 100% 100%, rgba(106, 176, 232, 0.03) 0%, transparent 60%);
+}
+
+/* Display face — Fraunces variable axes: SOFT ~90 (rounded, food-warm),
+   WONK 0 (warm not wacky), optical sizing auto. Slight negative tracking reads
+   editorial at display sizes. Harmless on the Bricolage/Newsreader alternates
+   (unknown axes are ignored). */
+.font-display {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 90, "WONK" 0;
+  letter-spacing: -0.015em;
+}
+
+/* Data credibility — align digits everywhere numbers carry meaning
+   (macros, prices, AQI, PulseScore, tracker totals). */
+.tabular-nums,
+.stat-number {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Hero accent — replaces the old italic-serif "near you" AI-tell. Warm, hand-
+   drawn green underline swipe under an upright, same-weight word (currentColor
+   tracks the day/night green). */
+.hero-swipe {
+  font-style: normal;
+  position: relative;
+  white-space: nowrap;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='12' viewBox='0 0 120 12' preserveAspectRatio='none'%3E%3Cpath d='M3 8 C 30 3, 70 3, 117 6' stroke='%232F8F4D' stroke-width='3.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 0 88%;
+  background-size: 100% 0.42em;
+}
+.dark .hero-swipe,
+[data-theme="dark"] .hero-swipe {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='12' viewBox='0 0 120 12' preserveAspectRatio='none'%3E%3Cpath d='M3 8 C 30 3, 70 3, 117 6' stroke='%236FD39A' stroke-width='3.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
 }
 
 /* NYC texture overlay — subtle grain for tactile warmth + faint grid for urban structure */

@@ -67,8 +67,8 @@ export const tokens = {
 
   typography: {
     fontFamily: {
-      sans: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-      display: "'DM Serif Display', Georgia, serif",
+      sans: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      display: "'Fraunces', Georgia, serif",
     },
     fontSize: {
       xs: 10,
