@@ -141,13 +141,21 @@ export function EnvironmentBackdrop({ weatherLabel }: EnvironmentBackdropProps) 
     }));
   }, [weather, reducedMotion]);
 
+  // Full-bleed: break out of the 1200px content container to span the whole
+  // viewport width (centered on the parent), while page content stays
+  // constrained above it at z-[1]. body has overflow-x:hidden so the 100vw
+  // width can't introduce a horizontal scrollbar.
+  const fullBleed = "absolute top-0 bottom-0 left-1/2 -z-10 overflow-hidden pointer-events-none";
+  const fullBleedStyle = { width: "100vw", transform: "translateX(-50%)" } as const;
+
   if (!mounted) {
-    return <div className="absolute inset-0 -z-10" aria-hidden="true" />;
+    return <div className={fullBleed} style={fullBleedStyle} aria-hidden="true" />;
   }
 
   return (
     <div
-      className="absolute inset-0 -z-10 overflow-hidden pointer-events-none"
+      className={fullBleed}
+      style={fullBleedStyle}
       aria-hidden="true"
     >
       {/* Layer 1 — Base time-band gradient */}

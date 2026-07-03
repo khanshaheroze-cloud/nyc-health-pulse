@@ -784,10 +784,11 @@ body {
   font-style: normal;
   position: relative;
   white-space: nowrap;
+  padding-bottom: 0.12em;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='12' viewBox='0 0 120 12' preserveAspectRatio='none'%3E%3Cpath d='M3 8 C 30 3, 70 3, 117 6' stroke='%232F8F4D' stroke-width='3.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: 0 88%;
-  background-size: 100% 0.42em;
+  background-position: 0 100%;
+  background-size: 100% 0.26em;
 }
 .dark .hero-swipe,
 [data-theme="dark"] .hero-swipe {
