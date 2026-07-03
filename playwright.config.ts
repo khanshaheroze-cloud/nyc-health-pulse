@@ -13,6 +13,11 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
+    // sw.js skipWaiting()+claim()s clients and proxies /api/ fetches — once it
+    // activates (a race CI's slower runners lose), requests bypass page.route
+    // mocks and hit the real API, which 503s without Resend envs. Tests don't
+    // exercise the SW, so block it for deterministic interception.
+    serviceWorkers: "block",
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /mobile/ },
