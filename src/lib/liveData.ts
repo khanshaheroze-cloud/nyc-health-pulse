@@ -21,12 +21,23 @@ const FARMERS_MARKET_API = "https://data.cityofnewyork.us/resource/8vwk-6iz2.jso
 
 const AIRNOW_BASE = "https://www.airnowapi.org/aq/observation/zipCode/current/";
 
+// Socrata throttles unauthenticated requests per IP. CI/Vercel builds share
+// egress IPs, so prerender fetches intermittently 429 and pages bake divergent
+// fallbacks (the recurring homepage vs /air-quality AQI drift). An app token
+// lifts the throttle; non-Socrata hosts are left untouched.
+const SOCRATA_HOSTS = /(^|\.)(data\.cityofnewyork\.us|data\.ny\.gov|data\.cdc\.gov)$/;
+function withSocrataToken(url: string, init: RequestInit & { next?: { revalidate?: number } }) {
+  const token = process.env.NYC_OPEN_DATA_APP_TOKEN;
+  if (!token || !SOCRATA_HOSTS.test(new URL(url).hostname)) return init;
+  return { ...init, headers: { ...(init.headers as Record<string, string> | undefined), "X-App-Token": token } };
+}
+
 // Fetch with a hard timeout — prevents build hangs when external APIs are slow
 async function fetchWithTimeout(url: string, init: RequestInit & { next?: { revalidate?: number } } = {}, ms = 12000): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    return await fetch(url, { ...withSocrataToken(url, init), signal: controller.signal });
   } finally {
     clearTimeout(timer);
   }
@@ -65,7 +76,7 @@ export async function fetchFoodByCuisine(): Promise<{ cuisine: string; violation
       "$order":  "violations DESC",
       "$limit":  "8",
     });
-    const res = await fetch(`${FOOD_API}?${params}`, { next: { revalidate: 3600 } });
+    const res = await fetchWithTimeout(`${FOOD_API}?${params}`, { next: { revalidate: 3600 } });
     if (!res.ok) return null;
     const raw = await res.json() as { cuisine_description: string; violations: string }[];
     return raw.map(d => ({ cuisine: d.cuisine_description, violations: parseInt(d.violations) }));
@@ -79,7 +90,7 @@ export async function fetchFoodByBorough(): Promise<{ borough: string; avgScore:
       "$where":  "score IS NOT NULL AND boro != '0' AND boro IS NOT NULL",
       "$group":  "boro",
     });
-    const res = await fetch(`${FOOD_API}?${params}`, { next: { revalidate: 3600 } });
+    const res = await fetchWithTimeout(`${FOOD_API}?${params}`, { next: { revalidate: 3600 } });
     if (!res.ok) return null;
     const raw = await res.json() as { boro: string; avg_score: string }[];
     const VALID = new Set(["Bronx","Brooklyn","Manhattan","Queens","Staten Island"]);
@@ -97,7 +108,7 @@ export async function fetchGradeDistribution(): Promise<{ name: string; value: n
       "$group":  "grade",
       "$order":  "count DESC",
     });
-    const res = await fetch(`${FOOD_API}?${params}`, { next: { revalidate: 3600 } });
+    const res = await fetchWithTimeout(`${FOOD_API}?${params}`, { next: { revalidate: 3600 } });
     if (!res.ok) return null;
     const raw = await res.json() as { grade: string; count: string }[];
     const COLORS: Record<string, string> = { A: "#2dd4a0", B: "#5b9cf5", C: "#f07070", N: "#f5c542", Z: "#f59e42" };
@@ -116,7 +127,7 @@ export async function fetchCriticalViolationsCount(): Promise<number | null> {
       "$select": "count(*) as count",
       "$where":  `critical_flag='Critical' AND inspection_date>'${dateOnlyDaysAgo(30)}'`,
     });
-    const res = await fetch(`${FOOD_API}?${params}`, { next: { revalidate: 3600 } });
+    const res = await fetchWithTimeout(`${FOOD_API}?${params}`, { next: { revalidate: 3600 } });
     if (!res.ok) return null;
     const raw = await res.json() as { count: string }[];
     return parseInt(raw[0]?.count ?? "0") || null;
@@ -134,7 +145,7 @@ export async function fetchRodentByBorough(): Promise<
       "$where":  `inspection_date>'${dateOnlyDaysAgo(30)}'`,
       "$group":  "borough,result",
     });
-    const res = await fetch(`${RODENT_API}?${params}`, { next: { revalidate: 3600 } });
+    const res = await fetchWithTimeout(`${RODENT_API}?${params}`, { next: { revalidate: 3600 } });
     if (!res.ok) return null;
     const raw = await res.json() as { borough: string; result: string; count: string }[];
     const grouped: Record<string, { total: number; active: number; passed: number }> = {};
@@ -165,7 +176,7 @@ export async function fetchNoiseByBorough(): Promise<{ borough: string; complain
       "$group":  "borough",
       "$order":  "complaints DESC",
     });
-    const res = await fetch(`${NYC311}?${params}`, { next: { revalidate: 3600 } });
+    const res = await fetchWithTimeout(`${NYC311}?${params}`, { next: { revalidate: 3600 } });
     if (!res.ok) return null;
     const raw = await res.json() as { borough: string; complaints: string }[];
     // 311 API returns borough in ALL CAPS — normalize to title case for matching
@@ -190,7 +201,7 @@ export async function fetchNoiseByType(): Promise<{ type: string; count: number;
       "$order":  "count DESC",
       "$limit":  "7",
     });
-    const res = await fetch(`${NYC311}?${params}`, { next: { revalidate: 3600 } });
+    const res = await fetchWithTimeout(`${NYC311}?${params}`, { next: { revalidate: 3600 } });
     if (!res.ok) return null;
     const raw = await res.json() as { complaint_type: string; count: string }[];
     const FILLS = ["#5b9cf5","#f59e42","#a78bfa","#2dd4a0","#f5c542","#f07070","#6b7a94"];
@@ -216,7 +227,7 @@ export async function fetchCovidMonthly(): Promise<
       "$order":  "date_of_interest DESC",
       "$limit":  "365",
     });
-    const res = await fetch(`${COVID_API}?${params}`, { next: { revalidate: 86400 } });
+    const res = await fetchWithTimeout(`${COVID_API}?${params}`, { next: { revalidate: 86400 } });
     if (!res.ok) return null;
     const raw = await res.json() as {
       date_of_interest: string;
@@ -258,7 +269,7 @@ export async function fetchCovidByBorough(): Promise<{ borough: string; cases: n
       // 180-day window + no-Z floating_timestamp format (dataset lags ~4 months)
       "$where": `date_of_interest>'${floatingTimestampDaysAgo(180)}' AND incomplete='0'`,
     });
-    const res = await fetch(`${COVID_API}?${params}`, { next: { revalidate: 86400 } });
+    const res = await fetchWithTimeout(`${COVID_API}?${params}`, { next: { revalidate: 86400 } });
     if (!res.ok) return null;
     const raw = await res.json() as Record<string, string>[];
     if (!raw[0]) return null;
@@ -380,7 +391,7 @@ export async function fetchAirQualityNeighborhoods(): Promise<{ name: string; va
       "$order": "time_period DESC",
       "$limit": "500",
     });
-    const res = await fetch(`${NYCCAS_API}?${params}`, { next: { revalidate: 86400 } });
+    const res = await fetchWithTimeout(`${NYCCAS_API}?${params}`, { next: { revalidate: 86400 } });
     if (!res.ok) return null;
     const raw = await res.json() as NyccastRow[];
 
@@ -408,7 +419,7 @@ export async function fetchAirQualityByBorough(): Promise<
       "$order": "time_period DESC",
       "$limit": "300",
     });
-    const res = await fetch(`${NYCCAS_API}?${params}`, { next: { revalidate: 86400 } });
+    const res = await fetchWithTimeout(`${NYCCAS_API}?${params}`, { next: { revalidate: 86400 } });
     if (!res.ok) return null;
     const raw = await res.json() as NyccastRow[];
 
@@ -445,7 +456,7 @@ export async function fetchNeighborhoodPm25(geocode: number): Promise<{ pm25: nu
       "$order": "time_period DESC",
       "$limit": "10",
     });
-    const res = await fetch(`${NYCCAS_API}?${params}`, { next: { revalidate: 86400 } });
+    const res = await fetchWithTimeout(`${NYCCAS_API}?${params}`, { next: { revalidate: 86400 } });
     if (!res.ok) return null;
     const raw = await res.json() as { data_value: string; time_period: string }[];
     const annual = raw.find(r => r.time_period?.toLowerCase().includes("annual"));
@@ -463,7 +474,7 @@ export async function fetchCitywideAirQuality(): Promise<{ pm25: number; period:
       "$order": "time_period DESC",
       "$limit": "10",
     });
-    const res = await fetch(`${NYCCAS_API}?${params}`, { next: { revalidate: 86400 } });
+    const res = await fetchWithTimeout(`${NYCCAS_API}?${params}`, { next: { revalidate: 86400 } });
     if (!res.ok) return null;
     const raw = await res.json() as { data_value: string; time_period: string }[];
     const annual = raw.find(r => r.time_period?.toLowerCase().includes("annual"));
@@ -522,7 +533,7 @@ export async function fetchLeadingCauses(): Promise<CauseOfDeath[] | null> {
       "$order": "year DESC",
       "$limit": "500",
     });
-    const res = await fetch(`${VITAL_STATS}?${params}`, { next: { revalidate: 86400 * 7 } });
+    const res = await fetchWithTimeout(`${VITAL_STATS}?${params}`, { next: { revalidate: 86400 * 7 } });
     if (!res.ok) return null;
     const raw = await res.json() as { leading_cause: string; deaths: string; age_adjusted_death_rate: string; year: string }[];
     if (raw.length === 0) return null;
@@ -606,7 +617,7 @@ export async function fetchWaterQuality(): Promise<WaterQualitySummary | null> {
       "$order":  "sample_date DESC",
       "$limit":  "1000",
     });
-    const res = await fetch(`${DEP_WATER}?${params}`, { next: { revalidate: 86400 } });
+    const res = await fetchWithTimeout(`${DEP_WATER}?${params}`, { next: { revalidate: 86400 } });
     if (!res.ok) return null;
     const raw = await res.json() as {
       sample_date: string;
@@ -678,7 +689,7 @@ export async function fetchCdcPlacesByBorough(): Promise<CdcPlacesBorough[] | nu
       datavaluetypeid:  "AgeAdjPrv",
       "$limit":         "5000",
     });
-    const res = await fetch(`${CDC_PLACES_COUNTY}?${params}`, { next: { revalidate: 86400 * 7 } });
+    const res = await fetchWithTimeout(`${CDC_PLACES_COUNTY}?${params}`, { next: { revalidate: 86400 * 7 } });
     if (!res.ok) return null;
     const raw = await res.json() as {
       locationid: string;
@@ -773,7 +784,7 @@ export async function fetchHivByBorough(): Promise<HivBoroughRow[] | null> {
       "$order": "year DESC",
       "$limit": "500",
     });
-    const res = await fetch(`${HIV_API}?${params}`, { next: { revalidate: 86400 * 7 } });
+    const res = await fetchWithTimeout(`${HIV_API}?${params}`, { next: { revalidate: 86400 * 7 } });
     if (!res.ok) return null;
     const raw = await res.json() as {
       borough: string;
@@ -827,7 +838,7 @@ export async function fetchHivByNeighborhood(): Promise<{ geocode: number; rate:
       "$order": "year DESC",
       "$limit": "600",
     });
-    const res = await fetch(`${HIV_API}?${params}`, { next: { revalidate: 86400 * 7 } });
+    const res = await fetchWithTimeout(`${HIV_API}?${params}`, { next: { revalidate: 86400 * 7 } });
     if (!res.ok) return null;
     const raw = await res.json() as {
       neighborhood: string;
@@ -863,7 +874,7 @@ export async function fetchLeadByNeighborhood(): Promise<{ geocode: number; pct:
       "$order": "time_period DESC",
       "$limit": "200",
     });
-    const res = await fetch(`${LEAD_API}?${params}`, { next: { revalidate: 86400 * 30 } });
+    const res = await fetchWithTimeout(`${LEAD_API}?${params}`, { next: { revalidate: 86400 * 30 } });
     if (!res.ok) return null;
     const raw = await res.json() as { geo_join_id: string; bll_5_total_pct: string; time_period: string }[];
     if (raw.length === 0) return null;
@@ -885,7 +896,7 @@ export async function fetchHeatVulnerabilityByNeighborhood(): Promise<{ geocode:
       "$select": "geocode,hvi_score",
       "$limit": "100",
     });
-    const res = await fetch(`${HEAT_VULN_API}?${params}`, { next: { revalidate: 86400 * 30 } });
+    const res = await fetchWithTimeout(`${HEAT_VULN_API}?${params}`, { next: { revalidate: 86400 * 30 } });
     if (!res.ok) return null;
     const raw = await res.json() as { geocode: string; hvi_score: string }[];
     if (raw.length === 0) return null;
@@ -1420,7 +1431,7 @@ const WMO_LABELS: Record<number, string> = {
 export async function fetchWeatherUV(): Promise<WeatherUV | null> {
   try {
     const url = "https://api.open-meteo.com/v1/forecast?latitude=40.7128&longitude=-74.006&current=temperature_2m,apparent_temperature,weather_code,uv_index,relative_humidity_2m,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America/New_York";
-    const res = await fetch(url, { next: { revalidate: 3600 } });
+    const res = await fetchWithTimeout(url, { next: { revalidate: 3600 } });
     if (!res.ok) return null;
     const data = await res.json();
     const c = data?.current;
