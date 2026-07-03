@@ -33,6 +33,8 @@ export interface ResultSpot {
   verifiedSlug?: string | null;
   openState?: "open" | "closed" | "unknown";
   hoursChip?: { label: string; tone: "open" | "closed" | "unknown" } | null;
+  /** DOHMH CAMIS — the /spot/[venueId] key for real generic venues */
+  camis?: string | null;
 }
 
 interface LiveResultsStripProps {

@@ -4,8 +4,15 @@ import { useState } from "react";
 
 type Status = "idle" | "loading" | "success" | "error";
 
-// Newsletter capture — distinct from the app waitlist (list: "newsletter").
-// "One neighborhood food guide per week." Lives on guides and /eat-smart.
+// EMAIL LIST STRATEGY (decided Jul 2026): two intentional lists, tagged by the
+// `list` field on /api/subscribe, tracked separately for the kill/continue gate.
+//   • "app_waitlist" — "notify me when the Q3 app ships". The homepage's SINGLE
+//     primary capture (AppWaitlistCapture), with the weekly digest as a one-click
+//     add-on AFTER success — the homepage never shows two competing asks.
+//   • "newsletter" — this component: "one neighborhood food guide per week".
+//     Lives only on /guides and /eat-smart, where weekly-content intent is real.
+// Kept separate (not merged) because the intents and cadences differ; a single
+// list would blur waitlist conversion against content-subscriber retention.
 export function NewsletterSignup({ source }: { source?: string }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");

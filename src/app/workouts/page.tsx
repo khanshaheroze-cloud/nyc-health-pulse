@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { WorkoutTrackerRedesign } from "@/components/workout-tracker/WorkoutTrackerRedesign";
 import { WorkoutErrorBoundary } from "@/components/workout-tracker/WorkoutErrorBoundary";
 
+// ISR: keep the prerendered canonical + SSR shell fresh rather than frozen.
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   title: "Workouts",
   description:

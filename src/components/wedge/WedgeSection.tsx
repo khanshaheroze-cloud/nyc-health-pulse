@@ -51,6 +51,7 @@ interface ApiRestaurant {
   verifiedSlug?: string | null;
   openState?: "open" | "closed" | "unknown";
   hoursChip?: { label: string; tone: "open" | "closed" | "unknown" } | null;
+  camis?: string | null;
 }
 
 function readCachedMeal(): MealCategory | null {
@@ -179,11 +180,18 @@ export function WedgeSection() {
   useEffect(() => {
     const cached = readLocation();
     if (cached) {
+      // An IP-derived location is a guess, not a fact: use its coords to bias
+      // results, but NEVER name the neighborhood in the badge (that read as
+      // "LIVE · 10:38 PM · GREENPOINT" for fresh visitors). Only gps/manual
+      // locations — explicitly set by the user — name a neighborhood.
+      const isConfident = cached.source === "gps" || cached.source === "manual";
       setCoords({ lat: cached.lat, lng: cached.lng });
-      setLocationLabel(cached.label ?? "Saved location");
-      setIsDefault(false);
       setLocationStatus("success");
-      syncNeighborhood(cached.lat, cached.lng, cached.source === "manual" ? "manual" : "gps");
+      if (isConfident) {
+        setLocationLabel(cached.label ?? "Saved location");
+        setIsDefault(false);
+        syncNeighborhood(cached.lat, cached.lng, cached.source === "manual" ? "manual" : "gps");
+      }
     }
     const cachedMeal = readCachedMeal();
     if (cachedMeal) setMealType(cachedMeal);
@@ -237,6 +245,7 @@ export function WedgeSection() {
           verifiedSlug: r.verifiedSlug ?? null,
           openState: r.openState ?? "unknown",
           hoursChip: r.hoursChip ?? null,
+          camis: r.camis ?? null,
         };
       });
 
@@ -383,9 +392,11 @@ export function WedgeSection() {
             locationStatus={locationStatus}
           />
           {/* Social proof — verifiable numbers only: 30 chains in eatSmartData,
-              27,678 distinct graded restaurants in DOHMH 43nn-pn8j (July 2026) */}
+              27,678 distinct graded restaurants in DOHMH 43nn-pn8j (July 2026).
+              In-person verification is scoped to the LIC guide set, so the claim
+              is qualified — we never claim in-person verification city-wide. */}
           <p className="text-center text-[11px] text-[#8A8F8A] mt-2 px-4">
-            30 chains with full nutrition · menus verified in person · 27,000+ NYC restaurants rated
+            30 chains with full nutrition · LIC menus verified in person · 27,000+ NYC restaurants rated
           </p>
           {lowConfidenceHood && (
             <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-2">

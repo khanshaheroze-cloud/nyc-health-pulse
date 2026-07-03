@@ -232,6 +232,8 @@ interface ApiResult {
   verifiedAt?: string | null;
   /** Slug of the real /restaurants/{slug} detail page (verified venues only) */
   verifiedSlug?: string | null;
+  /** DOHMH CAMIS id — the shareable /spot/[venueId] key for real venues. */
+  camis?: string | null;
   /** Open/closed at query time. "unknown" when we have no hours source. */
   openState: OpenState;
   /** Where the hours came from: brand-default | verified | api | unknown */
@@ -502,6 +504,7 @@ export async function GET(req: NextRequest) {
           locationCount: 1,
           otherLocations: [],
           orderingTip: template.orderingTip,
+          camis: r.camis ?? null,
           openState: genState,
           hoursSource: "unknown",
           hoursChip: hoursChip(genState, null, when),

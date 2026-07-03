@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import TrackerApp from "@/components/nutrition-tracker/TrackerApp";
 
+// ISR: the shell/explainer is static, but pin an explicit revalidate so the
+// prerendered HTML (canonical + SSR content) is regenerated rather than frozen.
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   title: "Nutrition Tracker",
   description:

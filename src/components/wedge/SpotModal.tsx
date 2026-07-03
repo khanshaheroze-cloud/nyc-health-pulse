@@ -304,15 +304,24 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
                 How PulseScore works
               </a>
             </div>
-            {/* Un-verified generic venues have no /restaurants/* page — linking would 404 */}
-            {(!isGeneric || spot.verifiedSlug) && (
+            {/* Full-page target: chains + verified venues → /restaurants/{slug};
+                real generic venues → the shareable /spot/{camis} dossier.
+                Template picks without a CAMIS (no real venue) get no link. */}
+            {(!isGeneric || spot.verifiedSlug) ? (
               <a
                 href={`/restaurants/${spot.verifiedSlug ?? spot.slug}`}
                 className="text-[12px] text-[#2A6BC9] font-medium hover:underline"
               >
                 Open full page &rarr;
               </a>
-            )}
+            ) : spot.camis ? (
+              <a
+                href={`/spot/${spot.camis}`}
+                className="text-[12px] text-[#2A6BC9] font-medium hover:underline"
+              >
+                Open full page &rarr;
+              </a>
+            ) : null}
           </div>
         </div>
       </div>

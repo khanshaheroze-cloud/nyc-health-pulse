@@ -9,9 +9,9 @@ const nextConfig: NextConfig = {
   staticPageGenerationTimeout: 180,
   async redirects() {
     return [
-      // Old service-worker caches and stale references still request the .png
-      // paths; the icons are generated routes. Redirect instead of 404ing.
-      { source: "/apple-icon.png", destination: "/apple-icon", permanent: true },
+      // /apple-icon.png is now a REAL static file in public/ — no redirect (the
+      // old alias to the /apple-icon route is what 404'd it across three audits).
+      // /icon.png still aliases to the generated /icon route (kept as 32x32).
       { source: "/icon.png", destination: "/icon", permanent: true },
       { source: "/neighborhoods", destination: "/neighborhood", permanent: true },
       // Legacy "/overview" was a styled-less 404; the overview IS the homepage

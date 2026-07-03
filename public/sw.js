@@ -144,7 +144,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || "Pulse NYC", {
       body: data.body || "New health update available",
-      icon: "/apple-icon",
+      icon: "/apple-icon.png",
       badge: "/icon.png",
       tag: "pulse-nyc-alert",
       renotify: true,

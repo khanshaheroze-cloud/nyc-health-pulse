@@ -28,6 +28,17 @@ export const metadata: Metadata = {
   description:
     "Free NYC health dashboard. Check air quality, flu & COVID activity, restaurant safety, and 40+ health metrics for your neighborhood. Updated daily from official city data.",
   manifest: "/manifest.json",
+  // Point at real static files in public/ (not dynamic ImageResponse routes) so
+  // the literal /apple-icon.png path serves a file — apple-touch-icon 404'd in
+  // three consecutive audits when it aliased the /apple-icon route.
+  icons: {
+    icon: [
+      { url: "/icon", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
