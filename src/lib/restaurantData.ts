@@ -14,6 +14,10 @@ export interface MenuItem {
   fiber?: number;    // grams
   sugar?: number;    // grams
   tags?: string[];   // e.g. "high-protein", "low-cal", "keto", "vegan", "vegetarian"
+  // meal | side | drink | condiment. Optional — a name-based classifier
+  // (src/lib/itemType.ts) fills the gap; set explicitly to override. Keeps
+  // condiments/drinks/tiny sides out of "what can I order here" headline lists.
+  itemType?: "meal" | "side" | "drink" | "condiment";
 }
 
 export interface RestaurantChain {
@@ -784,7 +788,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
 
   // ─── ADDITIONAL FAST CASUAL ──────────────────────────────────
   {
-    name: "Chipotle-Style Bowls (Hale & Hearty)",
+    name: "Hale & Hearty",
     slug: "hale-and-hearty",
     emoji: "🥣",
     category: "Healthy",

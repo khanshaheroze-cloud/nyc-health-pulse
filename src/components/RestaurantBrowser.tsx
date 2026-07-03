@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { CHAINS, CATEGORIES, DIET_FILTERS } from "@/lib/restaurantData";
 import type { RestaurantChain } from "@/lib/restaurantData";
+import { isHeadlineItem } from "@/lib/itemType";
 
 export function RestaurantBrowser() {
   const [query, setQuery] = useState("");
@@ -127,7 +128,11 @@ export function RestaurantBrowser() {
       {filtered.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map(({ chain, matchingItems }, i) => {
-            const lowestCal = [...matchingItems]
+            // "What meal-ish thing can I order here" — exclude condiments,
+            // drinks, and tiny sides so the headline three aren't Cane's Sauce,
+            // a Side of Queso, and Green Beans. (Full menu still lists them.)
+            const headlineItems = matchingItems.filter(isHeadlineItem);
+            const lowestCal = [...(headlineItems.length ? headlineItems : matchingItems)]
               .sort((a, b) => a.cal - b.cal)
               .slice(0, 3);
 

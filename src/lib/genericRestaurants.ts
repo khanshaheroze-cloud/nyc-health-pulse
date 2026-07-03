@@ -58,8 +58,11 @@ export const GENERIC_TEMPLATES: GenericTemplate[] = [
       { name: "Chicken Slice / Topping", description: "Add grilled chicken to any slice for protein", cal: 350, protein: 22, estimatedPrice: 6 },
       { name: "Garden Salad (oil + vinegar)", description: "Mixed greens, tomato, cucumber, light dressing", cal: 120, protein: 3, estimatedPrice: 6 },
       { name: "Veggie Slice", description: "Loaded with peppers, onions, mushrooms, spinach", cal: 290, protein: 12, estimatedPrice: 5 },
-      { name: "Chicken Parm with Pasta", description: "Breaded chicken cutlet, marinara, over pasta", cal: 680, protein: 38, estimatedPrice: 14 },
-      { name: "Lasagna", description: "Baked lasagna with ricotta, mozzarella, meat sauce", cal: 550, protein: 26, estimatedPrice: 12 },
+      // Leaner canonical Italian orders — a 550-cal cheese casserole is not the
+      // healthy archetype. (Removed Lasagna + Chicken-Parm-over-pasta headliners.)
+      { name: "Grilled Chicken + Sautéed Greens", description: "Simple grilled chicken with a vegetable side, hold the pasta", cal: 420, protein: 40, estimatedPrice: 13 },
+      { name: "Minestrone + Side Salad", description: "Vegetable-and-bean soup with a garden salad", cal: 330, protein: 14, estimatedPrice: 11 },
+      { name: "Grilled Fish + Vegetables", description: "Branzino or salmon with roasted vegetables", cal: 460, protein: 38, estimatedPrice: 16 },
     ],
   },
   {
@@ -301,12 +304,20 @@ const DOHMH_CUISINE_MAP: Record<string, string> = {
   "soups/salads/sandwiches": "sandwiches",
   "wraps": "sandwiches",
 
-  // European → pizza (closest Italian template)
-  "french": "pizza",
-  "new french": "pizza",
+  // French leans café/bistro (breakfast pastries, eggs, salads) — NOT the
+  // pizza/Italian template, which used to hand Maman a "Lasagna" pick.
+  "french": "cafe",
+  "new french": "cafe",
   "portuguese": "pizza",
-  "scandinavian": "pizza",
+  "scandinavian": "cafe",
 };
+
+/** Look up a template by cuisineKey directly (used by the classification
+ *  override path). Returns null for the sentinel "none". */
+export function templateByCuisineKey(cuisineKey: string): GenericTemplate | null {
+  if (cuisineKey === "none") return null;
+  return GENERIC_TEMPLATES.find(t => t.cuisineKey === cuisineKey) ?? null;
+}
 
 export function matchGenericCategory(cuisineDescription: string): GenericTemplate | null {
   const key = cuisineDescription.toLowerCase().trim();

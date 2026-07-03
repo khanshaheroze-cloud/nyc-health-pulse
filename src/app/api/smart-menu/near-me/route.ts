@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CHAINS, type MenuItem as ChainMenuItem } from "@/lib/restaurantData";
 import { inferMealType, mealMatches, type MealCategory } from "@/lib/inferMealType";
-import { matchGenericCategory, type GenericTemplate, type GenericPick } from "@/lib/genericRestaurants";
+import { matchGenericCategory, templateByCuisineKey, type GenericTemplate, type GenericPick } from "@/lib/genericRestaurants";
+import { classificationOverride } from "@/lib/venueClassification";
 import { canonicalBrand, normalizeVenueName, healthyPickEligibility } from "@/lib/venue-normalize";
 import { snapCoords, snapPadMeters, GRID_FINE } from "@/lib/geoSnap";
 import { getVenueByCamis, badgeState, type BadgeState } from "@/lib/verifiedVenues";
@@ -152,6 +153,12 @@ function filterGenericPicks(picks: GenericPick[], meal: string, category: string
   scored.sort((a, b) => b.priority - a.priority);
   const result: GenericPick[] = [];
   const maxPri = scored[0].priority;
+
+  // Meal-coherence guard: if the best pick still doesn't belong to the active
+  // meal (priority 0 = neither an exact nor a compatible match), surface NONE —
+  // a dinner lasagna must never headline the Breakfast tab. The card falls back
+  // to ordering guidance.
+  if (maxPri === 0) return [];
   const topTier = scored.filter(s => s.priority === maxPri);
   const rest = scored.filter(s => s.priority < maxPri);
 
@@ -441,7 +448,12 @@ export async function GET(req: NextRequest) {
         // template picks, no badge, no detail link.
         const cleanName = vv?.name;
 
-        const template = matchGenericCategory(r.cuisine_description || "");
+        // Per-venue classification override wins over DOHMH cuisine (fixes
+        // Maman/"French" → pizza+lasagna). "none" forces guidance-only.
+        const override = classificationOverride(cleanName ?? r.dba ?? "");
+        const template = override
+          ? templateByCuisineKey(override)
+          : matchGenericCategory(r.cuisine_description || "");
         if (!template) continue;
 
         if (meal === "coffee" && !COFFEE_ALLOWED_CATS.has(template.cuisineKey)) continue;
