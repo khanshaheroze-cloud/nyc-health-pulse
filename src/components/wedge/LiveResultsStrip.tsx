@@ -31,6 +31,8 @@ export interface ResultSpot {
   verifiedBadge?: "verified" | "needs-recheck" | null;
   verifiedAt?: string | null;
   verifiedSlug?: string | null;
+  openState?: "open" | "closed" | "unknown";
+  hoursChip?: { label: string; tone: "open" | "closed" | "unknown" } | null;
 }
 
 interface LiveResultsStripProps {
@@ -83,6 +85,9 @@ export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, 
         </h2>
         <span className="text-[13px] text-[#6B716B] flex-shrink-0">
           {fetchedAt ? `Updated ${formatRelative(fetchedAt)}` : "Updating"} · {totalCount} spot{totalCount === 1 ? "" : "s"} within 10 min walk
+          {spots.some((s) => s.openState === "unknown") && (
+            <span className="text-[#8A8F8A]"> · hours estimated for some spots</span>
+          )}
         </span>
       </div>
 
@@ -229,6 +234,19 @@ export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, 
                 <span className="bg-[#F0EFE8] text-[#1A1A1A] text-[11px] px-2 py-0.5 rounded-full">
                   {spot.priceTier || priceTierFallback(spot.priceRange)}
                 </span>
+                {spot.hoursChip && (
+                  <span
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+                      spot.hoursChip.tone === "open"
+                        ? "bg-[#E5F1E8] text-[#2F8F4D] border-[#2F8F4D]/25"
+                        : spot.hoursChip.tone === "closed"
+                        ? "bg-[#F3E3E0] text-[#B0503F] border-[#B0503F]/20"
+                        : "bg-[#F0EFE8] text-[#8A8F8A] border-[#E6E5DE]"
+                    }`}
+                  >
+                    {spot.hoursChip.label}
+                  </span>
+                )}
               </div>
               <div className="border-t border-dashed border-[#E6E5DE] pt-2 text-[13px] text-[#6B716B]">
                 {spot.topPickName ? (

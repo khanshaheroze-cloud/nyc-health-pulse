@@ -5,6 +5,7 @@ import { matchGenericCategory, type GenericTemplate, type GenericPick } from "@/
 import { canonicalBrand, normalizeVenueName, healthyPickEligibility } from "@/lib/venue-normalize";
 import { snapCoords, snapPadMeters, GRID_FINE } from "@/lib/geoSnap";
 import { getVenueByCamis, badgeState, type BadgeState } from "@/lib/verifiedVenues";
+import { chainHours, parseVerifiedHours, evaluateOpen, hoursChip, type OpenState, type VenueHours } from "@/lib/hours";
 
 export const dynamic = "force-dynamic";
 
@@ -224,6 +225,12 @@ interface ApiResult {
   verifiedAt?: string | null;
   /** Slug of the real /restaurants/{slug} detail page (verified venues only) */
   verifiedSlug?: string | null;
+  /** Open/closed at query time. "unknown" when we have no hours source. */
+  openState: OpenState;
+  /** Where the hours came from: brand-default | verified | api | unknown */
+  hoursSource: VenueHours["source"];
+  /** Chip label + tone for the UI ("Open now" / "Closed · opens 7am" / "Hours unknown") */
+  hoursChip: { label: string; tone: "open" | "closed" | "unknown" };
 }
 
 export async function GET(req: NextRequest) {
@@ -232,6 +239,10 @@ export async function GET(req: NextRequest) {
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
     const meal = searchParams.get("meal") || "lunch";
+    // The "When" selector evaluates hours at the SELECTED time, not always now.
+    // `at` is epoch millis; falls back to server now.
+    const atParam = searchParams.get("at");
+    const when = atParam && /^\d+$/.test(atParam) ? new Date(parseInt(atParam, 10)) : new Date();
 
     if (!lat || !lng) {
       return NextResponse.json({ error: "lat and lng required", restaurants: [] }, { status: 400 });
@@ -326,6 +337,8 @@ export async function GET(req: NextRequest) {
           ? { name: drinks[0].name, calories: drinks[0].calories, protein: drinks[0].protein }
           : null;
 
+        const chHours = chainHours(chainSlug, chain.category);
+        const chState = evaluateOpen(chHours, when);
         chainResults.push({
           restaurantId: `${chainSlug}-${rLat.toFixed(4)}`,
           slug: chainSlug,
@@ -346,6 +359,9 @@ export async function GET(req: NextRequest) {
           bestDrink,
           locationCount: 1,
           otherLocations: [],
+          openState: chState,
+          hoursSource: chHours.source,
+          hoursChip: hoursChip(chState, chHours, when),
         });
       } else {
         // Bars, lounges, dessert-only, hotel kitchens never make ranked
@@ -380,6 +396,8 @@ export async function GET(req: NextRequest) {
             }))
             .sort((a, b) => Number(b.m.isRecommended) - Number(a.m.isRecommended) || b.ps - a.ps);
 
+          const vvHours = parseVerifiedHours(vv.hours);
+          const vvState = evaluateOpen(vvHours, when);
           chainResults.push({
             restaurantId: vv.id,
             slug: vv.slug,
@@ -413,6 +431,9 @@ export async function GET(req: NextRequest) {
             verifiedBadge: badgeState(vv.verification),
             verifiedAt: vv.verification.verifiedAt,
             verifiedSlug: vv.slug,
+            openState: vvState,
+            hoursSource: vvHours.source,
+            hoursChip: hoursChip(vvState, vvHours, when),
           });
           continue;
         }
@@ -445,6 +466,9 @@ export async function GET(req: NextRequest) {
           estPrice: p.estimatedPrice ?? null,
         }));
 
+        // Generic template = no real venue identity, so hours are unknown.
+        // Allowed in picks, but the card shows "Hours unknown", never "open".
+        const genState: OpenState = "unknown";
         genericResults.push({
           restaurantId: `generic-${template.cuisineKey}-${rLat.toFixed(4)}`,
           slug: `generic-${template.cuisineKey}`,
@@ -466,6 +490,9 @@ export async function GET(req: NextRequest) {
           locationCount: 1,
           otherLocations: [],
           orderingTip: template.orderingTip,
+          openState: genState,
+          hoursSource: "unknown",
+          hoursChip: hoursChip(genState, null, when),
         });
       }
     }

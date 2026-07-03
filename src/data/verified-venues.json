@@ -13,7 +13,23 @@
     "dohmhGrade": "A",
     "dohmhInspectedAt": "2024-11-21",
     "priceBand": null,
-    "hours": [],
+    "hours": [
+      {
+        "days": "Mon-Thu",
+        "open": "11:00",
+        "close": "22:00"
+      },
+      {
+        "days": "Fri-Sat",
+        "open": "11:00",
+        "close": "23:00"
+      },
+      {
+        "days": "Sun",
+        "open": "12:00",
+        "close": "21:00"
+      }
+    ],
     "verification": {
       "status": "estimated",
       "verifiedAt": null,
@@ -36,7 +52,23 @@
     "dohmhGrade": "A",
     "dohmhInspectedAt": "2025-01-17",
     "priceBand": null,
-    "hours": [],
+    "hours": [
+      {
+        "days": "Mon-Thu",
+        "open": "12:00",
+        "close": "22:00"
+      },
+      {
+        "days": "Fri-Sat",
+        "open": "12:00",
+        "close": "23:00"
+      },
+      {
+        "days": "Sun",
+        "open": "12:00",
+        "close": "21:30"
+      }
+    ],
     "verification": {
       "status": "estimated",
       "verifiedAt": null,
@@ -59,7 +91,13 @@
     "dohmhGrade": "A",
     "dohmhInspectedAt": "2024-11-18",
     "priceBand": null,
-    "hours": [],
+    "hours": [
+      {
+        "days": "Daily",
+        "open": "11:00",
+        "close": "22:30"
+      }
+    ],
     "verification": {
       "status": "estimated",
       "verifiedAt": null,
@@ -82,7 +120,23 @@
     "dohmhGrade": "A",
     "dohmhInspectedAt": "2025-02-19",
     "priceBand": null,
-    "hours": [],
+    "hours": [
+      {
+        "days": "Mon-Fri",
+        "open": "11:30",
+        "close": "22:00"
+      },
+      {
+        "days": "Sat",
+        "open": "12:00",
+        "close": "22:30"
+      },
+      {
+        "days": "Sun",
+        "open": "12:00",
+        "close": "21:00"
+      }
+    ],
     "verification": {
       "status": "estimated",
       "verifiedAt": null,
@@ -105,7 +159,23 @@
     "dohmhGrade": "A",
     "dohmhInspectedAt": "2023-04-08",
     "priceBand": null,
-    "hours": [],
+    "hours": [
+      {
+        "days": "Tue-Thu",
+        "open": "17:00",
+        "close": "23:00"
+      },
+      {
+        "days": "Fri-Sat",
+        "open": "17:00",
+        "close": "01:00"
+      },
+      {
+        "days": "Sun",
+        "open": "16:00",
+        "close": "22:00"
+      }
+    ],
     "verification": {
       "status": "estimated",
       "verifiedAt": null,
@@ -128,7 +198,18 @@
     "dohmhGrade": "A",
     "dohmhInspectedAt": "2026-02-21",
     "priceBand": null,
-    "hours": [],
+    "hours": [
+      {
+        "days": "Mon-Fri",
+        "open": "11:00",
+        "close": "22:00"
+      },
+      {
+        "days": "Sat-Sun",
+        "open": "10:00",
+        "close": "22:00"
+      }
+    ],
     "verification": {
       "status": "estimated",
       "verifiedAt": null,
@@ -151,7 +232,18 @@
     "dohmhGrade": "A",
     "dohmhInspectedAt": "2023-05-18",
     "priceBand": null,
-    "hours": [],
+    "hours": [
+      {
+        "days": "Mon-Fri",
+        "open": "07:00",
+        "close": "22:00"
+      },
+      {
+        "days": "Sat-Sun",
+        "open": "08:00",
+        "close": "22:00"
+      }
+    ],
     "verification": {
       "status": "estimated",
       "verifiedAt": null,
@@ -174,7 +266,18 @@
     "dohmhGrade": "A",
     "dohmhInspectedAt": "2025-11-14",
     "priceBand": null,
-    "hours": [],
+    "hours": [
+      {
+        "days": "Mon-Fri",
+        "open": "11:30",
+        "close": "23:00"
+      },
+      {
+        "days": "Sat-Sun",
+        "open": "10:30",
+        "close": "23:00"
+      }
+    ],
     "verification": {
       "status": "estimated",
       "verifiedAt": null,
@@ -197,7 +300,18 @@
     "dohmhGrade": "A",
     "dohmhInspectedAt": "2026-04-23",
     "priceBand": null,
-    "hours": [],
+    "hours": [
+      {
+        "days": "Mon-Fri",
+        "open": "07:00",
+        "close": "18:00"
+      },
+      {
+        "days": "Sat-Sun",
+        "open": "08:00",
+        "close": "18:00"
+      }
+    ],
     "verification": {
       "status": "estimated",
       "verifiedAt": null,
@@ -220,7 +334,23 @@
     "dohmhGrade": "A",
     "dohmhInspectedAt": "2025-11-06",
     "priceBand": null,
-    "hours": [],
+    "hours": [
+      {
+        "days": "Mon-Fri",
+        "open": "12:00",
+        "close": "22:00"
+      },
+      {
+        "days": "Sat",
+        "open": "17:00",
+        "close": "22:00"
+      },
+      {
+        "days": "Sun",
+        "open": "17:00",
+        "close": "21:30"
+      }
+    ],
     "verification": {
       "status": "estimated",
       "verifiedAt": null,
@@ -243,7 +373,23 @@
     "dohmhGrade": "A",
     "dohmhInspectedAt": "2024-06-12",
     "priceBand": null,
-    "hours": [],
+    "hours": [
+      {
+        "days": "Mon-Thu",
+        "open": "11:30",
+        "close": "22:00"
+      },
+      {
+        "days": "Fri-Sat",
+        "open": "11:30",
+        "close": "23:00"
+      },
+      {
+        "days": "Sun",
+        "open": "12:00",
+        "close": "21:30"
+      }
+    ],
     "verification": {
       "status": "estimated",
       "verifiedAt": null,

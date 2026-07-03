@@ -49,6 +49,8 @@ interface ApiRestaurant {
   verifiedBadge?: "verified" | "needs-recheck" | null;
   verifiedAt?: string | null;
   verifiedSlug?: string | null;
+  openState?: "open" | "closed" | "unknown";
+  hoursChip?: { label: string; tone: "open" | "closed" | "unknown" } | null;
 }
 
 function readCachedMeal(): MealCategory | null {
@@ -124,7 +126,10 @@ export function WedgeSection() {
 
   // Filter spots by active chips, then sort by the selected key
   const spots = useMemo(() => {
-    let filtered = allSpots;
+    // Known-closed venues are excluded from the ranked top-5 — "right now" must
+    // be true. Open + unknown-hours venues remain rankable. (Closed venues still
+    // reach the map below, dimmed.)
+    let filtered = allSpots.filter(r => r.openState !== "closed");
     if (activeChips.has("quick")) {
       filtered = filtered.filter(r => r.walkMinutes <= 5);
     }
@@ -148,6 +153,13 @@ export function WedgeSection() {
     });
     return sorted.slice(0, 5);
   }, [allSpots, activeChips, sortBy]);
+
+  // Map shows the ranked picks PLUS any known-closed venues nearby, dimmed —
+  // the prompt's "still on the map, dimmed, 'Closed · opens 7am'".
+  const mapSpots = useMemo(() => {
+    const closed = allSpots.filter(r => r.openState === "closed").slice(0, 6);
+    return [...spots, ...closed];
+  }, [spots, allSpots]);
 
   const activeSpot = useMemo(() => {
     if (!spotSlug) return null;
@@ -223,6 +235,8 @@ export function WedgeSection() {
           verifiedBadge: r.verifiedBadge ?? null,
           verifiedAt: r.verifiedAt ?? null,
           verifiedSlug: r.verifiedSlug ?? null,
+          openState: r.openState ?? "unknown",
+          hoursChip: r.hoursChip ?? null,
         };
       });
 
@@ -418,7 +432,7 @@ export function WedgeSection() {
             <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-8 mb-8">
               <LocalMap
                 center={coords}
-                spots={spots}
+                spots={mapSpots}
                 isDefault={isDefault}
                 onSpotClick={handleSpotClick}
                 onVisible={() => setMapVisible(true)}

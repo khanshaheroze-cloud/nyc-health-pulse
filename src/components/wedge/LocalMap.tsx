@@ -33,6 +33,16 @@ function makeSpotIcon(rank: number) {
   });
 }
 
+// Known-closed venue: dimmed, unranked dot (still shown for context).
+function makeClosedIcon() {
+  return L.divIcon({
+    html: `<div style="width:16px;height:16px;border-radius:8px;background:#B8B4AC;opacity:0.6;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></div>`,
+    className: "",
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  });
+}
+
 function FitBounds({ center, spots }: { center: { lat: number; lng: number }; spots: ResultSpot[] }) {
   const map = useMap();
   useEffect(() => {
@@ -111,18 +121,26 @@ export function LocalMap({ center, spots, isDefault, onSpotClick, onVisible, vis
               </Popup>
             </Marker>
 
-            {/* Spot pins */}
-            {spots.map((spot, i) => {
+            {/* Spot pins — open/unknown get numbered ranks; known-closed get a
+                dimmed unranked dot but stay on the map for context. */}
+            {(() => { let rank = 0; return spots.map((spot) => {
               if (!spot.lat || !spot.lng) return null;
+              const isClosed = spot.openState === "closed";
+              if (!isClosed) rank += 1;
+              const thisRank = rank;
               return (
                 <Marker
                   key={spot.slug + spot.address}
                   position={[spot.lat, spot.lng]}
-                  icon={makeSpotIcon(i + 1)}
+                  icon={isClosed ? makeClosedIcon() : makeSpotIcon(thisRank)}
+                  opacity={isClosed ? 0.7 : 1}
                 >
                   <Popup>
                     <div style={{ minWidth: 160, fontSize: "12px" }}>
                       <strong style={{ fontSize: "13px" }}>{spot.name}</strong>
+                      {isClosed && spot.hoursChip && (
+                        <div style={{ color: "#B0503F", fontWeight: 600, marginTop: 2 }}>{spot.hoursChip.label}</div>
+                      )}
                       <div style={{ display: "flex", gap: 6, marginTop: 4, marginBottom: 6 }}>
                         <span style={{ color: "#2A6BC9" }}>{spot.walkMinutes} min</span>
                         <span style={{ color: "#2F8F4D" }}>{spot.topPickProtein}g protein</span>
@@ -145,7 +163,7 @@ export function LocalMap({ center, spots, isDefault, onSpotClick, onVisible, vis
                   </Popup>
                 </Marker>
               );
-            })}
+            }); })()}
           </MapContainer>
         ) : (
           <div className="w-full h-full bg-[#F5F0EB] flex items-center justify-center text-[12px] text-[#6B716B]">
