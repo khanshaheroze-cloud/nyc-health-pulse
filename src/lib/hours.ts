@@ -31,6 +31,35 @@ export function hm(h: number, m = 0): number {
   return h * 60 + m;
 }
 
+// ── NYC-local clock ──────────────────────────────────────────────────────────
+// July 5 2026 evening audit (P0): the evaluator used when.getHours() — SERVER
+// time. On Vercel (UTC) every 7:30 PM ET query read as 11:30 PM, so open
+// Starbucks/BWW showed "Closed", which both lied on the chip AND silently
+// dropped them from ranked picks (known-closed are excluded). ALL open/closed
+// math derives weekday + minutes in America/New_York, never from the server TZ.
+const NYC_CLOCK = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  weekday: "short",
+  hour: "numeric",
+  minute: "numeric",
+  hourCycle: "h23",
+});
+const WEEKDAY_INDEX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+/** NYC-local weekday (0=Sun) + minutes since local midnight for an instant. */
+export function nycDayMinutes(when: Date): { day: number; minutes: number } {
+  const parts = NYC_CLOCK.formatToParts(when);
+  const get = (t: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === t)?.value ?? "";
+  const day = WEEKDAY_INDEX[get("weekday")];
+  const hour = parseInt(get("hour"), 10) % 24; // some ICU builds emit "24" at midnight
+  const minute = parseInt(get("minute"), 10);
+  if (day == null || Number.isNaN(hour) || Number.isNaN(minute)) {
+    // Defensive fallback — should be unreachable with a valid Date
+    return { day: when.getDay(), minutes: when.getHours() * 60 + when.getMinutes() };
+  }
+  return { day, minutes: hour * 60 + minute };
+}
+
 /** Evaluate whether a venue is open at `when`. Handles overnight windows
  *  (checks the previous day's past-midnight intervals) and unknown hours. */
 export function evaluateOpen(hours: VenueHours | null | undefined, when: Date): OpenState {
@@ -38,8 +67,7 @@ export function evaluateOpen(hours: VenueHours | null | undefined, when: Date): 
   const weekly = hours.weekly;
   if (weekly.length !== 7) return "unknown";
 
-  const day = when.getDay();
-  const minutes = when.getHours() * 60 + when.getMinutes();
+  const { day, minutes } = nycDayMinutes(when);
 
   // Today's intervals that contain `minutes`.
   for (const iv of weekly[day]) {
@@ -64,8 +92,7 @@ export function evaluateOpen(hours: VenueHours | null | undefined, when: Date): 
 export function nextOpenLabel(hours: VenueHours | null | undefined, when: Date): string | null {
   if (!hours || hours.source === "unknown" || !hours.weekly || hours.weekly.length !== 7) return null;
   const weekly = hours.weekly;
-  const nowDay = when.getDay();
-  const nowMin = when.getHours() * 60 + when.getMinutes();
+  const { day: nowDay, minutes: nowMin } = nycDayMinutes(when);
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   for (let ahead = 0; ahead < 8; ahead++) {
@@ -127,6 +154,7 @@ const BRAND_HOURS: Record<string, WeeklyHours> = {
   "pret-a-manger": weekdayWeekend({ open: hm(6, 30), close: hm(20) }, { open: hm(7), close: hm(19) }, { open: hm(7), close: hm(19) }),
   "shake-shack": everyday(hm(11), hm(23)),
   "five-guys": everyday(hm(11), hm(22)),
+  "buffalo-wild-wings": everyday(hm(10, 30), hm(24)),
   "popeyes": everyday(hm(10, 30), hm(24)),
   "kfc": everyday(hm(10, 30), hm(23)),
   // Chick-fil-A: closed Sundays (index 0 empty).
