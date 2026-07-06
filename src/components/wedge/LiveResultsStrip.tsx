@@ -5,6 +5,9 @@ import { formatRelative, formatMonthYear } from "@/lib/freshness";
 export type SortKey = "score" | "protein" | "calories" | "distance" | "protein-per-dollar";
 
 export interface ResultSpot {
+  /** Unique venue identity (API restaurantId) — React key + dedupe + modal
+   *  lookup. slug is NOT unique: all generic venues of one template share it. */
+  id: string;
   slug: string;
   name: string;
   walkMinutes: number;
@@ -100,11 +103,13 @@ function SpotCard({ spot, onSpotClick }: { spot: ResultSpot; onSpotClick?: (slug
             onClick: (e: React.MouseEvent) => {
               if (onSpotClick && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
                 e.preventDefault();
-                onSpotClick(spot.slug);
+                onSpotClick(spot.id);
               }
             },
           }
-        : { type: "button" as const, onClick: () => onSpotClick?.(spot.slug) })}
+        : { type: "button" as const, onClick: () => onSpotClick?.(spot.id) })}
+      data-venue-id={spot.id}
+      data-venue-name={spot.name}
       className="bg-white border border-[#E6E5DE] rounded-2xl p-4 hover:-translate-y-0.5 transition-transform duration-150 block text-left w-full focus:outline-none focus:ring-2 focus:ring-[#2F8F4D]/40 focus:ring-offset-2"
     >
       {spot.isGeneric && spot.category && (
@@ -187,8 +192,25 @@ function SpotCard({ spot, onSpotClick }: { spot: ResultSpot; onSpotClick?: (slug
   );
 }
 
-export function LiveResultsStrip({ spots, splurgeSpots = [], guidanceSpots = [], totalCount, isDefault, locationLabel, loading, mealLabel, onSpotClick, fetchedAt, sortBy = "score", onSortChange, fetchError, onRetry, onEditLocation }: LiveResultsStripProps) {
+export function LiveResultsStrip({ spots: rawSpots, splurgeSpots: rawSplurge = [], guidanceSpots: rawGuidance = [], totalCount, isDefault, locationLabel, loading, mealLabel, onSpotClick, fetchedAt, sortBy = "score", onSortChange, fetchError, onRetry, onEditLocation }: LiveResultsStripProps) {
   const sortLabel = SORT_OPTIONS.find((o) => o.key === sortBy)?.label ?? "PulseScore";
+
+  // Render-level safety net (July 6 audit: sort clicks duplicated cards —
+  // "Court Square Diner" twelve times). Dedupe by venue identity ACROSS the
+  // three sections — ranked claims a venue first, splurge next, guidance
+  // last — so no venue can render twice regardless of upstream state. The
+  // headline count derives from this rendered set, never from raw props.
+  const seen = new Set<string>();
+  const dedupe = (arr: ResultSpot[]) =>
+    arr.filter((s) => {
+      const key = s.id || `${s.name}-${s.address ?? ""}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  const spots = dedupe(rawSpots);
+  const splurgeSpots = dedupe(rawSplurge);
+  const guidanceSpots = dedupe(rawGuidance);
   return (
     <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-14">
       {/* Header */}
@@ -295,7 +317,7 @@ export function LiveResultsStrip({ spots, splurgeSpots = [], guidanceSpots = [],
       {!loading && spots.length > 0 && (
         <div data-testid="ranked-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
           {spots.map((spot) => (
-            <SpotCard key={spot.slug + spot.walkMinutes} spot={spot} onSpotClick={onSpotClick} />
+            <SpotCard key={spot.id} spot={spot} onSpotClick={onSpotClick} />
           ))}
         </div>
       )}
@@ -313,7 +335,7 @@ export function LiveResultsStrip({ spots, splurgeSpots = [], guidanceSpots = [],
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {splurgeSpots.map((spot) => (
-              <SpotCard key={spot.slug + spot.walkMinutes} spot={spot} onSpotClick={onSpotClick} />
+              <SpotCard key={spot.id} spot={spot} onSpotClick={onSpotClick} />
             ))}
           </div>
         </div>
@@ -333,7 +355,7 @@ export function LiveResultsStrip({ spots, splurgeSpots = [], guidanceSpots = [],
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {guidanceSpots.map((spot) => (
-              <SpotCard key={spot.slug + spot.walkMinutes} spot={spot} onSpotClick={onSpotClick} />
+              <SpotCard key={spot.id} spot={spot} onSpotClick={onSpotClick} />
             ))}
           </div>
         </div>

@@ -263,12 +263,24 @@ interface ApiResult {
   hoursChip: { label: string; tone: "open" | "closed" | "unknown" };
 }
 
+// The only params this endpoint reads. Anything else (e.g. a probing
+// `&sort=calories` — sorting is client-side) is ignored: the request is
+// answered normally, never altered or slowed by unknown params (July 6 audit).
+const KNOWN_PARAMS = new Set(["lat", "lng", "meal", "at"]);
+const KNOWN_MEALS = new Set(["breakfast", "lunch", "coffee", "snack", "dinner"]);
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = req.nextUrl;
+    for (const key of searchParams.keys()) {
+      if (!KNOWN_PARAMS.has(key) && process.env.NODE_ENV !== "production") {
+        console.log(`[smart-menu] ignoring unknown param "${key}"`);
+      }
+    }
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
-    const meal = searchParams.get("meal") || "lunch";
+    const mealParam = searchParams.get("meal") || "lunch";
+    const meal = KNOWN_MEALS.has(mealParam) ? mealParam : "lunch";
     // The "When" selector evaluates hours at the SELECTED time, not always now.
     // `at` is epoch millis; falls back to server now.
     const atParam = searchParams.get("at");

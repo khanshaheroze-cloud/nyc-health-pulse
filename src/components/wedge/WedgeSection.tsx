@@ -29,6 +29,11 @@ const TIMES_SQUARE = { lat: 40.758, lng: -73.9855 };
 const MEAL_LS_KEY = "pulsenyc:mealType";
 
 interface ApiRestaurant {
+  /** Unique per venue (chains: slug+coords, generics: template+coords) — the
+   *  React key + dedupe identity. slug alone COLLIDES for generics: every
+   *  diner-template venue shares "generic-diner" (July 6 audit: duplicate
+   *  keys made sort clicks duplicate cards). */
+  restaurantId: string;
   slug: string;
   restaurantName: string;
   priceRange: number;
@@ -157,10 +162,21 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
   // contain ≤$15 picks (exact price or band ceiling). Over-$15 venues are never
   // hidden — they rank below a visually distinct "Worth a splurge" divider.
   const { spots, splurgeSpots, guidanceSpots } = useMemo(() => {
+    // ONE canonical array, deduped by venue identity FIRST (July 6 audit:
+    // sort clicks rendered "Court Square Diner" twelve times — colliding
+    // React keys let stale nodes survive reorders). Sorting and filtering
+    // below only re-order or subset this deduped array; nothing ever appends.
+    const seenIds = new Set<string>();
+    const canonical = allSpots.filter(r => {
+      const key = r.id || `${r.name}-${r.address}`;
+      if (seenIds.has(key)) return false;
+      seenIds.add(key);
+      return true;
+    });
     // Known-closed venues are excluded from the ranked top-5 — "right now" must
     // be true. Open + unknown-hours venues remain rankable. (Closed venues still
     // reach the map below, dimmed.)
-    let filtered = allSpots.filter(r => r.openState !== "closed");
+    let filtered = canonical.filter(r => r.openState !== "closed");
     if (activeChips.has("quick")) {
       filtered = filtered.filter(r => r.walkMinutes <= 5);
     }
@@ -202,7 +218,9 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
 
   const activeSpot = useMemo(() => {
     if (!spotSlug) return null;
-    return allSpots.find(s => s.slug === spotSlug || s.name === spotSlug) ?? null;
+    // id first — slug collides across generic venues of the same template
+    // (clicking the second diner used to open the first diner's modal)
+    return allSpots.find(s => s.id === spotSlug || s.slug === spotSlug || s.name === spotSlug) ?? null;
   }, [spotSlug, allSpots]);
 
   useEffect(() => {
@@ -273,6 +291,7 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
       const mapped: ResultSpot[] = restaurants.map(r => {
         const topPick = r.topPicks[0];
         return {
+          id: r.restaurantId || `${r.slug}-${r.address}`,
           slug: r.slug,
           name: r.restaurantName,
           walkMinutes: r.walkMinutes,

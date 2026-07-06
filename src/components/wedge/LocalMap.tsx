@@ -133,7 +133,7 @@ export function LocalMap({ center, spots, isDefault, onSpotClick, onVisible, vis
               const thisRank = rank;
               return (
                 <Marker
-                  key={spot.slug + spot.address}
+                  key={spot.id}
                   position={[spot.lat, spot.lng]}
                   icon={isClosed ? makeClosedIcon() : makeSpotIcon(thisRank)}
                   opacity={isClosed ? 0.7 : 1}
