@@ -28,6 +28,9 @@ export interface RestaurantChain {
   nycLocations: number;      // approximate NYC locations
   priceRange: 1 | 2 | 3;    // $ $$ $$$
   orderingTip?: string;      // healthy ordering hack
+  /** YYYY-MM the items list was last checked against the chain's published US
+   *  menu (July 2026 truth pass). audit-menus warns when >6 months old. */
+  lastVerified?: string;
   items: MenuItem[];
 }
 
@@ -40,6 +43,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Healthy",
     nycLocations: 45,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Build a custom bowl: greens base + grilled protein + light dressing saves 200+ cal vs premade bowls",
     items: [
       { name: "Harvest Bowl", cal: 705, protein: 30, fat: 37, carbs: 64, sodium: 620, fiber: 8, sugar: 12, tags: [] },
@@ -47,8 +51,9 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
       { name: "Guacamole Greens", cal: 555, protein: 15, fat: 36, carbs: 47, sodium: 510, fiber: 10, sugar: 6, tags: ["vegetarian"] },
       { name: "Shroomami", cal: 570, protein: 18, fat: 28, carbs: 65, sodium: 640, fiber: 9, sugar: 8, tags: ["vegan"] },
       { name: "Hot Honey Chicken", cal: 640, protein: 38, fat: 30, carbs: 55, sodium: 890, fiber: 5, sugar: 14, tags: ["high-protein"] },
-      { name: "Buffalo Chicken Bowl", cal: 575, protein: 40, fat: 28, carbs: 42, sodium: 1050, fiber: 6, sugar: 5, tags: ["high-protein"] },
-      { name: "Garden Cobb", cal: 490, protein: 35, fat: 30, carbs: 22, sodium: 680, fiber: 5, sugar: 4, tags: ["high-protein", "low-carb"] },
+      { name: "Buffalo Chicken (salad)", cal: 575, protein: 40, fat: 28, carbs: 42, sodium: 1050, fiber: 6, sugar: 5, tags: ["high-protein"] },
+      // Garden Cobb retired — Chicken Avocado Ranch is the current cobb-style bowl
+      { name: "Chicken Avocado Ranch", cal: 705, protein: 23, fat: 41, carbs: 59, sodium: 1125, fiber: 7, sugar: 6, tags: [] },
       { name: "Crispy Rice Bowl", cal: 680, protein: 22, fat: 32, carbs: 78, sodium: 720, fiber: 4, sugar: 10, tags: [] },
       { name: "Super Green Goddess", cal: 370, protein: 8, fat: 22, carbs: 38, sodium: 450, fiber: 7, sugar: 6, tags: ["low-cal", "vegan"] },
       { name: "Chicken Pesto Parm", cal: 720, protein: 42, fat: 35, carbs: 56, sodium: 980, fiber: 4, sugar: 6, tags: ["high-protein"] },
@@ -61,6 +66,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Healthy",
     nycLocations: 40,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Bring your own reusable bowl for a discount. Dressing on the side cuts 100-200 cal.",
     items: [
       { name: "Thai Chicken Crunch", cal: 510, protein: 35, fat: 26, carbs: 38, sodium: 820, fiber: 5, sugar: 10, tags: ["high-protein"] },
@@ -68,8 +74,9 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
       { name: "Grilled Chicken Caesar", cal: 430, protein: 38, fat: 24, carbs: 18, sodium: 760, fiber: 3, sugar: 2, tags: ["high-protein", "low-carb"] },
       { name: "Harvest Crunch", cal: 480, protein: 12, fat: 28, carbs: 50, sodium: 580, fiber: 7, sugar: 14, tags: ["vegetarian"] },
       { name: "The Veg Head", cal: 350, protein: 10, fat: 18, carbs: 40, sodium: 520, fiber: 8, sugar: 8, tags: ["low-cal", "vegan"] },
-      { name: "Spicy Mongolian Chicken", cal: 520, protein: 36, fat: 24, carbs: 42, sodium: 1100, fiber: 4, sugar: 12, tags: ["high-protein"] },
-      { name: "Grilled Steak & Blue Cheese", cal: 560, protein: 40, fat: 32, carbs: 26, sodium: 830, fiber: 4, sugar: 6, tags: ["high-protein", "low-carb"] },
+      // Spicy Mongolian Chicken discontinued; steak salad reformulated (feta,
+      // not blue cheese) — sodium is an estimate, Just Salad doesn't publish it
+      { name: "Grilled Steak Salad", cal: 360, protein: 28, fat: 23, carbs: 10, sodium: 700, fiber: 4, sugar: 4, tags: ["high-protein", "low-carb"] },
     ],
   },
   {
@@ -79,14 +86,14 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Healthy",
     nycLocations: 30,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Go 'naked' (no wrap) and choose vinaigrette over creamy dressing to save 200+ cal",
     items: [
+      // Kebab Cobb + Palm Beach retired (~2023) — current menu verified Jul 2026
       { name: "Mexican Caesar", cal: 520, protein: 32, fat: 28, carbs: 38, sodium: 780, fiber: 6, sugar: 4, tags: ["high-protein"] },
-      { name: "Kebab Cobb", cal: 550, protein: 38, fat: 30, carbs: 32, sodium: 920, fiber: 5, sugar: 6, tags: ["high-protein"] },
-      { name: "Palm Beach", cal: 460, protein: 30, fat: 22, carbs: 38, sodium: 680, fiber: 4, sugar: 8, tags: ["high-protein"] },
       { name: "Grilled Chicken Ranch", cal: 590, protein: 42, fat: 32, carbs: 34, sodium: 1050, fiber: 3, sugar: 4, tags: ["high-protein"] },
       { name: "Santa Fe", cal: 480, protein: 28, fat: 24, carbs: 42, sodium: 720, fiber: 7, sugar: 5, tags: [] },
-      { name: "Classic Cobb", cal: 530, protein: 36, fat: 34, carbs: 22, sodium: 860, fiber: 4, sugar: 4, tags: ["high-protein", "low-carb"] },
+      { name: "Classic Cobb Salad", cal: 600, protein: 60, fat: 41, carbs: 18, sodium: 860, fiber: 4, sugar: 4, tags: ["high-protein", "low-carb"] },
     ],
   },
   {
@@ -96,6 +103,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Healthy",
     nycLocations: 20,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Greens + grains base with grilled chicken and tzatziki = high protein under 600 cal",
     items: [
       { name: "Grilled Chicken Bowl (greens+grains)", cal: 580, protein: 42, fat: 22, carbs: 56, sodium: 820, fiber: 6, sugar: 4, tags: ["high-protein"] },
@@ -113,11 +121,13 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Healthy",
     nycLocations: 25,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Build a plate: pick a protein + 3 sides. The charred chicken + sweet potatoes + Brussels sprouts is under 550 cal.",
     items: [
       { name: "Charred Chicken Plate", cal: 520, protein: 45, fat: 18, carbs: 48, sodium: 680, fiber: 7, sugar: 8, tags: ["high-protein"] },
-      { name: "Roasted Salmon Plate", cal: 580, protein: 38, fat: 28, carbs: 42, sodium: 620, fiber: 6, sugar: 6, tags: ["high-protein"] },
-      { name: "Braised Beef Plate", cal: 640, protein: 42, fat: 26, carbs: 55, sodium: 780, fiber: 5, sugar: 7, tags: ["high-protein"] },
+      // Salmon renamed on the current market line; braised beef is gone
+      // entirely (no beef on the Dec 2025 nutrition sheet)
+      { name: "Seared Wild Salmon Plate", cal: 580, protein: 38, fat: 28, carbs: 42, sodium: 620, fiber: 6, sugar: 6, tags: ["high-protein"] },
       { name: "Market Veggie Plate", cal: 380, protein: 14, fat: 16, carbs: 52, sodium: 520, fiber: 10, sugar: 8, tags: ["low-cal", "vegetarian"] },
       { name: "Grilled Chicken & Brown Rice", cal: 490, protein: 40, fat: 14, carbs: 52, sodium: 580, fiber: 4, sugar: 3, tags: ["high-protein"] },
     ],
@@ -127,8 +137,9 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     slug: "tender-greens",
     emoji: "🌿",
     category: "Healthy",
-    nycLocations: 5,
+    nycLocations: 0, // exited NYC ~2020; CA-only now (Jul 2026 check)
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Choose a salad plate over a bowl — same food, fewer carbs from grains",
     items: [
       { name: "Chipotle Barbecue Chicken", cal: 550, protein: 42, fat: 22, carbs: 48, sodium: 820, fiber: 5, sugar: 10, tags: ["high-protein"] },
@@ -144,6 +155,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Healthy",
     nycLocations: 8,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Choose wheat noodles over egg noodles for more fiber; go with sesame garlic sauce (lowest cal)",
     items: [
       { name: "Sesame Garlic Stir-Fry (chicken)", cal: 510, protein: 38, fat: 16, carbs: 58, sodium: 920, fiber: 4, sugar: 8, tags: ["high-protein"] },
@@ -159,11 +171,12 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Healthy",
     nycLocations: 10,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Grilled chicken shawarma bowl with tahini on the side — high protein, under 550 cal",
     items: [
       { name: "Chicken Shawarma Bowl", cal: 540, protein: 40, fat: 20, carbs: 52, sodium: 780, fiber: 5, sugar: 4, tags: ["high-protein"] },
       { name: "Falafel Bowl", cal: 580, protein: 16, fat: 28, carbs: 68, sodium: 720, fiber: 10, sugar: 5, tags: ["vegan"] },
-      { name: "Lamb Kofta Bowl", cal: 620, protein: 36, fat: 30, carbs: 52, sodium: 860, fiber: 4, sugar: 5, tags: ["high-protein"] },
+      { name: "Kafta Lamb Kebab Bowl", cal: 620, protein: 36, fat: 30, carbs: 52, sodium: 860, fiber: 4, sugar: 5, tags: ["high-protein"] },
       { name: "Grilled Veggie Pita", cal: 420, protein: 12, fat: 16, carbs: 58, sodium: 640, fiber: 7, sugar: 4, tags: ["low-cal", "vegan"] },
     ],
   },
@@ -176,6 +189,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Mexican",
     nycLocations: 90,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Bowl > burrito saves 300 cal (tortilla). Skip sour cream (-110) & cheese (-100). Double protein is only +$3.",
     items: [
       { name: "Chicken Burrito Bowl", cal: 510, protein: 40, fat: 18, carbs: 50, sodium: 1230, fiber: 8, sugar: 4, tags: ["high-protein"] },
@@ -196,6 +210,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Mexican",
     nycLocations: 20,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Bowl with half rice, extra lettuce, and green salsa = lighter without losing flavor",
     items: [
       { name: "Chicken Burrito Bowl", cal: 520, protein: 38, fat: 18, carbs: 54, sodium: 1120, fiber: 7, sugar: 4, tags: ["high-protein"] },
@@ -212,14 +227,16 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Mexican",
     nycLocations: 80,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "Go 'fresco style' — replaces cheese & sauces with pico de gallo, saves 50-80 cal per item",
     items: [
       { name: "Crunchy Taco", cal: 170, protein: 8, fat: 10, carbs: 13, sodium: 310, fiber: 2, sugar: 1, tags: ["low-cal"] },
       { name: "Soft Taco (beef)", cal: 180, protein: 9, fat: 9, carbs: 18, sodium: 500, fiber: 2, sugar: 1, tags: ["low-cal"] },
-      { name: "Chicken Burrito Supreme", cal: 400, protein: 20, fat: 14, carbs: 50, sodium: 1070, fiber: 5, sugar: 4, tags: [] },
-      { name: "Power Menu Bowl (chicken)", cal: 470, protein: 26, fat: 18, carbs: 50, sodium: 1180, fiber: 6, sugar: 3, tags: [] },
+      { name: "Burrito Supreme (chicken)", cal: 400, protein: 20, fat: 14, carbs: 50, sodium: 1070, fiber: 5, sugar: 4, tags: [] },
+      // Power Menu Bowl discontinued Mar 2024 — Cantina Chicken Bowl replaced it
+      { name: "Cantina Chicken Bowl", cal: 490, protein: 25, fat: 24, carbs: 44, sodium: 1150, fiber: 11, sugar: 3, tags: [] },
       { name: "Bean Burrito", cal: 350, protein: 13, fat: 10, carbs: 54, sodium: 1060, fiber: 8, sugar: 3, tags: ["vegetarian"] },
-      { name: "Veggie Crunchwrap Supreme", cal: 530, protein: 15, fat: 22, carbs: 67, sodium: 1070, fiber: 6, sugar: 5, tags: ["vegetarian"] },
+      { name: "Black Bean Crunchwrap Supreme", cal: 530, protein: 15, fat: 22, carbs: 67, sodium: 1070, fiber: 6, sugar: 5, tags: ["vegetarian"] },
       { name: "Nachos BellGrande", cal: 740, protein: 16, fat: 38, carbs: 82, sodium: 1050, fiber: 8, sugar: 4, tags: [] },
       { name: "Cheesy Gordita Crunch", cal: 500, protein: 20, fat: 28, carbs: 41, sodium: 820, fiber: 3, sugar: 4, tags: [] },
     ],
@@ -233,13 +250,15 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Burger",
     nycLocations: 35,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "ShackBurger single is 530 cal; skip cheese (-80) and get lettuce wrap (-100) for a 350 cal burger",
     items: [
       { name: "ShackBurger (single)", cal: 530, protein: 28, fat: 34, carbs: 26, sodium: 1290, fiber: 1, sugar: 7, tags: [] },
       { name: "SmokeShack (single)", cal: 610, protein: 30, fat: 40, carbs: 28, sodium: 1550, fiber: 1, sugar: 7, tags: [] },
       { name: "Shack-cago Dog", cal: 370, protein: 14, fat: 24, carbs: 28, sodium: 1100, fiber: 2, sugar: 6, tags: [] },
       { name: "Chicken Shack", cal: 580, protein: 32, fat: 28, carbs: 48, sodium: 1280, fiber: 2, sugar: 6, tags: [] },
-      { name: "Grilled Chicken Sandwich", cal: 410, protein: 36, fat: 16, carbs: 30, sodium: 920, fiber: 2, sugar: 5, tags: ["high-protein"] },
+      // (Removed "Grilled Chicken Sandwich" — Shake Shack has never sold one;
+      // all chicken sandwiches are crispy. Lettuce-wrap Chicken Shack is the lean move.)
       { name: "Fries (regular)", cal: 420, protein: 5, fat: 20, carbs: 56, sodium: 490, fiber: 4, sugar: 0, tags: ["vegan"] },
       { name: "Cheese Fries", cal: 580, protein: 12, fat: 34, carbs: 56, sodium: 1020, fiber: 4, sugar: 0, tags: [] },
       { name: "Chocolate Shake", cal: 750, protein: 16, fat: 42, carbs: 78, sodium: 380, fiber: 2, sugar: 68, tags: [] },
@@ -253,6 +272,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Burger",
     nycLocations: 20,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Little Burger (1 patty) saves 300 cal. Get a bowl instead of a bun for low carb.",
     items: [
       { name: "Hamburger", cal: 700, protein: 39, fat: 43, carbs: 39, sodium: 430, fiber: 2, sugar: 9, tags: [] },
@@ -273,11 +293,13 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Burger",
     nycLocations: 10,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Classic Smash single is 540 cal. Sub a turkey burger (-120 cal).",
     items: [
       { name: "Classic Smash (single)", cal: 540, protein: 28, fat: 32, carbs: 36, sodium: 880, fiber: 2, sugar: 7, tags: [] },
       { name: "BBQ Bacon Smash", cal: 780, protein: 42, fat: 46, carbs: 48, sodium: 1350, fiber: 2, sugar: 12, tags: [] },
-      { name: "Grilled Chicken Sandwich", cal: 440, protein: 36, fat: 18, carbs: 34, sodium: 820, fiber: 2, sugar: 4, tags: ["high-protein"] },
+      // Grilled Classic Chicken retired ~2023; Chicken Smash is the grilled line
+      { name: "Chicken Smash (grilled)", cal: 460, protein: 26, fat: 24, carbs: 33, sodium: 950, fiber: 2, sugar: 4, tags: ["high-protein"] },
       { name: "Turkey Burger", cal: 420, protein: 30, fat: 18, carbs: 36, sodium: 740, fiber: 2, sugar: 7, tags: ["high-protein"] },
       { name: "SmashFries", cal: 440, protein: 5, fat: 22, carbs: 56, sodium: 720, fiber: 4, sugar: 0, tags: [] },
     ],
@@ -291,6 +313,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Fast Food",
     nycLocations: 250,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "Egg McMuffin (300 cal, 17g protein) is one of the best fast-food breakfast options. Skip the hash brown (-150).",
     items: [
       { name: "Big Mac", cal: 550, protein: 25, fat: 30, carbs: 45, sodium: 1010, fiber: 3, sugar: 9, tags: [] },
@@ -303,7 +326,9 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
       { name: "McDouble", cal: 400, protein: 22, fat: 20, carbs: 33, sodium: 920, fiber: 2, sugar: 7, tags: [] },
       { name: "Medium Fries", cal: 320, protein: 4, fat: 15, carbs: 43, sodium: 260, fiber: 4, sugar: 0, tags: ["vegan"] },
       { name: "Side Salad", cal: 15, protein: 1, fat: 0, carbs: 3, sodium: 10, fiber: 1, sugar: 2, tags: ["low-cal", "vegan"] },
-      { name: "Grilled Chicken Sandwich", cal: 420, protein: 32, fat: 16, carbs: 38, sodium: 980, fiber: 2, sugar: 7, tags: ["high-protein"] },
+      // Grilled Chicken Sandwich removed (Artisan Grilled discontinued ~2020,
+      // no grilled chicken sandwich on the US menu) — McCrispy is the line now
+      { name: "McCrispy", cal: 470, protein: 26, fat: 20, carbs: 46, sodium: 1140, fiber: 1, sugar: 8, tags: [] },
       { name: "Sausage McMuffin w/ Egg", cal: 480, protein: 21, fat: 30, carbs: 30, sodium: 870, fiber: 2, sugar: 2, tags: [] },
     ],
   },
@@ -314,13 +339,14 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Fast Food",
     nycLocations: 120,
     priceRange: 1,
-    orderingTip: "Impossible Whopper is 630 cal — only 30 less than regular. Better bet: Grilled Chicken Jr. at 310 cal.",
+    lastVerified: "2026-07",
+    orderingTip: "Impossible Whopper is 630 cal — only 30 less than regular. Better bet: Whopper Jr. at 310 cal.",
     items: [
       { name: "Whopper", cal: 660, protein: 28, fat: 40, carbs: 49, sodium: 980, fiber: 2, sugar: 11, tags: [] },
       { name: "Whopper Jr.", cal: 310, protein: 13, fat: 18, carbs: 27, sodium: 390, fiber: 1, sugar: 7, tags: ["low-cal"] },
       { name: "Impossible Whopper", cal: 630, protein: 25, fat: 34, carbs: 58, sodium: 1080, fiber: 4, sugar: 12, tags: ["vegetarian"] },
       { name: "Original Chicken Sandwich", cal: 660, protein: 28, fat: 40, carbs: 48, sodium: 1170, fiber: 2, sugar: 5, tags: [] },
-      { name: "Chicken Fries (9pc)", cal: 280, protein: 16, fat: 17, carbs: 16, sodium: 780, fiber: 1, sugar: 0, tags: [] },
+      { name: "Chicken Fries (8pc)", cal: 220, protein: 13, fat: 12, carbs: 16, sodium: 680, fiber: 1, sugar: 0, tags: [] },
       { name: "Bacon King", cal: 1150, protein: 61, fat: 79, carbs: 49, sodium: 2150, fiber: 2, sugar: 10, tags: [] },
       { name: "Onion Rings (medium)", cal: 320, protein: 4, fat: 16, carbs: 40, sodium: 460, fiber: 3, sugar: 5, tags: ["vegan"] },
       { name: "Side Garden Salad", cal: 60, protein: 4, fat: 3, carbs: 4, sodium: 80, fiber: 2, sugar: 2, tags: ["low-cal", "vegetarian"] },
@@ -333,12 +359,14 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Fast Food",
     nycLocations: 40,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "Jr. Hamburger is only 250 cal. Pair with chili (160 cal, 14g protein) for a 410 cal meal with 30g protein.",
     items: [
       { name: "Dave's Single", cal: 570, protein: 30, fat: 34, carbs: 38, sodium: 1080, fiber: 2, sugar: 9, tags: [] },
       { name: "Jr. Hamburger", cal: 250, protein: 13, fat: 12, carbs: 25, sodium: 460, fiber: 1, sugar: 5, tags: ["low-cal"] },
       { name: "Jr. Bacon Cheeseburger", cal: 380, protein: 20, fat: 22, carbs: 26, sodium: 690, fiber: 1, sugar: 5, tags: [] },
-      { name: "Grilled Chicken Sandwich", cal: 370, protein: 35, fat: 10, carbs: 36, sodium: 870, fiber: 2, sugar: 8, tags: ["high-protein"] },
+      // Grilled Chicken Sandwich discontinued Mar 2023 — wrap is the grilled option
+      { name: "Grilled Chicken Ranch Wrap", cal: 420, protein: 28, fat: 16, carbs: 41, sodium: 1100, fiber: 2, sugar: 4, tags: ["high-protein"] },
       { name: "Spicy Chicken Sandwich", cal: 500, protein: 30, fat: 22, carbs: 48, sodium: 1290, fiber: 2, sugar: 4, tags: [] },
       { name: "Chili (small)", cal: 160, protein: 14, fat: 5, carbs: 16, sodium: 780, fiber: 4, sugar: 5, tags: ["low-cal", "high-protein"] },
       { name: "Baked Potato (plain)", cal: 270, protein: 7, fat: 0, carbs: 61, sodium: 25, fiber: 7, sugar: 4, tags: ["low-cal", "vegan"] },
@@ -355,6 +383,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Chicken",
     nycLocations: 40,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "Grilled Nuggets (8ct) = 130 cal, 25g protein — one of the best macro ratios in fast food",
     items: [
       { name: "Original Chicken Sandwich", cal: 440, protein: 28, fat: 18, carbs: 40, sodium: 1400, fiber: 1, sugar: 5, tags: [] },
@@ -376,6 +405,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Chicken",
     nycLocations: 120,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "Blackened chicken tenders (3pc, 170 cal, 26g protein) are the hidden gem — not breaded/fried",
     items: [
       { name: "Classic Chicken Sandwich", cal: 700, protein: 28, fat: 42, carbs: 50, sodium: 1440, fiber: 2, sugar: 8, tags: [] },
@@ -395,6 +425,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Chicken",
     nycLocations: 50,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "Plain wings (no sauce) are 0 carbs. Atomic or Lemon Pepper are lower-cal sauce options.",
     items: [
       { name: "Classic Wings (6pc, plain)", cal: 330, protein: 30, fat: 22, carbs: 0, sodium: 540, fiber: 0, sugar: 0, tags: ["high-protein", "low-carb", "keto"] },
@@ -411,6 +442,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Chicken",
     nycLocations: 8,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "Sub coleslaw for extra toast to save 150 cal. The chicken tenders are the lowest-cal fried option.",
     items: [
       { name: "Box Combo (4 tenders)", cal: 1250, protein: 52, fat: 58, carbs: 128, sodium: 2280, fiber: 3, sugar: 8, tags: [] },
@@ -430,17 +462,19 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Sandwich",
     nycLocations: 400,
     priceRange: 1,
-    orderingTip: "6-inch on wheat with double veggies and mustard instead of mayo saves 200+ cal. Turkey breast is the lowest-cal protein.",
+    lastVerified: "2026-07",
+    orderingTip: "6-inch on wheat with double veggies and mustard instead of mayo saves 200+ cal. Oven Roasted Turkey is the lowest-cal protein.",
     items: [
-      { name: "Turkey Breast 6\"", cal: 270, protein: 18, fat: 4, carbs: 44, sodium: 810, fiber: 5, sugar: 6, tags: ["low-cal", "high-protein"] },
-      { name: "Oven-Roasted Chicken 6\"", cal: 320, protein: 23, fat: 6, carbs: 44, sodium: 700, fiber: 5, sugar: 6, tags: ["low-cal", "high-protein"] },
+      { name: "Oven Roasted Turkey 6\"", cal: 270, protein: 18, fat: 4, carbs: 44, sodium: 810, fiber: 5, sugar: 6, tags: ["low-cal", "high-protein"] },
+      // Oven-Roasted Chicken removed from US menus Oct 2022 — Rotisserie-Style
+      // Chicken (restored 2023, below) is the lean chicken sub now
       { name: "Veggie Delite 6\"", cal: 200, protein: 8, fat: 2, carbs: 38, sodium: 310, fiber: 5, sugar: 5, tags: ["low-cal", "vegan"] },
       { name: "Italian BMT 6\"", cal: 370, protein: 17, fat: 15, carbs: 44, sodium: 1260, fiber: 5, sugar: 6, tags: [] },
       { name: "Tuna 6\"", cal: 370, protein: 20, fat: 14, carbs: 42, sodium: 550, fiber: 5, sugar: 5, tags: [] },
       { name: "Steak & Cheese 6\"", cal: 350, protein: 24, fat: 10, carbs: 44, sodium: 890, fiber: 5, sugar: 7, tags: [] },
       { name: "Meatball Marinara 6\"", cal: 480, protein: 22, fat: 20, carbs: 54, sodium: 1220, fiber: 6, sugar: 10, tags: [] },
       { name: "Chicken & Bacon Ranch 6\"", cal: 530, protein: 30, fat: 22, carbs: 48, sodium: 1100, fiber: 5, sugar: 6, tags: [] },
-      { name: "Rotisserie Chicken 6\"", cal: 320, protein: 26, fat: 8, carbs: 42, sodium: 770, fiber: 5, sugar: 5, tags: ["high-protein"] },
+      { name: "Rotisserie-Style Chicken 6\"", cal: 300, protein: 23, fat: 6, carbs: 39, sodium: 750, fiber: 5, sugar: 5, tags: ["high-protein"] },
     ],
   },
   {
@@ -450,14 +484,15 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Sandwich",
     nycLocations: 30,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Order a 'Sub in a Tub' (no bread) to cut 200-300 cal. Ask for 'Mike's Way' (onions, lettuce, tomato, oil, vinegar).",
     items: [
       { name: "#7 Turkey & Provolone (regular)", cal: 540, protein: 32, fat: 22, carbs: 54, sodium: 1580, fiber: 3, sugar: 5, tags: [] },
-      { name: "#13 Italian (regular)", cal: 680, protein: 34, fat: 36, carbs: 56, sodium: 2220, fiber: 3, sugar: 6, tags: [] },
-      { name: "#6 Roast Beef & Provolone", cal: 570, protein: 36, fat: 24, carbs: 52, sodium: 1640, fiber: 3, sugar: 5, tags: ["high-protein"] },
+      { name: "#13 The Original Italian (regular)", cal: 680, protein: 34, fat: 36, carbs: 56, sodium: 2220, fiber: 3, sugar: 6, tags: [] },
+      { name: "#6 Famous Roast Beef & Provolone", cal: 570, protein: 36, fat: 24, carbs: 52, sodium: 1640, fiber: 3, sugar: 5, tags: ["high-protein"] },
       { name: "#17 Mike's Famous Philly", cal: 620, protein: 38, fat: 28, carbs: 52, sodium: 1740, fiber: 3, sugar: 6, tags: ["high-protein"] },
       { name: "Turkey Sub in a Tub", cal: 320, protein: 28, fat: 18, carbs: 12, sodium: 1180, fiber: 2, sugar: 4, tags: ["low-cal", "high-protein", "low-carb"] },
-      { name: "Grilled Chicken Caesar Wrap", cal: 510, protein: 34, fat: 22, carbs: 44, sodium: 1420, fiber: 3, sugar: 3, tags: ["high-protein"] },
+      // Signature wraps discontinued May 2020 — any sub is orderable as a wrap/tub instead
     ],
   },
   {
@@ -467,12 +502,14 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Sandwich",
     nycLocations: 55,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Protein Pots and salads are under 400 cal with 25g+ protein — skip the pastry case",
     items: [
-      { name: "Chicken & Avocado Sandwich", cal: 510, protein: 30, fat: 22, carbs: 48, sodium: 780, fiber: 5, sugar: 4, tags: ["high-protein"] },
-      { name: "Tuna Niçoise Salad", cal: 350, protein: 28, fat: 18, carbs: 18, sodium: 640, fiber: 4, sugar: 6, tags: ["high-protein", "low-carb"] },
+      // US-menu corrections: Balsamic Chicken & Avocado retired; Tuna Niçoise
+      // is a Pret HK item; the protein box was a Starbucks product mixed in
+      { name: "Chicken Salad & Avo Sandwich", cal: 550, protein: 24, fat: 27, carbs: 54, sodium: 1090, fiber: 5, sugar: 4, tags: ["high-protein"] },
+      { name: "Smoked Salmon Niçoise Salad", cal: 450, protein: 20, fat: 37, carbs: 10, sodium: 1190, fiber: 4, sugar: 4, tags: ["high-protein", "low-carb"] },
       { name: "Chicken Caesar Wrap", cal: 480, protein: 32, fat: 20, carbs: 44, sodium: 920, fiber: 3, sugar: 3, tags: ["high-protein"] },
-      { name: "Egg & Cheddar Protein Box", cal: 370, protein: 26, fat: 22, carbs: 18, sodium: 580, fiber: 3, sugar: 4, tags: ["high-protein", "low-carb"] },
       { name: "PB&J Smoothie", cal: 280, protein: 12, fat: 8, carbs: 42, sodium: 120, fiber: 4, sugar: 28, tags: ["vegetarian"] },
       { name: "Almond Croissant", cal: 460, protein: 10, fat: 26, carbs: 48, sodium: 280, fiber: 2, sugar: 20, tags: ["vegetarian"] },
     ],
@@ -486,13 +523,14 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Pizza",
     nycLocations: 180,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "Thin crust saves ~80 cal/slice vs hand-tossed. Load veggies instead of extra cheese.",
     items: [
       { name: "Hand-Tossed Cheese Slice (medium)", cal: 200, protein: 8, fat: 8, carbs: 25, sodium: 460, fiber: 1, sugar: 2, tags: [] },
       { name: "Pepperoni Slice (medium)", cal: 220, protein: 9, fat: 10, carbs: 25, sodium: 530, fiber: 1, sugar: 2, tags: [] },
       { name: "Thin Crust Cheese Slice", cal: 150, protein: 6, fat: 8, carbs: 14, sodium: 320, fiber: 1, sugar: 1, tags: ["low-cal"] },
       { name: "Pacific Veggie Slice", cal: 230, protein: 9, fat: 10, carbs: 27, sodium: 520, fiber: 2, sugar: 3, tags: ["vegetarian"] },
-      { name: "Chicken Alfredo Pasta Bowl", cal: 690, protein: 28, fat: 26, carbs: 84, sodium: 990, fiber: 3, sugar: 5, tags: [] },
+      { name: "Chicken Alfredo (oven-baked pasta)", cal: 620, protein: 28, fat: 30, carbs: 60, sodium: 1120, fiber: 3, sugar: 5, tags: [] },
       { name: "Classic Garden Salad", cal: 70, protein: 4, fat: 1, carbs: 14, sodium: 170, fiber: 3, sugar: 5, tags: ["low-cal", "vegetarian"] },
       { name: "Boneless Chicken (8pc)", cal: 350, protein: 20, fat: 16, carbs: 30, sodium: 1120, fiber: 1, sugar: 1, tags: [] },
     ],
@@ -504,6 +542,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Pizza",
     nycLocations: 60,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "Thin 'N Crispy crust is the lowest-cal option. Hand-tossed adds 40+ cal/slice.",
     items: [
       { name: "Hand-Tossed Cheese Slice (medium)", cal: 220, protein: 10, fat: 8, carbs: 26, sodium: 540, fiber: 1, sugar: 3, tags: [] },
@@ -511,7 +550,8 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
       { name: "Thin 'N Crispy Cheese Slice", cal: 180, protein: 8, fat: 8, carbs: 18, sodium: 460, fiber: 1, sugar: 2, tags: ["low-cal"] },
       { name: "Veggie Lovers Slice", cal: 200, protein: 8, fat: 8, carbs: 24, sodium: 480, fiber: 2, sugar: 3, tags: ["vegetarian"] },
       { name: "Tuscani Meaty Marinara Pasta", cal: 520, protein: 22, fat: 24, carbs: 52, sodium: 1080, fiber: 3, sugar: 6, tags: [] },
-      { name: "Wing Street Wings (2pc)", cal: 150, protein: 10, fat: 10, carbs: 4, sodium: 380, fiber: 0, sugar: 1, tags: ["low-cal", "low-carb"] },
+      // WingStreet brand retired — wings are plain "Traditional Wings" now
+      { name: "Traditional Wings (2pc, plain)", cal: 160, protein: 14, fat: 10, carbs: 0, sodium: 580, fiber: 0, sugar: 0, tags: ["low-cal", "low-carb"] },
     ],
   },
   {
@@ -521,13 +561,14 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Pizza",
     nycLocations: 50,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "Skip the garlic dipping sauce — it's 150 cal of pure fat. Garden Fresh pizza is lowest-cal.",
     items: [
       { name: "Original Cheese Slice (large)", cal: 290, protein: 12, fat: 10, carbs: 38, sodium: 640, fiber: 1, sugar: 4, tags: [] },
       { name: "Pepperoni Slice (large)", cal: 320, protein: 14, fat: 14, carbs: 36, sodium: 780, fiber: 1, sugar: 4, tags: [] },
       { name: "Garden Fresh Slice", cal: 260, protein: 10, fat: 10, carbs: 34, sodium: 580, fiber: 2, sugar: 4, tags: ["vegetarian"] },
       { name: "Chicken & Bacon Slice", cal: 350, protein: 18, fat: 16, carbs: 34, sodium: 860, fiber: 1, sugar: 4, tags: [] },
-      { name: "Papadias (Philly Cheesesteak)", cal: 620, protein: 30, fat: 26, carbs: 64, sodium: 1480, fiber: 2, sugar: 5, tags: [] },
+      { name: "Philly Cheesesteak Oven-Toasted Sandwich", cal: 780, protein: 52, fat: 34, carbs: 71, sodium: 2770, fiber: 2, sugar: 5, tags: [] }, // Papadias line retired ~Mar 2026
       { name: "Garlic Sauce (dip cup)", cal: 150, protein: 0, fat: 17, carbs: 0, sodium: 160, fiber: 0, sugar: 0, tags: ["keto"] },
     ],
   },
@@ -538,6 +579,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Pizza",
     nycLocations: 5,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "A classic NYC slice is ~300 cal. Blot the grease with a napkin — saves ~40 cal.",
     items: [
       { name: "Classic Cheese Slice", cal: 300, protein: 12, fat: 10, carbs: 40, sodium: 580, fiber: 2, sugar: 3, tags: [] },
@@ -553,6 +595,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Pizza",
     nycLocations: 30,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "At $1/slice, it's the cheapest cal/$ in NYC. One slice + a side salad is a solid budget meal.",
     items: [
       { name: "Cheese Slice", cal: 310, protein: 12, fat: 10, carbs: 42, sodium: 600, fiber: 2, sugar: 3, tags: [] },
@@ -569,6 +612,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Coffee & Bakery",
     nycLocations: 350,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Grande Caffè Americano = 15 cal. Any Grande Frappuccino = 400+. Swap to cold brew with splash of oat milk for big savings.",
     items: [
       { name: "Caffè Americano (grande)", cal: 15, protein: 1, fat: 0, carbs: 3, sodium: 10, fiber: 0, sugar: 0, tags: ["low-cal", "vegan"] },
@@ -577,10 +621,12 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
       { name: "Oatmilk Latte (grande)", cal: 170, protein: 4, fat: 5, carbs: 28, sodium: 170, fiber: 2, sugar: 14, tags: ["vegan"] },
       { name: "Caramel Frappuccino (grande)", cal: 380, protein: 5, fat: 16, carbs: 54, sodium: 230, fiber: 0, sugar: 50, tags: [] },
       { name: "Mocha Frappuccino (grande)", cal: 370, protein: 6, fat: 15, carbs: 54, sodium: 220, fiber: 1, sugar: 48, tags: [] },
-      { name: "Protein Cold Brew (grande)", cal: 170, protein: 12, fat: 3, carbs: 23, sodium: 130, fiber: 0, sugar: 18, tags: ["high-protein"] },
-      { name: "Egg & Cheddar Protein Box", cal: 460, protein: 25, fat: 24, carbs: 38, sodium: 780, fiber: 3, sugar: 12, tags: ["high-protein"] },
-      { name: "Turkey Bacon Sandwich", cal: 230, protein: 14, fat: 6, carbs: 28, sodium: 560, fiber: 3, sugar: 3, tags: ["low-cal", "high-protein"] },
-      { name: "Spinach & Feta Wrap", cal: 290, protein: 19, fat: 10, carbs: 34, sodium: 840, fiber: 3, sugar: 4, tags: ["high-protein", "vegetarian"] },
+      // 2018 "Protein Blended Cold Brew" is long gone; the Sept 2025 protein
+      // platform's named drink replaces it
+      { name: "Vanilla Protein Cream Cold Brew (grande)", cal: 300, protein: 17, fat: 16, carbs: 25, sodium: 150, fiber: 0, sugar: 23, tags: ["high-protein"] },
+      { name: "Eggs & Cheddar Protein Box", cal: 460, protein: 22, fat: 24, carbs: 40, sodium: 450, fiber: 5, sugar: 12, tags: ["high-protein"] },
+      { name: "Turkey Bacon, Cheddar & Egg White Sandwich", cal: 260, protein: 17, fat: 9, carbs: 28, sodium: 560, fiber: 3, sugar: 3, tags: ["low-cal", "high-protein"] },
+      { name: "Spinach, Feta & Egg White Wrap", cal: 290, protein: 20, fat: 10, carbs: 34, sodium: 840, fiber: 3, sugar: 4, tags: ["high-protein", "vegetarian"] },
       { name: "Butter Croissant", cal: 260, protein: 5, fat: 14, carbs: 30, sodium: 320, fiber: 1, sugar: 4, tags: ["vegetarian"] },
       { name: "Chocolate Cake Pop", cal: 160, protein: 2, fat: 8, carbs: 22, sodium: 100, fiber: 0, sugar: 16, tags: [] },
     ],
@@ -592,6 +638,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Coffee & Bakery",
     nycLocations: 600,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "Egg & Cheese on English Muffin = 340 cal. Avoid croissants (+120 cal vs muffin). Black coffee = 5 cal.",
     items: [
       { name: "Original Blend Coffee (medium, black)", cal: 5, protein: 0, fat: 0, carbs: 1, sodium: 10, fiber: 0, sugar: 0, tags: ["low-cal", "vegan"] },
@@ -613,14 +660,18 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Coffee & Bakery",
     nycLocations: 55,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Half sandwich + cup of soup is a balanced 400-500 cal meal. Avoid mac & cheese (980 cal full).",
     items: [
       { name: "Broccoli Cheddar Soup (cup)", cal: 230, protein: 10, fat: 14, carbs: 16, sodium: 910, fiber: 2, sugar: 4, tags: ["vegetarian"] },
-      { name: "Turkey Sandwich (half)", cal: 340, protein: 20, fat: 14, carbs: 36, sodium: 780, fiber: 2, sugar: 4, tags: [] },
+      // Deli Turkey Sandwich + Mediterranean Bowl were cut in the Apr 2024
+      // overhaul; Bravo Club (half) and Mediterranean Chicken Greens with
+      // Grains are their closest current equivalents
+      { name: "Bravo Club (half)", cal: 400, protein: 25, fat: 19, carbs: 38, sodium: 1010, fiber: 2, sugar: 4, tags: [] },
       { name: "Fuji Apple Chicken Salad (half)", cal: 280, protein: 16, fat: 12, carbs: 28, sodium: 380, fiber: 3, sugar: 14, tags: [] },
-      { name: "Green Goddess Cobb Salad", cal: 530, protein: 35, fat: 34, carbs: 22, sodium: 1160, fiber: 5, sugar: 6, tags: ["high-protein", "low-carb"] },
+      { name: "Green Goddess Chicken Cobb Salad", cal: 550, protein: 42, fat: 34, carbs: 22, sodium: 1160, fiber: 5, sugar: 6, tags: ["high-protein", "low-carb"] },
       { name: "Mac & Cheese (full)", cal: 980, protein: 36, fat: 50, carbs: 92, sodium: 1620, fiber: 4, sugar: 8, tags: [] },
-      { name: "Mediterranean Bowl", cal: 480, protein: 28, fat: 18, carbs: 52, sodium: 840, fiber: 6, sugar: 4, tags: ["high-protein"] },
+      { name: "Mediterranean Chicken Greens with Grains (half)", cal: 335, protein: 18, fat: 21, carbs: 22, sodium: 655, fiber: 4, sugar: 3, tags: ["high-protein"] },
       { name: "Chicken Tortilla Soup (cup)", cal: 180, protein: 14, fat: 6, carbs: 18, sodium: 820, fiber: 2, sugar: 4, tags: ["low-cal"] },
       { name: "Everything Bagel", cal: 290, protein: 11, fat: 3, carbs: 56, sodium: 510, fiber: 2, sugar: 5, tags: ["vegan"] },
     ],
@@ -632,13 +683,14 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Coffee & Bakery",
     nycLocations: 35,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "NYC-local chain. Black coffee and cold brew are near-zero cal. Oat milk adds ~60 cal.",
     items: [
       { name: "Cold Brew (medium, black)", cal: 5, protein: 0, fat: 0, carbs: 0, sodium: 10, fiber: 0, sugar: 0, tags: ["low-cal", "vegan"] },
       { name: "Oat Milk Latte (medium)", cal: 180, protein: 4, fat: 5, carbs: 30, sodium: 160, fiber: 2, sugar: 14, tags: ["vegan"] },
       { name: "Matcha Latte (medium)", cal: 200, protein: 8, fat: 6, carbs: 30, sodium: 140, fiber: 1, sugar: 22, tags: ["vegetarian"] },
-      { name: "Avocado Toast", cal: 250, protein: 6, fat: 12, carbs: 30, sodium: 380, fiber: 5, sugar: 2, tags: ["vegan"] },
-      { name: "Egg & Cheese Croissant", cal: 420, protein: 16, fat: 24, carbs: 34, sodium: 620, fiber: 1, sugar: 4, tags: ["vegetarian"] },
+      { name: "Spicy Avo Toast", cal: 250, protein: 7, fat: 12, carbs: 30, sodium: 380, fiber: 5, sugar: 2, tags: ["vegan"] },
+      { name: "The Deluxe (turkey sausage, egg & cheese croissant)", cal: 430, protein: 16, fat: 24, carbs: 34, sodium: 640, fiber: 1, sugar: 4, tags: [] }, // Egg & Cheese Croissant retired
     ],
   },
 
@@ -650,6 +702,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Asian",
     nycLocations: 30,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "Super Greens side is 90 cal. Grilled Teriyaki Chicken is lowest-cal entrée at 300 cal. Skip fried rice (+520).",
     items: [
       { name: "Orange Chicken", cal: 490, protein: 25, fat: 23, carbs: 51, sodium: 820, fiber: 0, sugar: 19, tags: [] },
@@ -671,13 +724,14 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Asian",
     nycLocations: 15,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Wings are double-fried but smaller portions. Soy garlic sauce is lower-sugar than spicy.",
     items: [
       { name: "Soy Garlic Wings (8pc)", cal: 580, protein: 36, fat: 32, carbs: 36, sodium: 1240, fiber: 0, sugar: 12, tags: [] },
       { name: "Spicy Wings (8pc)", cal: 600, protein: 36, fat: 34, carbs: 38, sodium: 1380, fiber: 0, sugar: 14, tags: [] },
-      { name: "Chicken Teriyaki Bowl", cal: 520, protein: 28, fat: 14, carbs: 68, sodium: 920, fiber: 2, sugar: 16, tags: [] },
-      { name: "Japchae (glass noodles)", cal: 380, protein: 8, fat: 12, carbs: 62, sodium: 680, fiber: 3, sugar: 10, tags: ["vegetarian"] },
-      { name: "Kimchi Fried Rice", cal: 480, protein: 12, fat: 16, carbs: 72, sodium: 1020, fiber: 2, sugar: 4, tags: [] },
+      { name: "Bibimbap (soy garlic chicken)", cal: 567, protein: 33, fat: 8, carbs: 87, sodium: 1911, fiber: 3, sugar: 12, tags: ["high-protein"] }, // teriyaki bowl no longer on US menu
+      { name: "Japchae (with bulgogi)", cal: 906, protein: 28, fat: 23, carbs: 142, sodium: 2415, fiber: 3, sugar: 14, tags: [] },
+      { name: "House Fried Rice (kimchi & pork belly)", cal: 1480, protein: 44, fat: 96, carbs: 108, sodium: 3369, fiber: 2, sugar: 6, tags: [] },
     ],
   },
   {
@@ -685,8 +739,9 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     slug: "wok-to-walk",
     emoji: "🥡",
     category: "Asian",
-    nycLocations: 6,
+    nycLocations: 0, // exited NYC; only US location is Las Vegas (Jul 2026 check)
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "Build your own: egg noodles + chicken + veggies + teriyaki = ~450 cal. Skip the fried toppings.",
     items: [
       { name: "Egg Noodles + Chicken + Teriyaki", cal: 450, protein: 28, fat: 12, carbs: 58, sodium: 880, fiber: 3, sugar: 8, tags: [] },
@@ -704,6 +759,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Seafood",
     nycLocations: 8,
     priceRange: 3,
+    lastVerified: "2026-07",
     orderingTip: "Lobster roll is surprisingly lean — 320 cal, 21g protein. One of the best protein-per-cal ratios in NYC.",
     items: [
       { name: "Lobster Roll", cal: 320, protein: 21, fat: 11, carbs: 33, sodium: 820, fiber: 1, sugar: 4, tags: ["high-protein"] },
@@ -722,6 +778,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Middle Eastern",
     nycLocations: 25,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "White sauce is 300+ cal. Ask for a light drizzle or switch to hot sauce (5 cal). Half rice/half salad cuts 200 cal.",
     items: [
       { name: "Chicken Over Rice (regular)", cal: 810, protein: 48, fat: 28, carbs: 88, sodium: 1620, fiber: 3, sugar: 4, tags: ["high-protein"] },
@@ -742,14 +799,17 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Breakfast",
     nycLocations: 15,
     priceRange: 1,
-    orderingTip: "Simple & Fit menu items are under 600 cal. Original Buttermilk stack (5) is 680 cal — go with 2 + eggs for better macros.",
+    lastVerified: "2026-07",
+    orderingTip: "Veggie Egg White Omelette is the light order. Original Buttermilk stack (5) is 680 cal — go with the short stack + eggs for better macros.",
     items: [
       { name: "Original Buttermilk Pancakes (short stack, 3)", cal: 410, protein: 10, fat: 14, carbs: 62, sodium: 1020, fiber: 2, sugar: 14, tags: [] },
       { name: "2 Eggs + 2 Bacon + Toast", cal: 380, protein: 24, fat: 22, carbs: 22, sodium: 680, fiber: 1, sugar: 3, tags: ["high-protein"] },
-      { name: "Simple & Fit Veggie Omelette", cal: 330, protein: 28, fat: 14, carbs: 22, sodium: 740, fiber: 3, sugar: 4, tags: ["high-protein", "vegetarian"] },
+      // Simple & Fit line (incl. Grilled Tilapia) was cut in the 2020 menu
+      // simplification and never returned — Veggie Egg White Omelette is the
+      // current light order
+      { name: "Veggie Egg White Omelette", cal: 420, protein: 21, fat: 27, carbs: 29, sodium: 950, fiber: 5, sugar: 6, tags: ["high-protein", "vegetarian"] },
       { name: "Turkey Bacon Omelette", cal: 410, protein: 36, fat: 22, carbs: 14, sodium: 1020, fiber: 1, sugar: 3, tags: ["high-protein", "low-carb"] },
       { name: "Chicken & Waffles", cal: 920, protein: 42, fat: 44, carbs: 88, sodium: 1680, fiber: 2, sugar: 24, tags: [] },
-      { name: "Grilled Tilapia", cal: 350, protein: 38, fat: 14, carbs: 16, sodium: 620, fiber: 2, sugar: 4, tags: ["high-protein", "low-cal"] },
     ],
   },
   {
@@ -759,13 +819,15 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Breakfast",
     nycLocations: 5,
     priceRange: 1,
-    orderingTip: "Fit Fare menu is under 600 cal. Grand Slam can be 1,000+ cal — build your own with egg whites + turkey bacon.",
+    lastVerified: "2026-07",
+    orderingTip: "Grand Slam can be 1,000+ cal — build your own with egg whites + turkey bacon. The Loaded Veggie Omelette is the lighter set order.",
     items: [
-      { name: "Fit Fare Veggie Skillet", cal: 340, protein: 22, fat: 14, carbs: 32, sodium: 780, fiber: 4, sugar: 5, tags: ["low-cal", "vegetarian"] },
+      // Fit Fare line was dropped from US menus ~2020 (branding survives only
+      // in Canada) — Loaded Veggie Omelette below is the current veggie order
       { name: "Build Your Own Grand Slam (2 egg, 2 bacon, toast)", cal: 420, protein: 26, fat: 24, carbs: 24, sodium: 840, fiber: 1, sugar: 3, tags: [] },
       { name: "Turkey BLT Sandwich", cal: 480, protein: 28, fat: 22, carbs: 42, sodium: 1220, fiber: 3, sugar: 5, tags: [] },
-      { name: "Bourbon Chicken", cal: 520, protein: 42, fat: 16, carbs: 48, sodium: 1440, fiber: 3, sugar: 18, tags: ["high-protein"] },
-      { name: "Loaded Veggie Omelette", cal: 480, protein: 34, fat: 28, carbs: 24, sodium: 1080, fiber: 3, sugar: 4, tags: ["high-protein", "vegetarian"] },
+      { name: "Bourbon Chicken Skillet", cal: 840, protein: 65, fat: 32, carbs: 72, sodium: 2400, fiber: 4, sugar: 22, tags: ["high-protein"] },
+      { name: "Loaded Veggie Omelette", cal: 450, protein: 29, fat: 28, carbs: 18, sodium: 680, fiber: 3, sugar: 4, tags: ["high-protein", "vegetarian"] },
     ],
   },
   {
@@ -775,13 +837,16 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Diner",
     nycLocations: 8,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Irresist-A-Bowls are under 600 cal with 30g+ protein. Skip the appetizer sampler (1,800+ cal).",
     items: [
       { name: "Grilled Chicken Caesar Salad", cal: 530, protein: 42, fat: 28, carbs: 26, sodium: 1380, fiber: 4, sugar: 4, tags: ["high-protein"] },
       { name: "Blackened Cajun Salmon", cal: 520, protein: 44, fat: 28, carbs: 18, sodium: 1460, fiber: 3, sugar: 4, tags: ["high-protein", "low-carb"] },
       { name: "Top Sirloin (6oz)", cal: 280, protein: 40, fat: 12, carbs: 2, sodium: 720, fiber: 0, sugar: 0, tags: ["high-protein", "low-cal", "low-carb", "keto"] },
       { name: "Chicken Tenders Basket", cal: 950, protein: 52, fat: 52, carbs: 68, sodium: 2080, fiber: 3, sugar: 4, tags: [] },
-      { name: "Southwest Steak Bowl", cal: 510, protein: 38, fat: 18, carbs: 48, sodium: 1620, fiber: 6, sugar: 6, tags: ["high-protein"] },
+      // Steak bowl rotated out (~2024); the chicken bowl is the current
+      // Irresist-A-Bowl — honest macros, no longer a light item
+      { name: "Southwest Chicken Bowl", cal: 820, protein: 45, fat: 29, carbs: 90, sodium: 2200, fiber: 7, sugar: 8, tags: ["high-protein"] },
       { name: "Mozzarella Sticks", cal: 850, protein: 36, fat: 48, carbs: 68, sodium: 2240, fiber: 3, sugar: 8, tags: [] },
     ],
   },
@@ -792,8 +857,9 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     slug: "hale-and-hearty",
     emoji: "🥣",
     category: "Healthy",
-    nycLocations: 15,
+    nycLocations: 1, // closed all NYC stores 2022; one Chelsea revival since Jan 2026
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Soups are surprisingly low-cal (150-280/bowl). Pair with a half salad for a 400 cal meal.",
     items: [
       { name: "Chicken Noodle Soup (bowl)", cal: 180, protein: 14, fat: 4, carbs: 22, sodium: 960, fiber: 1, sugar: 2, tags: ["low-cal"] },
@@ -810,8 +876,9 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     slug: "sweetcatch-poke",
     emoji: "🐟",
     category: "Healthy",
-    nycLocations: 5,
+    nycLocations: 1, // only 125 Maiden Ln open, weekday lunch (Jul 2026 check)
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "White rice → brown rice saves nothing on cal but adds 3g fiber. Go light on sauces to keep sodium under 1000mg.",
     items: [
       { name: "Regular Poke Bowl (tuna)", cal: 520, protein: 32, fat: 14, carbs: 66, sodium: 880, fiber: 3, sugar: 8, tags: ["high-protein"] },
@@ -827,6 +894,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Healthy",
     nycLocations: 5,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Choose 'works' bowl over burrito to see your portions and avoid the oversized tortilla (+300 cal).",
     items: [
       { name: "Works Bowl (ahi tuna, regular)", cal: 510, protein: 28, fat: 14, carbs: 68, sodium: 920, fiber: 4, sugar: 10, tags: ["high-protein"] },
@@ -842,12 +910,13 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Chicken",
     nycLocations: 6,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Traditional wings (6pc, plain) = 430 cal, 36g protein. Avoid boneless (breaded = +200 cal). Dry rubs < wet sauces.",
     items: [
       { name: "Traditional Wings (6pc, plain)", cal: 430, protein: 36, fat: 30, carbs: 0, sodium: 240, fiber: 0, sugar: 0, tags: ["high-protein", "low-carb", "keto"] },
       { name: "Traditional Wings (6pc, honey BBQ)", cal: 530, protein: 36, fat: 30, carbs: 20, sodium: 1080, fiber: 0, sugar: 16, tags: ["high-protein"] },
       { name: "Boneless Wings (6pc, plain)", cal: 540, protein: 26, fat: 28, carbs: 44, sodium: 1420, fiber: 2, sugar: 0, tags: [] },
-      { name: "Grilled Chicken Salad", cal: 480, protein: 38, fat: 24, carbs: 28, sodium: 1180, fiber: 4, sugar: 8, tags: ["high-protein"] },
+      { name: "Chicken Caesar Salad", cal: 780, protein: 33, fat: 59, carbs: 30, sodium: 2700, fiber: 4, sugar: 4, tags: [] }, // Grilled Chicken Salad retired; macros approximate (aggregator)
       { name: "Garden Side Salad", cal: 80, protein: 4, fat: 4, carbs: 8, sodium: 120, fiber: 2, sugar: 4, tags: ["low-cal", "vegetarian"] },
     ],
   },
@@ -858,6 +927,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Diner",
     nycLocations: 4,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Each breadstick is 140 cal. Minestrone soup = 100 cal — start with soup to eat less. Grilled chicken is best entrée.",
     items: [
       { name: "Grilled Chicken Margherita", cal: 570, protein: 48, fat: 26, carbs: 32, sodium: 1380, fiber: 4, sugar: 6, tags: ["high-protein"] },
@@ -874,8 +944,9 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     slug: "tgi-fridays",
     emoji: "🍽️",
     category: "Diner",
-    nycLocations: 6,
+    nycLocations: 0, // post-bankruptcy: no 5-borough locations left (Jul 2026 check)
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Whiskey-Glazed burgers are 1,000+ cal. Grilled chicken or salmon entrées are 400-600 cal.",
     items: [
       { name: "Grilled Chicken & Broccoli", cal: 420, protein: 48, fat: 14, carbs: 24, sodium: 1080, fiber: 4, sugar: 4, tags: ["high-protein"] },
@@ -892,11 +963,14 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Diner",
     nycLocations: 4,
     priceRange: 3,
+    lastVerified: "2026-07",
     orderingTip: "SkinnyLicious menu items are 590 cal or less. Regular entrées average 1,500 cal. Share a dish.",
     items: [
-      { name: "SkinnyLicious Chicken", cal: 570, protein: 46, fat: 20, carbs: 48, sodium: 1240, fiber: 4, sugar: 6, tags: ["high-protein"] },
-      { name: "SkinnyLicious Shrimp", cal: 410, protein: 32, fat: 14, carbs: 38, sodium: 880, fiber: 4, sugar: 6, tags: ["high-protein"] },
-      { name: "SkinnyLicious Turkey Burger", cal: 580, protein: 38, fat: 22, carbs: 56, sodium: 1060, fiber: 4, sugar: 8, tags: ["high-protein"] },
+      // Current SkinnyLicious item names (legacy "SkinnyLicious Chicken/Shrimp"
+      // don't exist on the 2026 menu)
+      { name: "Tuscan Chicken (SkinnyLicious)", cal: 590, protein: 46, fat: 20, carbs: 48, sodium: 1240, fiber: 4, sugar: 6, tags: ["high-protein"] },
+      { name: "Lemon-Garlic Shrimp (SkinnyLicious)", cal: 410, protein: 32, fat: 14, carbs: 38, sodium: 880, fiber: 4, sugar: 6, tags: ["high-protein"] },
+      { name: "SkinnyLicious Grilled Turkey Burger", cal: 560, protein: 38, fat: 22, carbs: 52, sodium: 1060, fiber: 4, sugar: 8, tags: ["high-protein"] },
       { name: "Chicken Madeira", cal: 1540, protein: 88, fat: 80, carbs: 108, sodium: 3280, fiber: 6, sugar: 14, tags: [] },
       { name: "Pasta Carbonara", cal: 1920, protein: 58, fat: 98, carbs: 196, sodium: 2640, fiber: 8, sugar: 10, tags: [] },
       { name: "Original Cheesecake (slice)", cal: 830, protein: 14, fat: 56, carbs: 68, sodium: 480, fiber: 0, sugar: 52, tags: ["vegetarian"] },
@@ -910,8 +984,9 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     slug: "juice-press",
     emoji: "🧃",
     category: "Healthy",
-    nycLocations: 20,
+    nycLocations: 20, // shrinking but ~20 NYC stores open (Jul 2026 check)
     priceRange: 3,
+    lastVerified: "2026-07",
     orderingTip: "Green juices are 80-120 cal. Smoothie bowls can be 500+. Protein add-on (+$2) adds 20g.",
     items: [
       { name: "Doctor Green Juice", cal: 80, protein: 4, fat: 0, carbs: 18, sodium: 60, fiber: 0, sugar: 12, tags: ["low-cal", "vegan"] },
@@ -922,12 +997,13 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     ],
   },
   {
-    name: "Jamba Juice",
+    name: "Jamba",
     slug: "jamba-juice",
     emoji: "🥤",
     category: "Healthy",
     nycLocations: 10,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Smoothies average 350-500 cal (small). Fresh juice or a Whirl'd White smoothie (small, 210 cal) is lighter.",
     items: [
       { name: "Caribbean Passion (small)", cal: 280, protein: 2, fat: 1, carbs: 68, sodium: 35, fiber: 3, sugar: 60, tags: ["vegan"] },
@@ -946,6 +1022,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Diner",
     nycLocations: 4,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Guiltless Grill items are 600 cal or less. Regular burgers and fajitas are 1,200+.",
     items: [
       { name: "6oz Sirloin with Grilled Avocado", cal: 450, protein: 42, fat: 24, carbs: 14, sodium: 1040, fiber: 4, sugar: 2, tags: ["high-protein", "low-carb"] },
@@ -962,10 +1039,13 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Chicken",
     nycLocations: 40,
     priceRange: 1,
-    orderingTip: "Grilled chicken breast (180 cal, 35g protein) is the sleeper menu item. Extra crispy adds 100+ cal.",
+    lastVerified: "2026-07",
+    orderingTip: "Order the Original Recipe breast and remove skin & breading — 160 cal, 31g protein. Extra crispy adds 100+ cal.",
     items: [
       { name: "Original Recipe Breast", cal: 390, protein: 39, fat: 21, carbs: 11, sodium: 1190, fiber: 0, sugar: 0, tags: ["high-protein", "low-carb"] },
-      { name: "Grilled Chicken Breast", cal: 180, protein: 35, fat: 4, carbs: 0, sodium: 650, fiber: 0, sugar: 0, tags: ["low-cal", "high-protein", "low-carb", "keto"] },
+      // Kentucky Grilled Chicken discontinued ~2020 — the lean order is OR
+      // breast with skin & breading removed (KFC-published derived figure)
+      { name: "Original Recipe Breast (no skin/breading)", cal: 160, protein: 31, fat: 4, carbs: 2, sodium: 580, fiber: 0, sugar: 0, tags: ["low-cal", "high-protein", "low-carb", "keto"] },
       { name: "Extra Crispy Breast", cal: 490, protein: 34, fat: 29, carbs: 17, sodium: 1190, fiber: 1, sugar: 0, tags: [] },
       { name: "Famous Bowl", cal: 710, protein: 26, fat: 34, carbs: 76, sodium: 2080, fiber: 5, sugar: 2, tags: [] },
       { name: "Coleslaw (individual)", cal: 170, protein: 1, fat: 10, carbs: 22, sodium: 180, fiber: 2, sugar: 14, tags: ["vegetarian"] },
@@ -983,6 +1063,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Coffee & Bakery",
     nycLocations: 40,
     priceRange: 1,
+    lastVerified: "2026-07",
     orderingTip: "Ask for 25% or 0% sugar — saves 100-200 cal. Boba adds ~100 cal per serving. Plain tea = 0 cal.",
     items: [
       { name: "Classic Milk Tea (50% sugar)", cal: 280, protein: 2, fat: 4, carbs: 60, sodium: 80, fiber: 0, sugar: 48, tags: ["vegetarian"] },
@@ -1000,6 +1081,7 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Coffee & Bakery",
     nycLocations: 8,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Their signature Brown Sugar Boba is 650+ cal. Ask for less sugar and sub oat milk to cut 150 cal.",
     items: [
       { name: "Brown Sugar Boba Milk", cal: 660, protein: 8, fat: 18, carbs: 118, sodium: 180, fiber: 0, sugar: 92, tags: [] },
@@ -1017,13 +1099,14 @@ export const RESTAURANT_CHAINS: RestaurantChain[] = [
     category: "Healthy",
     nycLocations: 12,
     priceRange: 2,
+    lastVerified: "2026-07",
     orderingTip: "Small size is 300-400 cal. Large can be 700+. Ask for no granola to cut 150 cal.",
     items: [
       { name: "Açaí Bowl (small)", cal: 340, protein: 6, fat: 8, carbs: 64, sodium: 30, fiber: 8, sugar: 40, tags: ["vegan"] },
       { name: "Açaí Bowl (large)", cal: 620, protein: 10, fat: 14, carbs: 116, sodium: 50, fiber: 14, sugar: 72, tags: ["vegan"] },
       { name: "Pitaya Bowl (small)", cal: 310, protein: 4, fat: 4, carbs: 68, sodium: 20, fiber: 6, sugar: 44, tags: ["vegan"] },
       { name: "Green Bowl (small)", cal: 280, protein: 8, fat: 6, carbs: 52, sodium: 40, fiber: 6, sugar: 32, tags: ["vegan"] },
-      { name: "Banana PB&J Smoothie", cal: 440, protein: 14, fat: 16, carbs: 64, sodium: 160, fiber: 6, sugar: 42, tags: ["vegetarian"] },
+      // Banana PB&J Smoothie was a Sep-Nov 2025 seasonal LTO — removed
     ],
   },
 ];

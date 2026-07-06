@@ -14,7 +14,9 @@ const DRINK_RE =
 // cal) so they are exempt from the meal floor. The >=200 cal "best order must
 // be a meal" rule is enforced at ranking time in /api/smart-menu/near-me.
 const SIDE_RE =
-  /\b(side salad|side\b|sauce|dressing|green beans|corn\b|coleslaw|slaw|mashed potatoes|apple slices|fruit\b|yogurt|hash brown|biscuit\b|rice\b|pita\b|hummus|guac)\b/i;
+  /\b(side salad|side\b|sauce|dressing|green beans|corn\b|coleslaw|slaw|mashed potatoes|apple slices|fruit\b|yogurt|hash brown|biscuit\b|steamed rice\b|pita\b|hummus|guac)\b/i;
+// NB: bare "rice" is NOT a side marker — Bon Chon's House Fried Rice is a
+// 1,480-cal entree; only "steamed rice" is the side.
 
 // Meal ceiling: worst-case real chain entrees reach ~1920 cal (Cheesecake
 // Factory Pasta Carbonara, kept as a "what to avoid" entry). The ceiling

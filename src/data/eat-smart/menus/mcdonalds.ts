@@ -67,8 +67,9 @@ export const mcdonaldsMenu: RestaurantMenu = {
       pulseScore: 66,
       badges: ["Under 300 Cal", "Whole Grain"],
       isDrink: false,
-      availabilityStatus: "active",
-      source: { provider: "brand-published", externalId: "mcd-egg-white-delight", lastVerified: "2026-04-20" },
+      // Discontinued ~2021 (US) — kept for history, filtered from all picks
+      availabilityStatus: "discontinued",
+      source: { provider: "brand-published", externalId: "mcd-egg-white-delight", lastVerified: "2026-07-05" },
     },
     // ── Sandwiches (2) ──
     {
@@ -87,8 +88,9 @@ export const mcdonaldsMenu: RestaurantMenu = {
       pulseScore: 76,
       badges: ["High Protein", "Low Fat"],
       isDrink: false,
-      availabilityStatus: "active",
-      source: { provider: "brand-published", externalId: "mcd-artisan-grilled-chicken", lastVerified: "2026-04-20" },
+      // Discontinued ~2020 — no grilled chicken sandwich on the US menu
+      availabilityStatus: "discontinued",
+      source: { provider: "brand-published", externalId: "mcd-artisan-grilled-chicken", lastVerified: "2026-07-05" },
     },
     {
       id: "mcd-mchicken",
@@ -128,8 +130,9 @@ export const mcdonaldsMenu: RestaurantMenu = {
       pulseScore: 93,
       badges: ["High Protein", "High Fiber"],
       isDrink: false,
-      availabilityStatus: "active",
-      source: { provider: "brand-published", externalId: "mcd-sw-grilled-chicken-salad", lastVerified: "2026-04-20" },
+      // McDonald's removed all US salads in 2020 — never returned
+      availabilityStatus: "discontinued",
+      source: { provider: "brand-published", externalId: "mcd-sw-grilled-chicken-salad", lastVerified: "2026-07-05" },
     },
     // ── Snacks / Sides (2) ──
     {

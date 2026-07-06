@@ -167,7 +167,8 @@ export const CHAINS: ChainData[] = [
       { name: "McChicken", calories: 400, protein: 14, sodium: 560 },
       { name: "6pc Chicken McNuggets", calories: 250, protein: 14, sodium: 500 },
       { name: "Hamburger", calories: 250, protein: 12, sodium: 510 },
-      { name: "Southwest Grilled Chicken Salad", calories: 350, protein: 37, fiber: 6, sodium: 1070 },
+      // McDonald's cut all US salads in 2020 — McCrispy is the current protein pick
+      { name: "McCrispy", calories: 470, protein: 26, sodium: 1140 },
     ],
     swaps: [
       { from: "Big Mac", fromCal: 550, fromProtein: 25, to: "McDouble (no bun)", toCal: 260, toProtein: 22, tip: "Half the cal, nearly the same protein" },

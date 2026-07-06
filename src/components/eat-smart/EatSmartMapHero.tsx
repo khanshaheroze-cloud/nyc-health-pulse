@@ -194,7 +194,7 @@ export function EatSmartMapHero() {
           const d = JSON.parse(logBtn.getAttribute("data-quick-log") ?? "{}");
           const menu = getRestaurantMenu(d.chainSlug, d.cuisine, d.name, d.name);
           if (menu && menu.items.length > 0) {
-            const foodItems = menu.items.filter(i => !i.isDrink);
+            const foodItems = menu.items.filter(i => !i.isDrink && i.availabilityStatus !== "discontinued");
             const topItem = [...(foodItems.length > 0 ? foodItems : menu.items)].sort((a, b) => b.pulseScore - a.pulseScore)[0];
             const result = quickLogMenuItem({
               item: topItem,
@@ -337,7 +337,7 @@ export function EatSmartMapHero() {
   const handleQuickLog = (r: EnrichedResult) => {
     const menu = getRestaurantMenu(r.chainSlug, r.cuisine, r.name, r.name);
     if (menu && menu.items.length > 0) {
-      const foodItems = menu.items.filter(i => !i.isDrink);
+      const foodItems = menu.items.filter(i => !i.isDrink && i.availabilityStatus !== "discontinued");
       const topItem = [...(foodItems.length > 0 ? foodItems : menu.items)].sort((a, b) => b.pulseScore - a.pulseScore)[0];
       const result = quickLogMenuItem({
         item: topItem,

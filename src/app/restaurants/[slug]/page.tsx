@@ -124,6 +124,11 @@ export default async function ChainPage({ params }: Props) {
           <p className="text-[12px] text-dim mt-0.5">
             {chain.items.length} menu items · {chain.nycLocations} NYC locations · {'$'.repeat(chain.priceRange)} · {chain.category}
           </p>
+          {chain.lastVerified && (
+            <p className="text-[11px] text-muted mt-0.5">
+              Menu data verified {new Date(`${chain.lastVerified}-15`).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+            </p>
+          )}
         </div>
       </div>
 

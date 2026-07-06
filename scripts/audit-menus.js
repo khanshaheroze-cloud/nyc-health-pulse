@@ -126,10 +126,42 @@ for (const file of templateFiles.sort()) {
   console.log(`${icon} ${name.padEnd(20)} — ~${itemCount} items, last updated ${lastUpdated ?? "unknown"} (${days ?? "?"}d)`);
 }
 
+// ── Curated ranked-pick chains (src/lib/restaurantData.ts) ──
+// The July 2026 truth pass stamped every chain with lastVerified (YYYY-MM).
+// Staleness here is a WARNING, not a failure: these are hand-checked against
+// each chain's published menu, and a warning is the re-check reminder.
+const CURATED_STALE_DAYS = 183; // ~6 months
+const warnings = [];
+{
+  const curated = fs.readFileSync(path.join(__dirname, "../src/lib/restaurantData.ts"), "utf-8");
+  const blocks = [...curated.matchAll(/name:\s*"([^"]+)",\s*\n\s*slug:\s*"([^"]+)"[\s\S]*?(?=\n  \{|\n\];)/g)];
+  console.log(`\n🏷  Curated ranked-pick chains (${blocks.length} chains, ${CURATED_STALE_DAYS}-day warning)\n`);
+  for (const b of blocks) {
+    const [block, name] = b;
+    const lv = block.match(/lastVerified:\s*"(\d{4}-\d{2})"/);
+    if (!lv) {
+      warnings.push(`${name}: no lastVerified stamp`);
+      continue;
+    }
+    const days = daysSince(`${lv[1]}-15`);
+    if (days !== null && days > CURATED_STALE_DAYS) {
+      warnings.push(`${name}: lastVerified ${lv[1]} is ${days}d old — re-check against the chain's current menu`);
+    }
+  }
+  if (warnings.length === 0) {
+    console.log(`✅ All ${blocks.length} curated chains verified within ${CURATED_STALE_DAYS} days.`);
+  }
+}
+
 // ── Summary ──
 console.log("\n" + "─".repeat(55));
 console.log(`Total: ${chainFiles.length} chain menus (${totalChainItems} items) + ${templateFiles.length} cuisine templates`);
 console.log(`Chain target: 12-15 items each | Template target: 10-12 items each`);
+
+if (warnings.length > 0) {
+  console.log(`\n⚠️  ${warnings.length} freshness warning(s) (non-fatal):\n`);
+  for (const w of warnings) console.log(`  • ${w}`);
+}
 
 if (failures.length > 0) {
   console.log(`\n❌ FAIL: ${failures.length} issue(s) found:\n`);
