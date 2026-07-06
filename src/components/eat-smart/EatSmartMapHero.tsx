@@ -30,6 +30,8 @@ export interface NearbyResult {
   distance: number;  // meters from API
   chainSlug: string | null;
   isHealthy: boolean;
+  /** Fails the walk-in test (Fooda/cafeteria/caterer) — dimmed on the map, never ranked */
+  institutional?: boolean;
 }
 
 export interface EnrichedResult extends NearbyResult {

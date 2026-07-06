@@ -144,6 +144,9 @@ export default function EatSmartMapHeroImpl({ center, restaurants, selectedId, o
       const isChain = r.chainSlug !== null;
       const icon = getMarkerIcon(r.cuisine, r.chainSlug, r.isHealthy);
       const el = createPinMarker(icon, isChain);
+      // Walk-in test failures (Fooda, cafeterias, caterers) stay visible but
+      // dimmed — real DOHMH records the public can't order from
+      if (r.institutional) el.style.opacity = "0.45";
       const distLabel = formatDistance(r.distance, distanceUnit);
 
       const gradeBadge = r.grade
@@ -176,6 +179,7 @@ export default function EatSmartMapHeroImpl({ center, restaurants, selectedId, o
       const popupHtml = `
         <div style="min-width:200px;max-width:280px;font-family:system-ui,-apple-system,sans-serif;">
           <p style="font-size:13px;font-weight:700;margin:0 0 2px;">${r.name}</p>
+          ${r.institutional ? `<p style="font-size:10px;font-weight:700;color:#8A6A1C;background:#FBF6E8;border:1px solid #F0E3B5;border-radius:6px;display:inline-block;padding:1px 6px;margin:0 0 3px;">Private/institutional — not open to walk-ins</p>` : ""}
           <p style="font-size:11px;color:#666;margin:0;">${r.cuisine} · ${distLabel}${gradeBadge}</p>
           <p style="font-size:10px;color:#888;margin:4px 0 0;">${r.address}</p>
           ${extraHtml}

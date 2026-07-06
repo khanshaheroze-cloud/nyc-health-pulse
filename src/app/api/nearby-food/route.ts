@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { canonicalBrand, normalizeVenueName } from "@/lib/venue-normalize";
+import { canonicalBrand, normalizeVenueName, nonWalkInReason } from "@/lib/venue-normalize";
 import { snapCoords, snapPadMeters, GRID_COARSE } from "@/lib/geoSnap";
 
 export const dynamic = "force-dynamic";
@@ -185,6 +185,9 @@ export async function GET(req: NextRequest) {
           distance: Math.round(haversine(latNum, lngNum, rLat, rLng)),
           chainSlug: matchChain(r.dba || ""),
           isHealthy: HEALTHY_CUISINES.includes(cuisine.toLowerCase()),
+          // Fails the walk-in test (Fooda/cafeteria/caterer): stays on the map
+          // but renders dimmed with a "Private/institutional" label, never ranked
+          institutional: nonWalkInReason(r.dba || "", cuisine) !== null,
         };
       })
       .filter((r): r is NonNullable<typeof r> => r !== null)

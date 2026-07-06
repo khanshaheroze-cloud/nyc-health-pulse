@@ -23,6 +23,14 @@ function isPrimaryFoodVenue(dba: string, cuisine: string): boolean {
   return true;
 }
 
+// Dev-only audit trail: every venue kept out of ranked picks, with the reason —
+// so future audits can see exactly what the eligibility gate is doing.
+function logExclusion(dba: string | undefined, reason: string | undefined) {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[smart-menu] excluded "${dba ?? "?"}" — ${reason ?? "unspecified"}`);
+  }
+}
+
 function priceTierLabel(priceRange: number): string {
   if (priceRange <= 1) return "$";
   if (priceRange <= 2) return "$$";
@@ -285,6 +293,7 @@ export async function GET(req: NextRequest) {
 
       if (!isPrimaryFoodVenue(r.dba || "", r.cuisine_description || "")) {
         venueGateExcluded++;
+        logExclusion(r.dba, "non-food venue (name pattern)");
         continue;
       }
 
@@ -379,6 +388,7 @@ export async function GET(req: NextRequest) {
         const elig = healthyPickEligibility(r.dba || "", r.cuisine_description || "", false, meal);
         if (!elig.eligible) {
           venueGateExcluded++;
+          logExclusion(r.dba, elig.reason);
           continue;
         }
 

@@ -203,6 +203,25 @@ export function canonicalBrand(raw: string): Brand | null {
 
 // "BAR" is excluded only when it is not a healthy bar type (juice/salad/poke/etc.)
 const HEALTHY_BAR_RE = /\b(juice|salad|poke|smoothie|acai|grain|soup|veggie|wellness)\s+bar\b/i;
+
+/* THE WALK-IN TEST (July 5 2026 audit, P0): a ranked pick must be a venue a
+ * member of the public can walk into and order at, during posted hours. DOHMH
+ * licenses plenty of real food-service operations that fail this test —
+ * corporate-cafeteria pop-ups (Fooda), contract caterers (Sodexo, Aramark,
+ * Compass/Flik, Guckenheimer), employee dining rooms, commissaries. They are
+ * real records with real inspections, but a stranger cannot eat there, so they
+ * must never rank. They stay on the map, dimmed, labeled "Private/institutional". */
+const NON_WALKIN_RE =
+  /\b(fooda|sodexo|aramark|guckenheimer|compass\s*group|flik|restaurant\s*associates|cafeterias?|commissary|commissaries|catering|caterers?|food\s*services?|dining\s*services?|employees?|staff\s*(dining|cafeteria|canteen|kitchen)|canteen)\b/i;
+// DOHMH cuisine descriptors that indicate institutional (non-public) service
+const NON_WALKIN_CUISINE_RE = /\b(cafeteria|employee|institutional)\b/i;
+
+/** Non-null when a venue fails the walk-in test; the string is the reason. */
+export function nonWalkInReason(rawName: string, cuisineDescription: string): string | null {
+  if (NON_WALKIN_RE.test(rawName || "")) return "private/institutional food service (name)";
+  if (NON_WALKIN_CUISINE_RE.test(cuisineDescription || "")) return "private/institutional food service (cuisine)";
+  return null;
+}
 const EXCLUDED_NAME_RE =
   /\b(lounge|cabaret|night\s*club|nightclub|tavern|saloon|speakeasy|brewery|brewing|taproom|tap\s*room|wine\s*bar|whiskey|cocktail|pastry|patisserie|donut|doughnut|cupcake|creamery|gelato|ice\s*cream|candy|chocolatier|dessert|main\s*kitchen|banquet|room\s*service|employee\s*(cafeteria|dining)|catering|caterers?|commissary|test\s*kitchen|events?\s+(center|space|hall|venue))\b/i;
 // Venues whose name ENDS in "EVENT(S)" are event spaces, not walk-in lunch
@@ -226,6 +245,12 @@ export function healthyPickEligibility(
 ): EligibilityResult {
   if (isBrandMatched) return { eligible: true };
   const name = rawName || "";
+  // Walk-in test first: Fooda/cafeteria/caterer records are the most
+  // trust-damaging failure (a #1 pick the public cannot walk into)
+  const nonWalkIn = nonWalkInReason(name, cuisineDescription);
+  if (nonWalkIn) {
+    return { eligible: false, reason: nonWalkIn };
+  }
   if (EXCLUDED_NAME_RE.test(name) || EVENTS_SUFFIX_RE.test(name)) {
     return { eligible: false, reason: "nightlife/dessert/event venue" };
   }

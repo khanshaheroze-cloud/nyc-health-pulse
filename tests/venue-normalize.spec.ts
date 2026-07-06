@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { normalizeVenueName, canonicalBrand, healthyPickEligibility } from "../src/lib/venue-normalize";
+import { normalizeVenueName, canonicalBrand, healthyPickEligibility, nonWalkInReason } from "../src/lib/venue-normalize";
 
 // Real raw DOHMH dba values from the June 2026 live audit.
 
@@ -94,6 +94,27 @@ test.describe("healthyPickEligibility", () => {
     expect(healthyPickEligibility("RESTAURANT ASSOCIATES COMMISSARY", "American", false).eligible).toBe(false);
     // "event" mid-name must NOT exclude a real restaurant
     expect(healthyPickEligibility("MAIN EVENT DINER", "American", false).eligible).toBe(true);
+  });
+
+  test("walk-in test: excludes non-public food service (July 5 2026 audit)", () => {
+    // Fooda ranked #1 for dinner in the audit — corporate-cafeteria pop-ups
+    // inside office buildings, not restaurants the public can enter
+    expect(healthyPickEligibility("FOODA", "American", false).eligible).toBe(false);
+    expect(healthyPickEligibility("FOODA @ 1 COURT SQUARE", "American", false).eligible).toBe(false);
+    expect(healthyPickEligibility("SODEXO CAFETERIA", "American", false).eligible).toBe(false);
+    expect(healthyPickEligibility("XYZ CATERING LLC", "American", false).eligible).toBe(false);
+    expect(healthyPickEligibility("ARAMARK AT CITI FIELD", "American", false).eligible).toBe(false);
+    expect(healthyPickEligibility("ACME FOOD SERVICES", "American", false).eligible).toBe(false);
+    expect(healthyPickEligibility("MERCY HOSPITAL DINING SERVICES", "American", false).eligible).toBe(false);
+    expect(healthyPickEligibility("GOLDMAN SACHS EMPLOYEE CAFETERIA", "American", false).eligible).toBe(false);
+    expect(healthyPickEligibility("STAFF CANTEEN", "American", false).eligible).toBe(false);
+    expect(healthyPickEligibility("COMPASS GROUP / FLIK", "American", false).eligible).toBe(false);
+    // Cuisine descriptor alone marks institutional service
+    expect(nonWalkInReason("SOME PLACE", "Employee Cafeteria")).not.toBeNull();
+    // Real walk-in venues must NOT trip the gate
+    expect(healthyPickEligibility("HARISSA GRILL", "Middle Eastern", false).eligible).toBe(true);
+    expect(healthyPickEligibility("HAN DYNASTY", "Chinese", false).eligible).toBe(true);
+    expect(nonWalkInReason("R40", "Mediterranean")).toBeNull();
   });
 
   test("keeps healthy bar types and brand-matched venues", () => {
