@@ -12,6 +12,13 @@ export async function fetchWithTimeout(
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  // A caller-provided signal must still cancel the request (the internal
+  // timeout controller would otherwise silently replace it)
+  const external = init?.signal;
+  if (external) {
+    if (external.aborted) controller.abort(external.reason);
+    else external.addEventListener("abort", () => controller.abort(external.reason), { once: true });
+  }
   try {
     return await fetch(input, { ...init, signal: controller.signal });
   } finally {

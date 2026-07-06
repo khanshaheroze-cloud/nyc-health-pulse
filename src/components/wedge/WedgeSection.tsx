@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { WedgeHero } from "./WedgeHero";
@@ -89,7 +89,11 @@ function syncNeighborhood(lat: number, lng: number, source: "gps" | "manual") {
 export function WedgeSection() {
   const router = useRouter();
 
-  const [coords, setCoords] = useState<{ lat: number; lng: number }>(TIMES_SQUARE);
+  // coords stays null until the persisted location has been read (hydration
+  // gate). The first fetch must NEVER fire with the Times Square fallback when
+  // a saved location exists — that race rendered Midtown venues under a LIC
+  // banner (July 5 audit, P0).
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationLabel, setLocationLabel] = useState("Set location");
   const [isDefault, setIsDefault] = useState(true);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
@@ -106,6 +110,10 @@ export function WedgeSection() {
   const [mealType, setMealType] = useState<MealCategory>(() => detectMealType());
 
   const [allSpots, setAllSpots] = useState<ResultSpot[]>([]);
+  // The origin that PRODUCED the current result set. Travels with the response
+  // envelope (set in the same state batch as allSpots) so the map center and
+  // any origin-derived UI can never mix a new location with stale venues.
+  const [resultsOrigin, setResultsOrigin] = useState<{ lat: number; lng: number } | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [mapVisible, setMapVisible] = useState(false);
@@ -192,6 +200,9 @@ export function WedgeSection() {
         setIsDefault(false);
         syncNeighborhood(cached.lat, cached.lng, cached.source === "manual" ? "manual" : "gps");
       }
+    } else {
+      // No persisted location: only NOW may the Times Square fallback fetch.
+      setCoords(TIMES_SQUARE);
     }
     const cachedMeal = readCachedMeal();
     if (cachedMeal) setMealType(cachedMeal);
@@ -205,12 +216,24 @@ export function WedgeSection() {
     });
   }, []);
 
+  // Stale-response guard: every fetch gets an incrementing id and aborts the
+  // in-flight request. A response may only touch state if its id is still the
+  // latest — the LAST location/meal/filter change owns the UI, not whichever
+  // response happens to resolve last.
+  const fetchSeq = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchResults = useCallback(async (lat: number, lng: number, meal: MealCategory) => {
+    const reqId = ++fetchSeq.current;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     setFetchError(false);
     trackEvent("find_food_search", { meta: { meal } });
     try {
-      const res = await fetchWithTimeout(`/api/smart-menu/near-me?lat=${lat}&lng=${lng}&meal=${meal}`);
+      const res = await fetchWithTimeout(`/api/smart-menu/near-me?lat=${lat}&lng=${lng}&meal=${meal}`, { signal: controller.signal });
       if (!res.ok) throw new Error("fetch failed");
       const data = await res.json();
       const restaurants: ApiRestaurant[] = data.restaurants || [];
@@ -249,19 +272,24 @@ export function WedgeSection() {
         };
       });
 
+      if (reqId !== fetchSeq.current) return; // superseded — a newer request owns the UI
+
       setAllSpots(mapped);
+      setResultsOrigin({ lat, lng }); // origin travels with the response, never read at render time
       setFetchedAt(Date.now());
       setTotalCount(restaurants.length);
     } catch {
+      if (reqId !== fetchSeq.current) return; // abort of a superseded request is not an error
       setAllSpots([]);
       setTotalCount(0);
       setFetchError(true);
     } finally {
-      setLoading(false);
+      if (reqId === fetchSeq.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    if (!coords) return; // location store not hydrated yet — never fetch the fallback blindly
     fetchResults(coords.lat, coords.lng, mealType);
   }, [coords, mealType, fetchResults]);
 
@@ -302,6 +330,7 @@ export function WedgeSection() {
   }, []);
 
   const confirmLowConfidence = useCallback(() => {
+    if (!coords) return;
     setLowConfidenceHood(null);
     const label = locationLabel.replace(/^Near | \?$|\?$/g, "");
     writeLocation({ lat: coords.lat, lng: coords.lng, label, source: "gps" });
@@ -424,7 +453,7 @@ export function WedgeSection() {
             sortBy={sortBy}
             onSortChange={setSortBy}
             fetchError={fetchError}
-            onRetry={() => fetchResults(coords.lat, coords.lng, mealType)}
+            onRetry={() => coords && fetchResults(coords.lat, coords.lng, mealType)}
           />
 
           {/* Waitlist — THE primary email capture, shown contextually after a
@@ -439,10 +468,12 @@ export function WedgeSection() {
           )}
 
           {/* 3-block radius local map */}
-          {!loading && spots.length > 0 && (
+          {/* Map centers on the origin that PRODUCED these results — never the
+              live store value, which may already point somewhere newer */}
+          {!loading && spots.length > 0 && resultsOrigin && (
             <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-8 mb-8">
               <LocalMap
-                center={coords}
+                center={resultsOrigin}
                 spots={mapSpots}
                 isDefault={isDefault}
                 onSpotClick={handleSpotClick}
