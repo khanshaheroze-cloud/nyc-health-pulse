@@ -3,7 +3,13 @@
 import { useState, useEffect } from "react";
 import { getTimeBand, isDarkBand } from "@/lib/timeBand";
 
-export function WedgeHero() {
+interface WedgeHeroProps {
+  /** Ranked under-$15 picks currently shown; null while loading. The promise
+   *  line must never claim "5" when the radius only produced fewer. */
+  under15Count?: number | null;
+}
+
+export function WedgeHero({ under15Count = null }: WedgeHeroProps) {
   const [time, setTime] = useState("");
   const [hood, setHood] = useState("NYC");
   // Client-only like `time` above: SSR renders the light variant, mount
@@ -70,7 +76,7 @@ export function WedgeHero() {
         className={`text-[18px] max-w-[580px] mx-auto mb-2 ${dark ? "text-[#E9E8E0]" : "text-[#6B716B]"}`}
         style={{ fontFamily: "var(--font-sans)" }}
       >
-        The 5 best macro-friendly meals under $15, within a 10-minute walk — with exactly what to order.
+        The {under15Count != null && under15Count > 0 && under15Count < 5 ? under15Count : 5} best macro-friendly meals under $15, within a 10-minute walk — with exactly what to order.
       </p>
 
       {/* Moat line */}

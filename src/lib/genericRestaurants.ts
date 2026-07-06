@@ -60,9 +60,12 @@ export const GENERIC_TEMPLATES: GenericTemplate[] = [
       { name: "Veggie Slice", description: "Loaded with peppers, onions, mushrooms, spinach", cal: 290, protein: 12, estimatedPrice: 5 },
       // Leaner canonical Italian orders — a 550-cal cheese casserole is not the
       // healthy archetype. (Removed Lasagna + Chicken-Parm-over-pasta headliners.)
+      // Picks must be dishes a pizzeria/red-sauce spot actually serves AND
+      // price ≤ $15 — this template feeds an under-$15 product (July 5 audit:
+      // Carmine's showed "$16 est." 400px under the under-$15 headline).
       { name: "Grilled Chicken + Sautéed Greens", description: "Simple grilled chicken with a vegetable side, hold the pasta", cal: 420, protein: 40, estimatedPrice: 13 },
       { name: "Minestrone + Side Salad", description: "Vegetable-and-bean soup with a garden salad", cal: 330, protein: 14, estimatedPrice: 11 },
-      { name: "Grilled Fish + Vegetables", description: "Branzino or salmon with roasted vegetables", cal: 460, protein: 38, estimatedPrice: 16 },
+      { name: "Antipasto Plate (meats, mozzarella, veg)", description: "Cured meats, fresh mozzarella, marinated vegetables", cal: 420, protein: 24, estimatedPrice: 13 },
     ],
   },
   {
@@ -182,7 +185,7 @@ export const GENERIC_TEMPLATES: GenericTemplate[] = [
       { name: "Shrimp Cocktail (6 pcs)", description: "Cold shrimp, cocktail sauce — pure lean protein", cal: 120, protein: 18, estimatedPrice: 10 },
       { name: "Fish Tacos (2, grilled)", description: "Grilled fish, cabbage slaw, lime, corn tortillas", cal: 340, protein: 24, estimatedPrice: 12 },
       { name: "Clam Chowder (cup)", description: "New England style — moderate cal for a cup", cal: 200, protein: 8, estimatedPrice: 7 },
-      { name: "Grilled Salmon Fillet", description: "Wild salmon, omega-3 rich", cal: 350, protein: 34, estimatedPrice: 16 },
+      { name: "Grilled Salmon Fillet", description: "Wild salmon, omega-3 rich", cal: 350, protein: 34, estimatedPrice: 15 },
     ],
   },
 ];

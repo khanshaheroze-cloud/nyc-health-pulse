@@ -133,8 +133,11 @@ export function WedgeSection() {
     return () => window.removeEventListener("popstate", read);
   }, []);
 
-  // Filter spots by active chips, then sort by the selected key
-  const spots = useMemo(() => {
+  // Filter spots by active chips, then sort by the selected key.
+  // The hero promises "under $15" unconditionally, so the ranked five may ONLY
+  // contain ≤$15 picks (exact price or band ceiling). Over-$15 venues are never
+  // hidden — they rank below a visually distinct "Worth a splurge" divider.
+  const { spots, splurgeSpots } = useMemo(() => {
     // Known-closed venues are excluded from the ranked top-5 — "right now" must
     // be true. Open + unknown-hours venues remain rankable. (Closed venues still
     // reach the map below, dimmed.)
@@ -142,11 +145,12 @@ export function WedgeSection() {
     if (activeChips.has("quick")) {
       filtered = filtered.filter(r => r.walkMinutes <= 5);
     }
+    // Known order price wins; unknown falls back to the venue's price band
+    const isUnder15 = (r: ResultSpot) =>
+      r.topPickPrice != null ? r.topPickPrice <= 15 : r.priceRange <= 2;
     if (activeChips.has("under-15")) {
-      // Known order price wins; unknown falls back to the venue's price band
-      filtered = filtered.filter(r =>
-        r.topPickPrice != null ? r.topPickPrice <= 15 : r.priceRange <= 2,
-      );
+      // Strict mode: the chip removes over-$15 venues entirely (no splurge row)
+      filtered = filtered.filter(isUnder15);
     }
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
@@ -160,15 +164,17 @@ export function WedgeSection() {
           return wedgeScore(b) - wedgeScore(a);
       }
     });
-    return sorted.slice(0, 5);
+    const under15 = sorted.filter(isUnder15);
+    const over15 = sorted.filter(r => !isUnder15(r));
+    return { spots: under15.slice(0, 5), splurgeSpots: over15.slice(0, 3) };
   }, [allSpots, activeChips, sortBy]);
 
   // Map shows the ranked picks PLUS any known-closed venues nearby, dimmed —
   // the prompt's "still on the map, dimmed, 'Closed · opens 7am'".
   const mapSpots = useMemo(() => {
     const closed = allSpots.filter(r => r.openState === "closed").slice(0, 6);
-    return [...spots, ...closed];
-  }, [spots, allSpots]);
+    return [...spots, ...splurgeSpots, ...closed];
+  }, [spots, splurgeSpots, allSpots]);
 
   const activeSpot = useMemo(() => {
     if (!spotSlug) return null;
@@ -413,7 +419,7 @@ export function WedgeSection() {
   return (
     <>
       <div>
-          <WedgeHero />
+          <WedgeHero under15Count={loading || fetchError ? null : spots.length} />
           <WedgeSearch
             locationLabel={locationLabel}
             onRequestLocation={handleRequestLocation}
@@ -443,6 +449,7 @@ export function WedgeSection() {
           <QuickFilterChips active={activeChips} onToggle={handleChipToggle} />
           <LiveResultsStrip
             spots={spots}
+            splurgeSpots={activeChips.has("under-15") ? [] : splurgeSpots}
             totalCount={totalCount}
             isDefault={isDefault}
             locationLabel={locationLabel}

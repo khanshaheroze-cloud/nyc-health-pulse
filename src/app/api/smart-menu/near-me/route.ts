@@ -141,10 +141,17 @@ function hashStr(s: string): number {
   return Math.abs(h);
 }
 
+// Every generic template is a $/$$ venue feeding an under-$15 product: a
+// template pick priced over $15 can never headline (July 5 audit: "$16 est."
+// rendered 400px under the "under $15" hero). Coherent picks under the cap
+// are always preferred; if none survive, the card falls back to guidance.
+const TEMPLATE_PRICE_CAP = 15;
+
 function filterGenericPicks(picks: GenericPick[], meal: string, category: string, seed: number = 0): GenericPick[] {
   const activeMeal = meal as MealCategory;
   const catKey = category.toLowerCase();
   const scored = picks
+    .filter(p => p.estimatedPrice == null || p.estimatedPrice <= TEMPLATE_PRICE_CAP)
     .filter(p => applyMealGuards(p.name, p.protein, p.cal, activeMeal, catKey))
     .map(p => {
       const inferred = inferMealType(p.name, undefined, category);

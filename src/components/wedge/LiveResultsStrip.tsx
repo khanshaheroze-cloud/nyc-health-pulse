@@ -39,6 +39,8 @@ export interface ResultSpot {
 
 interface LiveResultsStripProps {
   spots: ResultSpot[];
+  /** Over-$15 venues — never inside the promised five, shown under a divider */
+  splurgeSpots?: ResultSpot[];
   totalCount: number;
   isDefault: boolean;
   locationLabel: string;
@@ -74,7 +76,111 @@ function orderPriceLabel(spot: ResultSpot): string {
   return "~$15+";
 }
 
-export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, loading, mealLabel, onSpotClick, fetchedAt, sortBy = "score", onSortChange, fetchError, onRetry }: LiveResultsStripProps) {
+// One result card — shared by the ranked five and the "Worth a splurge" row.
+// Generic venues render as <button> — they have no /restaurants/* page, and a
+// crawlable/cmd-clickable href would 404.
+function SpotCard({ spot, onSpotClick }: { spot: ResultSpot; onSpotClick?: (slug: string) => void }) {
+  // Verified independents have a real detail page; un-verified
+  // generics render as <button> (no crawlable 404 href)
+  const detailHref = spot.verifiedSlug
+    ? `/restaurants/${spot.verifiedSlug}`
+    : !spot.isGeneric
+      ? `/restaurants/${spot.slug}`
+      : null;
+  const Card = detailHref ? ("a" as const) : ("button" as const);
+  return (
+    <Card
+      {...(detailHref
+        ? {
+            href: detailHref,
+            onClick: (e: React.MouseEvent) => {
+              if (onSpotClick && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
+                e.preventDefault();
+                onSpotClick(spot.slug);
+              }
+            },
+          }
+        : { type: "button" as const, onClick: () => onSpotClick?.(spot.slug) })}
+      className="bg-white border border-[#E6E5DE] rounded-2xl p-4 hover:-translate-y-0.5 transition-transform duration-150 block text-left w-full focus:outline-none focus:ring-2 focus:ring-[#2F8F4D]/40 focus:ring-offset-2"
+    >
+      {spot.isGeneric && spot.category && (
+        <span className="text-[11px] tracking-[1px] uppercase text-[#6B716B] font-semibold block mb-1">
+          {spot.category}
+        </span>
+      )}
+      <p className="font-semibold text-[15px] text-[#1A1A1A] mb-0.5">
+        {spot.name}
+      </p>
+      {spot.verifiedBadge === "verified" && (
+        <span data-testid="card-verified-badge" className="inline-flex items-center gap-1 bg-[#E5F1E8] text-[#2F8F4D] text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-[#2F8F4D]/25 mb-1">
+          ✓ Menu verified{spot.verifiedAt ? ` ${formatMonthYear(spot.verifiedAt)}` : ""}
+        </span>
+      )}
+      {spot.verifiedBadge === "needs-recheck" && (
+        <span className="inline-flex items-center gap-1 bg-[#FBF6E8] text-[#8A6A1C] text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-[#F0E3B5] mb-1">
+          ⟳ Verified — needs re-check
+        </span>
+      )}
+      {(spot.locationCount ?? 1) > 1 && (
+        <p className="text-[11px] text-[#6B716B] mb-1.5">
+          {spot.locationCount} locations nearby · nearest {spot.walkMinutes} min
+        </p>
+      )}
+      <div className="flex flex-wrap gap-1.5 mb-3 mt-1.5 tabular-nums">
+        <span className="bg-[#E6EEF9] text-[#2A6BC9] text-[11px] px-2 py-0.5 rounded-full">
+          {spot.walkMinutes} min walk
+        </span>
+        {spot.topPickProtein > 0 && (
+          <span className="bg-[#E5F1E8] text-[#2F8F4D] text-[11px] px-2 py-0.5 rounded-full">
+            {spot.topPickProtein}g protein
+          </span>
+        )}
+        {(spot.topPickCalories ?? 0) > 0 && (
+          <span className="bg-[#FDF1E2] text-[#B06A1E] text-[11px] px-2 py-0.5 rounded-full">
+            {spot.isGeneric ? "~" : ""}{spot.topPickCalories} cal
+          </span>
+        )}
+        {spot.grade && (
+          <span className="bg-[#E5F1E8] text-[#2F8F4D] text-[11px] font-bold px-2 py-0.5 rounded-full border border-[#2F8F4D]/20" title="DOHMH inspection grade">
+            Grade {spot.grade}
+          </span>
+        )}
+        <span className="bg-[#F0EFE8] text-[#1A1A1A] text-[11px] px-2 py-0.5 rounded-full">
+          {spot.priceTier || priceTierFallback(spot.priceRange)}
+        </span>
+        {spot.hoursChip && (
+          <span
+            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+              spot.hoursChip.tone === "open"
+                ? "bg-[#E5F1E8] text-[#2F8F4D] border-[#2F8F4D]/25"
+                : spot.hoursChip.tone === "closed"
+                ? "bg-[#F3E3E0] text-[#B0503F] border-[#B0503F]/20"
+                : "bg-[#F0EFE8] text-[#8A8F8A] border-[#E6E5DE]"
+            }`}
+          >
+            {spot.hoursChip.label}
+          </span>
+        )}
+      </div>
+      <div className="border-t border-dashed border-[#E6E5DE] pt-2 text-[13px] text-[#6B716B]">
+        {spot.topPickName ? (
+          <>
+            <strong className="text-[#1A1A1A]">Order:</strong> {spot.topPickName}
+            <span className="text-[#1A1A1A] font-semibold whitespace-nowrap"> — {orderPriceLabel(spot)}</span>
+            {spot.isGeneric && <span className="text-[11px] text-[#9A9F9A] ml-1">est.</span>}
+          </>
+        ) : (
+          <>
+            <strong className="text-[#1A1A1A]">Smart ordering tips</strong>
+            {spot.orderingTip ? ` — ${spot.orderingTip.slice(0, 90)}${spot.orderingTip.length > 90 ? "…" : ""}` : " inside"}
+          </>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+export function LiveResultsStrip({ spots, splurgeSpots = [], totalCount, isDefault, locationLabel, loading, mealLabel, onSpotClick, fetchedAt, sortBy = "score", onSortChange, fetchError, onRetry }: LiveResultsStripProps) {
   const sortLabel = SORT_OPTIONS.find((o) => o.key === sortBy)?.label ?? "PulseScore";
   return (
     <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-14">
@@ -162,111 +268,31 @@ export function LiveResultsStrip({ spots, totalCount, isDefault, locationLabel, 
         </div>
       )}
 
-      {/* Cards grid. Generic venues render as <button> — they have no
-          /restaurants/* page, and a crawlable/cmd-clickable href would 404. */}
+      {/* The ranked five — under-$15 picks only */}
       {!loading && spots.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-          {spots.map((spot) => {
-            // Verified independents have a real detail page; un-verified
-            // generics render as <button> (no crawlable 404 href)
-            const detailHref = spot.verifiedSlug
-              ? `/restaurants/${spot.verifiedSlug}`
-              : !spot.isGeneric
-                ? `/restaurants/${spot.slug}`
-                : null;
-            const Card = detailHref ? ("a" as const) : ("button" as const);
-            return (
-            <Card
-              key={spot.slug + spot.walkMinutes}
-              {...(detailHref
-                ? {
-                    href: detailHref,
-                    onClick: (e: React.MouseEvent) => {
-                      if (onSpotClick && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
-                        e.preventDefault();
-                        onSpotClick(spot.slug);
-                      }
-                    },
-                  }
-                : { type: "button" as const, onClick: () => onSpotClick?.(spot.slug) })}
-              className="bg-white border border-[#E6E5DE] rounded-2xl p-4 hover:-translate-y-0.5 transition-transform duration-150 block text-left w-full focus:outline-none focus:ring-2 focus:ring-[#2F8F4D]/40 focus:ring-offset-2"
-            >
-              {spot.isGeneric && spot.category && (
-                <span className="text-[11px] tracking-[1px] uppercase text-[#6B716B] font-semibold block mb-1">
-                  {spot.category}
-                </span>
-              )}
-              <p className="font-semibold text-[15px] text-[#1A1A1A] mb-0.5">
-                {spot.name}
-              </p>
-              {spot.verifiedBadge === "verified" && (
-                <span data-testid="card-verified-badge" className="inline-flex items-center gap-1 bg-[#E5F1E8] text-[#2F8F4D] text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-[#2F8F4D]/25 mb-1">
-                  ✓ Menu verified{spot.verifiedAt ? ` ${formatMonthYear(spot.verifiedAt)}` : ""}
-                </span>
-              )}
-              {spot.verifiedBadge === "needs-recheck" && (
-                <span className="inline-flex items-center gap-1 bg-[#FBF6E8] text-[#8A6A1C] text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-[#F0E3B5] mb-1">
-                  ⟳ Verified — needs re-check
-                </span>
-              )}
-              {(spot.locationCount ?? 1) > 1 && (
-                <p className="text-[11px] text-[#6B716B] mb-1.5">
-                  {spot.locationCount} locations nearby · nearest {spot.walkMinutes} min
-                </p>
-              )}
-              <div className="flex flex-wrap gap-1.5 mb-3 mt-1.5 tabular-nums">
-                <span className="bg-[#E6EEF9] text-[#2A6BC9] text-[11px] px-2 py-0.5 rounded-full">
-                  {spot.walkMinutes} min walk
-                </span>
-                {spot.topPickProtein > 0 && (
-                  <span className="bg-[#E5F1E8] text-[#2F8F4D] text-[11px] px-2 py-0.5 rounded-full">
-                    {spot.topPickProtein}g protein
-                  </span>
-                )}
-                {(spot.topPickCalories ?? 0) > 0 && (
-                  <span className="bg-[#FDF1E2] text-[#B06A1E] text-[11px] px-2 py-0.5 rounded-full">
-                    {spot.isGeneric ? "~" : ""}{spot.topPickCalories} cal
-                  </span>
-                )}
-                {spot.grade && (
-                  <span className="bg-[#E5F1E8] text-[#2F8F4D] text-[11px] font-bold px-2 py-0.5 rounded-full border border-[#2F8F4D]/20" title="DOHMH inspection grade">
-                    Grade {spot.grade}
-                  </span>
-                )}
-                <span className="bg-[#F0EFE8] text-[#1A1A1A] text-[11px] px-2 py-0.5 rounded-full">
-                  {spot.priceTier || priceTierFallback(spot.priceRange)}
-                </span>
-                {spot.hoursChip && (
-                  <span
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
-                      spot.hoursChip.tone === "open"
-                        ? "bg-[#E5F1E8] text-[#2F8F4D] border-[#2F8F4D]/25"
-                        : spot.hoursChip.tone === "closed"
-                        ? "bg-[#F3E3E0] text-[#B0503F] border-[#B0503F]/20"
-                        : "bg-[#F0EFE8] text-[#8A8F8A] border-[#E6E5DE]"
-                    }`}
-                  >
-                    {spot.hoursChip.label}
-                  </span>
-                )}
-              </div>
-              <div className="border-t border-dashed border-[#E6E5DE] pt-2 text-[13px] text-[#6B716B]">
-                {spot.topPickName ? (
-                  <>
-                    <strong className="text-[#1A1A1A]">Order:</strong> {spot.topPickName}
-                    <span className="text-[#1A1A1A] font-semibold whitespace-nowrap"> — {orderPriceLabel(spot)}</span>
-                    {spot.isGeneric && <span className="text-[11px] text-[#9A9F9A] ml-1">est.</span>}
-                  </>
-                ) : (
-                  <>
-                    <strong className="text-[#1A1A1A]">Smart ordering tips</strong>
-                    {spot.orderingTip ? ` — ${spot.orderingTip.slice(0, 90)}${spot.orderingTip.length > 90 ? "…" : ""}` : " inside"}
-                  </>
-                )}
-              </div>
-            </Card>
-            );
-          })}
+        <div data-testid="ranked-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+          {spots.map((spot) => (
+            <SpotCard key={spot.slug + spot.walkMinutes} spot={spot} onSpotClick={onSpotClick} />
+          ))}
+        </div>
+      )}
+
+      {/* Over-$15 venues never enter the promised five — they live here, under
+          an explicit divider, so the hero's "under $15" stays literally true */}
+      {!loading && splurgeSpots.length > 0 && (
+        <div data-testid="splurge-section" className="mt-8">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="h-px flex-1 bg-[#E6E5DE]" />
+            <span className="text-[11px] font-bold tracking-[1.5px] uppercase text-[#8A8F8A]">
+              Worth a splurge · over $15
+            </span>
+            <span className="h-px flex-1 bg-[#E6E5DE]" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {splurgeSpots.map((spot) => (
+              <SpotCard key={spot.slug + spot.walkMinutes} spot={spot} onSpotClick={onSpotClick} />
+            ))}
+          </div>
         </div>
       )}
     </div>
