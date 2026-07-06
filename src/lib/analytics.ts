@@ -10,6 +10,7 @@
 
 export type FunnelEvent =
   | "find_food_search"
+  | "results_hours_coverage" // % of ranked picks with known hours — decides when "open now" can become a default filter
   | "result_card_click"
   | "venue_detail_view"
   | "guide_view"

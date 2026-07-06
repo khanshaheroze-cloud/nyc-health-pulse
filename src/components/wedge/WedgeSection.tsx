@@ -88,7 +88,21 @@ function syncNeighborhood(lat: number, lng: number, source: "gps" | "manual") {
   window.dispatchEvent(new CustomEvent("pulse-my-neighborhood-change", { detail }));
 }
 
-export function WedgeSection() {
+export interface ProofStats {
+  chains: number;
+  /** venues with in-person-verified menus (0 until the first walk-in pass lands) */
+  licVerified: number;
+  /** venues in the curated LIC launch guide set */
+  licCurated: number;
+  /** distinct graded DOHMH restaurants; null = live count unavailable */
+  rated: number | null;
+}
+
+// Last known floor for the graded-restaurant count (July 2026) — used only
+// when the live count fetch fails; still data-derived, never aspirational.
+const RATED_COUNT_FLOOR = 27_000;
+
+export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
   const router = useRouter();
 
   // coords stays null until the persisted location has been read (hydration
@@ -282,6 +296,17 @@ export function WedgeSection() {
 
       if (reqId !== fetchSeq.current) return; // superseded — a newer request owns the UI
 
+      // Hours-coverage metric: when known-hours % is consistently high enough,
+      // "Open now" can graduate from chip to default filter (Round 4, P7)
+      if (mapped.length > 0) {
+        const known = mapped.filter(r => r.openState !== "unknown").length;
+        const pct = Math.round((known / mapped.length) * 100);
+        trackEvent("results_hours_coverage", { meta: { pct, known, total: mapped.length, meal } });
+        if (process.env.NODE_ENV !== "production") {
+          console.log(`[wedge] hours coverage: ${known}/${mapped.length} (${pct}%)`);
+        }
+      }
+
       setAllSpots(mapped);
       setResultsOrigin({ lat, lng }); // origin travels with the response, never read at render time
       setFetchedAt(Date.now());
@@ -428,12 +453,23 @@ export function WedgeSection() {
             onManualLocation={handleManualLocation}
             locationStatus={locationStatus}
           />
-          {/* Social proof — verifiable numbers only: 30 chains in eatSmartData,
-              27,678 distinct graded restaurants in DOHMH 43nn-pn8j (July 2026).
-              In-person verification is scoped to the LIC guide set, so the claim
-              is qualified — we never claim in-person verification city-wide. */}
+          {/* Social proof — every number derives from data (July 5 audit, P7):
+              chain count from restaurantData, LIC count from verified-venues,
+              rated count from a live DOHMH distinct-CAMIS query (floor-rounded).
+              "Verified in person" is claimed ONLY when venues actually carry
+              verified menus — until then the honest claim is the curated guide. */}
           <p className="text-center text-[11px] text-[#8A8F8A] mt-2 px-4">
-            30 chains with full nutrition · LIC menus verified in person · 27,000+ NYC restaurants rated
+            {proofStats ? (
+              <>
+                {proofStats.chains} chains with full nutrition ·{" "}
+                {proofStats.licVerified > 0
+                  ? `${proofStats.licVerified} LIC menus verified in person`
+                  : `${proofStats.licCurated}-spot curated LIC guide`}{" "}
+                · {Math.floor((proofStats.rated ?? RATED_COUNT_FLOOR) / 1000).toLocaleString("en-US")},000+ NYC restaurants rated
+              </>
+            ) : (
+              <>Chains with full nutrition · curated LIC guide · NYC restaurants rated from live DOHMH data</>
+            )}
           </p>
           {lowConfidenceHood && (
             <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-2">

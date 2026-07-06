@@ -1448,3 +1448,21 @@ export async function fetchWeatherUV(): Promise<WeatherUV | null> {
     };
   } catch { return null; }
 }
+
+/* ── Graded-restaurant count — the homepage proof line ─────────────────────
+ * "27,000+ NYC restaurants rated" must come from the data, never hand-typed
+ * (July 5 audit, P7). Distinct graded CAMIS in DOHMH 43nn-pn8j; null on
+ * failure → caller falls back to the last known floor. */
+export async function fetchGradedRestaurantCount(): Promise<number | null> {
+  try {
+    const url =
+      "https://data.cityofnewyork.us/resource/43nn-pn8j.json?$select=count(distinct%20camis)%20as%20n&$where=grade%20IN('A','B','C')";
+    const res = await fetchWithTimeout(url, { next: { revalidate: 86400 } });
+    if (!res.ok) return null;
+    const rows = (await res.json()) as { n?: string }[];
+    const n = rows?.[0]?.n ? parseInt(rows[0].n, 10) : NaN;
+    return Number.isFinite(n) && n > 1000 ? n : null;
+  } catch {
+    return null;
+  }
+}

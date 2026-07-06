@@ -16,7 +16,10 @@ import {
   fetchAirNowAQI,
   fetchPollenForecast,
   fetchWeatherUV,
+  fetchGradedRestaurantCount,
 } from "@/lib/liveData";
+import { CHAINS } from "@/lib/restaurantData";
+import { getVerifiedVenues, getMenuVerifiedVenues } from "@/lib/verifiedVenues";
 
 const WEDGE_TITLE = "PulseNYC — Healthy food under $15 near you, right now";
 const WEDGE_DESCRIPTION =
@@ -31,7 +34,7 @@ export const metadata: Metadata = {
 };
 
 export default async function OverviewPage() {
-  const [covidBorough, rodentData, critViolations, waterQuality, citywideAir, airNow, pollen, weather] = await Promise.all([
+  const [covidBorough, rodentData, critViolations, waterQuality, citywideAir, airNow, pollen, weather, gradedCount] = await Promise.all([
     fetchCovidByBorough(),
     fetchRodentByBorough(),
     fetchCriticalViolationsCount(),
@@ -40,7 +43,16 @@ export default async function OverviewPage() {
     fetchAirNowAQI(),
     fetchPollenForecast(),
     fetchWeatherUV(),
+    fetchGradedRestaurantCount(),
   ]);
+
+  // Proof-line numbers derive from data, never hand-typed (July 5 audit, P7)
+  const proofStats = {
+    chains: CHAINS.length,
+    licVerified: getMenuVerifiedVenues().length,
+    licCurated: getVerifiedVenues().length,
+    rated: gradedCount, // null → WedgeSection falls back to the last known floor
+  };
 
   // ── Canonical weather/AQI source — single truth for all homepage components ──
   // Fallback chain MUST mirror /air-quality's AirQualityHero (AirNow, else
@@ -77,7 +89,7 @@ export default async function OverviewPage() {
 
       {/* ── WEDGE: Hero + Search + Chips + Results + Waitlist ── */}
       <Suspense>
-        <WedgeSection />
+        <WedgeSection proofStats={proofStats} />
       </Suspense>
 
       {/* ── BENTO GRID: The rest of PulseNYC ── */}
