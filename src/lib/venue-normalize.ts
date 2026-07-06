@@ -1,5 +1,6 @@
 import { CHAINS } from "@/lib/restaurantData";
 import { classifyBar } from "@/lib/venuePolicy";
+import { matchGenericCategory } from "@/lib/genericRestaurants";
 
 /* ── Venue name normalization ──────────────────────────────────────────────
  * DOHMH `dba` values arrive as raw ALL-CAPS strings with store numbers and
@@ -214,10 +215,54 @@ const NON_WALKIN_RE =
 // DOHMH cuisine descriptors that indicate institutional (non-public) service
 const NON_WALKIN_CUISINE_RE = /\b(cafeteria|employee|institutional)\b/i;
 
+/* Round 6 (third leak of this class — Fooda → UNFCU/Boyce Technologies):
+ * DOHMH also permits employee cafés under the ORGANIZATION'S name — "UNITED
+ * NATIONS FEDERAL CREDIT UNION", "BOYCE TECHNOLOGIES" — which the service-
+ * token list above can't see. Organizational tokens on the DBA are an
+ * institutional signal. Trailing legal suffixes are stripped FIRST so the
+ * ubiquitous bodega style "STAR DELI GROCERY CORP" never trips CORP; the
+ * token only fires when it is part of the name itself. A name that carries
+ * an org token BUT a strong food signal (KITCHEN/GRILL/RESTAURANT/CAFE) AND
+ * a real food cuisine goes to a review list instead of auto-exclusion. */
+const ORG_LEGAL_SUFFIX_RE = /\s+(INC|LLC|L\.L\.C|CORP|CO|LTD)\.?\s*$/i;
+const ORG_TOKEN_RE =
+  /\b(credit union|bank|technologies|technology|industries|manufacturing|laboratories|laboratory|corp|corporation|studios|school|academy|university|college|hospital|medical center|nursing|senior center|day\s?care|church|temple|synagogue|ymca|ywca|department of|authority)\b/i;
+const ORG_FOOD_SIGNAL_RE = /\b(kitchen|grill|grille|restaurant|cafe|café)\b/i;
+
+export interface OrgVenueVerdict {
+  verdict: "exclude" | "review" | "clear";
+  token?: string;
+}
+
+/** Institutional/organization-name check on a DOHMH dba. "exclude" = never
+ *  rank; "review" = org token but genuine food signals — keep, but log for
+ *  human review; "clear" = no org signal. */
+export function classifyOrgVenue(rawName: string, cuisineDescription: string): OrgVenueVerdict {
+  const name = (rawName || "")
+    .replace(/\s*#\s*\d+\s*$/g, "")
+    // Parentheticals are location annotations, not the venue's identity —
+    // "MOGAO (Bank of China)" is a public restaurant inside that tower
+    // (July 6 sweep false positive), while UNFCU/Boyce carry the org token
+    // in the name proper.
+    .replace(/\([^)]*\)/g, " ")
+    .replace(ORG_LEGAL_SUFFIX_RE, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  const m = ORG_TOKEN_RE.exec(name);
+  if (!m) return { verdict: "clear" };
+  const token = m[1].toUpperCase();
+  const hasFoodName = ORG_FOOD_SIGNAL_RE.test(name);
+  const hasFoodCuisine = !!cuisineDescription && matchGenericCategory(cuisineDescription) !== null;
+  if (hasFoodName && hasFoodCuisine) return { verdict: "review", token };
+  return { verdict: "exclude", token };
+}
+
 /** Non-null when a venue fails the walk-in test; the string is the reason. */
 export function nonWalkInReason(rawName: string, cuisineDescription: string): string | null {
   if (NON_WALKIN_RE.test(rawName || "")) return "private/institutional food service (name)";
   if (NON_WALKIN_CUISINE_RE.test(cuisineDescription || "")) return "private/institutional food service (cuisine)";
+  const org = classifyOrgVenue(rawName, cuisineDescription);
+  if (org.verdict === "exclude") return `institutional/organization permit (${org.token})`;
   return null;
 }
 const EXCLUDED_NAME_RE =

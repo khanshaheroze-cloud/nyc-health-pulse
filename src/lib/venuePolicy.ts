@@ -40,8 +40,10 @@ export type BarClass = "not-a-bar" | "food-forward-bar" | "drink-first-bar";
 const BAR_SIGNAL_RE =
   /\b(tavern|saloon|ale\s*house|alehouse|taproom|tap\s*room|beer\s*garden|biergarten|brewery|brewing|brewhouse|pub|bar)\b/i;
 
-// Healthy "bar" types are food counters, not drinking bars (juice bar…)
-const HEALTHY_BAR_RE = /\b(juice|salad|poke|smoothie|acai|grain|soup|veggie|wellness|ramen|sushi|oyster|raw)\s+bar\b/i;
+// Food-counter "bar"/"pub" names are eateries, not drinking bars — juice bar,
+// sushi bar, and (July 6 sweep false positives) Bagel Pub, Prova Pizza Bar.
+const HEALTHY_BAR_RE =
+  /\b(juice|salad|poke|smoothie|acai|grain|soup|veggie|wellness|ramen|sushi|oyster|raw|bagels?|pizza|burgers?|tacos?|noodles?|dumpling|espresso)\s+(bar|pub)\b/i;
 
 // A food signal in the NAME: the venue tells you it has a kitchen
 const FOOD_NAME_RE = /\b(kitchen|grill|grille|eatery|restaurant|bistro|chophouse|steakhouse|gastropub)\b/i;

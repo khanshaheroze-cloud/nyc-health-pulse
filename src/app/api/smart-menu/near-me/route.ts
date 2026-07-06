@@ -3,7 +3,7 @@ import { CHAINS, type MenuItem as ChainMenuItem } from "@/lib/restaurantData";
 import { inferMealType, mealMatches, type MealCategory } from "@/lib/inferMealType";
 import { matchGenericCategory, templateByCuisineKey, displayCuisine, type GenericTemplate, type GenericPick } from "@/lib/genericRestaurants";
 import { classificationOverride } from "@/lib/venueClassification";
-import { canonicalBrand, normalizeVenueName, healthyPickEligibility } from "@/lib/venue-normalize";
+import { canonicalBrand, normalizeVenueName, healthyPickEligibility, classifyOrgVenue } from "@/lib/venue-normalize";
 import { snapCoords, snapPadMeters, GRID_FINE } from "@/lib/geoSnap";
 import { getVenueByCamis, badgeState, type BadgeState } from "@/lib/verifiedVenues";
 import { chainHours, parseVerifiedHours, evaluateOpen, hoursChip, type OpenState, type VenueHours } from "@/lib/hours";
@@ -710,6 +710,18 @@ export async function GET(req: NextRequest) {
     const final = [...deduped.slice(0, 10), ...guidanceOnly.slice(0, 3)];
 
     if (process.env.NODE_ENV !== "production") {
+      // Standing tripwire (round 6 — third institutional leak: Fooda →
+      // UNFCU/Boyce). Any RANKED venue whose DBA carries a non-food
+      // organizational token screams in dev/CI logs so the next leak is
+      // caught by the test suite, not an owner audit.
+      for (const v of final) {
+        const org = classifyOrgVenue(v.restaurantName, v.cuisine);
+        if (org.verdict !== "clear") {
+          console.warn(
+            `[smart-menu] ⚠️ ORG-TOKEN ${org.verdict.toUpperCase()}: ranked venue "${v.restaurantName}" carries token ${org.token} — review before an owner audit finds it`,
+          );
+        }
+      }
       console.log(`[smart-menu] meal=${meal} venueGateExcluded=${venueGateExcluded} chains=${chainResults.length} generic=${genericResults.length} final=${final.length}`);
       const bodegaInFinal = final.filter(r => r.isGeneric && BODEGA_CLASS_KEYS.has(r.slug.replace("generic-", "")));
       if (bodegaInFinal.length > 0) console.log(`[smart-menu] bodega in results: ${bodegaInFinal.map(r => r.restaurantName).join(", ")}`);
