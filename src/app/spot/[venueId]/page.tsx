@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { normalizeVenueName } from "@/lib/venue-normalize";
+import { normalizeVenueName, canonicalBrand } from "@/lib/venue-normalize";
+import { CHAINS } from "@/lib/restaurantData";
 import { matchGenericCategory, templateByCuisineKey } from "@/lib/genericRestaurants";
 import { classificationOverride } from "@/lib/venueClassification";
 import { getVenueByCamis } from "@/lib/verifiedVenues";
@@ -92,8 +93,17 @@ export default async function SpotPage({ params }: Props) {
   if (!v) notFound();
 
   const name = normalizeVenueName(v.dba);
-  // Verified venues have their own richer page — send them there.
-  const verified = getVenueByCamis(v.camis);
+  // "Verified menu & prices" may link ONLY to a page that exists and is
+  // actually verified (July 5 audit: R40 — an estimated venue — linked to
+  // /restaurants/r40, a 404, under a "✓ Verified" claim). /restaurants/[slug]
+  // serves chains and status=verified venues with menu items; nothing else.
+  const curated = getVenueByCamis(v.camis);
+  const menuVerified = curated && curated.verification.status === "verified" && curated.menuItems.length > 0
+    ? curated
+    : null;
+  // Chain venues link to the brand's real nutrition page instead.
+  const brand = canonicalBrand(v.dba);
+  const chainSlug = brand && CHAINS.some((c) => c.slug === brand.slug) ? brand.slug : null;
   const override = classificationOverride(name || v.dba);
   const template = override ? templateByCuisineKey(override) : matchGenericCategory(v.cuisine);
 
@@ -146,9 +156,17 @@ export default async function SpotPage({ params }: Props) {
         <a href={directionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-hp-green text-white text-[13px] font-semibold hover:opacity-90 transition-opacity">
           Get directions →
         </a>
-        {verified && (
-          <Link href={`/restaurants/${verified.slug}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-[13px] font-semibold text-text hover:bg-surface transition-colors">
+        {menuVerified ? (
+          <Link href={`/restaurants/${menuVerified.slug}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-[13px] font-semibold text-text hover:bg-surface transition-colors">
             ✓ Verified menu &amp; prices →
+          </Link>
+        ) : chainSlug ? (
+          <Link href={`/restaurants/${chainSlug}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-[13px] font-semibold text-text hover:bg-surface transition-colors">
+            Full nutrition menu →
+          </Link>
+        ) : (
+          <Link href="/methodology" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-[13px] font-semibold text-dim hover:bg-surface transition-colors">
+            How we estimate picks →
           </Link>
         )}
       </div>
