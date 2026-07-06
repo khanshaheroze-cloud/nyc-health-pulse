@@ -1,0 +1,28 @@
+{
+  "_comment": "Owner-editable venue policy. dessertBrands: dessert/bubble-tea brands that never occupy ranked pick slots (DOHMH cuisine can't be trusted for these - Mango Mango is licensed as 'Fruits/Vegetables'). Matching is case-insensitive substring against the DOHMH dba. foodForwardBarAllowlist: verified food-forward bars (gastropubs with real kitchens) that rank normally even when their name carries a bar signal.",
+  "dessertBrands": [
+    "MANGO MANGO",
+    "TIGER SUGAR",
+    "KUNG FU TEA",
+    "GONG CHA",
+    "VIVI BUBBLE TEA",
+    "MOGE TEE",
+    "XING FU TANG",
+    "MEET FRESH",
+    "SPOT DESSERT",
+    "LADY M",
+    "BAKED BY MELISSA",
+    "MILK BAR",
+    "16 HANDLES",
+    "VAN LEEUWEN",
+    "SOFT SWERVE",
+    "TAIYAKI",
+    "CHIP CITY",
+    "LEVAIN BAKERY",
+    "INSOMNIA COOKIES"
+  ],
+  "foodForwardBarAllowlist": [
+    "WOODBINES",
+    "GANTRY BAR & KITCHEN"
+  ]
+}

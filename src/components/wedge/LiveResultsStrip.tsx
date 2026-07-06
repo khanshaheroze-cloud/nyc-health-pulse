@@ -41,6 +41,8 @@ interface LiveResultsStripProps {
   spots: ResultSpot[];
   /** Over-$15 venues — never inside the promised five, shown under a divider */
   splurgeSpots?: ResultSpot[];
+  /** Venues with no coherent picks — never ranked, shown as guidance cards */
+  guidanceSpots?: ResultSpot[];
   totalCount: number;
   isDefault: boolean;
   locationLabel: string;
@@ -183,7 +185,7 @@ function SpotCard({ spot, onSpotClick }: { spot: ResultSpot; onSpotClick?: (slug
   );
 }
 
-export function LiveResultsStrip({ spots, splurgeSpots = [], totalCount, isDefault, locationLabel, loading, mealLabel, onSpotClick, fetchedAt, sortBy = "score", onSortChange, fetchError, onRetry }: LiveResultsStripProps) {
+export function LiveResultsStrip({ spots, splurgeSpots = [], guidanceSpots = [], totalCount, isDefault, locationLabel, loading, mealLabel, onSpotClick, fetchedAt, sortBy = "score", onSortChange, fetchError, onRetry }: LiveResultsStripProps) {
   const sortLabel = SORT_OPTIONS.find((o) => o.key === sortBy)?.label ?? "PulseScore";
   return (
     <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-14">
@@ -293,6 +295,26 @@ export function LiveResultsStrip({ spots, splurgeSpots = [], totalCount, isDefau
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {splurgeSpots.map((spot) => (
+              <SpotCard key={spot.slug + spot.walkMinutes} spot={spot} onSpotClick={onSpotClick} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Venues with no coherent picks for this meal never occupy a ranked
+          slot (July 5 audit: Mango Mango at #4 with zero picks). They live
+          here — findable, honestly framed as guidance, visibly not ranked. */}
+      {!loading && guidanceSpots.length > 0 && (
+        <div data-testid="guidance-section" className="mt-8">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="h-px flex-1 bg-[#E6E5DE]" />
+            <span className="text-[11px] font-bold tracking-[1.5px] uppercase text-[#8A8F8A]">
+              Nearby · ordering guidance only
+            </span>
+            <span className="h-px flex-1 bg-[#E6E5DE]" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {guidanceSpots.map((spot) => (
               <SpotCard key={spot.slug + spot.walkMinutes} spot={spot} onSpotClick={onSpotClick} />
             ))}
           </div>

@@ -8,6 +8,7 @@ import { snapCoords, snapPadMeters, GRID_FINE } from "@/lib/geoSnap";
 import { getVenueByCamis, badgeState, type BadgeState } from "@/lib/verifiedVenues";
 import { chainHours, parseVerifiedHours, evaluateOpen, hoursChip, type OpenState, type VenueHours } from "@/lib/hours";
 import { orderPicks, applyCalDisplayRule } from "@/lib/pickRanking";
+import { isDessertBrand } from "@/lib/venuePolicy";
 
 export const dynamic = "force-dynamic";
 
@@ -321,6 +322,16 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
+      // Dessert/bubble-tea brands never occupy ranked pick slots — checked
+      // BEFORE brand matching because Tiger Sugar/Kung Fu Tea are curated
+      // chains, and before cuisine because DOHMH licenses Mango Mango as
+      // "Fruits/Vegetables" (July 5 audit, P0).
+      if (isDessertBrand(r.dba || "")) {
+        venueGateExcluded++;
+        logExclusion(r.dba, "dessert/bubble-tea brand");
+        continue;
+      }
+
       const address = [r.building, r.street, r.boro].filter(Boolean).join(" ");
       const distMeters = haversine(latNum, lngNum, rLat, rLng);
       if (distMeters > RADIUS_M) continue; // outside the user's true radius (snap padding)
@@ -592,6 +603,15 @@ export async function GET(req: NextRequest) {
     chainResults.sort((a, b) => a.distance - b.distance);
     genericResults.sort((a, b) => a.distance - b.distance);
 
+    // A venue with NO coherent picks can never occupy a ranked slot (July 5
+    // audit: Mango Mango ranked with topPicks: [] and a boilerplate café tip).
+    // Guidance-only venues are still returned — appended after the ranked
+    // candidates so the client renders them below the ranked set, unranked.
+    const guidanceOnly = genericResults.filter((r) => r.topPicks.length === 0);
+    const rankableGenerics = genericResults.filter((r) => r.topPicks.length > 0);
+    genericResults.length = 0;
+    genericResults.push(...rankableGenerics);
+
     // Interleave: aim for 2+ generics in the top 5 when available
     const mixed: ApiResult[] = [];
     let ci = 0, gi = 0;
@@ -664,7 +684,9 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const final = deduped.slice(0, 10);
+    // Ranked candidates first, then up to 3 guidance-only venues (clearly
+    // pickless — the client shows them under an "ordering guidance" divider).
+    const final = [...deduped.slice(0, 10), ...guidanceOnly.slice(0, 3)];
 
     if (process.env.NODE_ENV !== "production") {
       console.log(`[smart-menu] meal=${meal} venueGateExcluded=${venueGateExcluded} chains=${chainResults.length} generic=${genericResults.length} final=${final.length}`);

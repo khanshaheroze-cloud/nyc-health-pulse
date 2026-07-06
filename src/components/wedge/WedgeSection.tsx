@@ -153,7 +153,7 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
   // The hero promises "under $15" unconditionally, so the ranked five may ONLY
   // contain ≤$15 picks (exact price or band ceiling). Over-$15 venues are never
   // hidden — they rank below a visually distinct "Worth a splurge" divider.
-  const { spots, splurgeSpots } = useMemo(() => {
+  const { spots, splurgeSpots, guidanceSpots } = useMemo(() => {
     // Known-closed venues are excluded from the ranked top-5 — "right now" must
     // be true. Open + unknown-hours venues remain rankable. (Closed venues still
     // reach the map below, dimmed.)
@@ -180,17 +180,22 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
           return wedgeScore(b) - wedgeScore(a);
       }
     });
-    const under15 = sorted.filter(isUnder15);
-    const over15 = sorted.filter(r => !isUnder15(r));
-    return { spots: under15.slice(0, 5), splurgeSpots: over15.slice(0, 3) };
+    // A venue with no coherent picks can never occupy a ranked slot (July 5
+    // audit: Mango Mango at #4 with an empty pick list). Guidance-only venues
+    // render below the ranked set under their own divider.
+    const withPicks = sorted.filter(r => r.topPickName);
+    const guidance = sorted.filter(r => !r.topPickName).slice(0, 3);
+    const under15 = withPicks.filter(isUnder15);
+    const over15 = withPicks.filter(r => !isUnder15(r));
+    return { spots: under15.slice(0, 5), splurgeSpots: over15.slice(0, 3), guidanceSpots: guidance };
   }, [allSpots, activeChips, sortBy]);
 
   // Map shows the ranked picks PLUS any known-closed venues nearby, dimmed —
   // the prompt's "still on the map, dimmed, 'Closed · opens 7am'".
   const mapSpots = useMemo(() => {
     const closed = allSpots.filter(r => r.openState === "closed").slice(0, 6);
-    return [...spots, ...splurgeSpots, ...closed];
-  }, [spots, splurgeSpots, allSpots]);
+    return [...spots, ...splurgeSpots, ...guidanceSpots, ...closed];
+  }, [spots, splurgeSpots, guidanceSpots, allSpots]);
 
   const activeSpot = useMemo(() => {
     if (!spotSlug) return null;
@@ -488,6 +493,7 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
           <LiveResultsStrip
             spots={spots}
             splurgeSpots={activeChips.has("under-15") ? [] : splurgeSpots}
+            guidanceSpots={guidanceSpots}
             totalCount={totalCount}
             isDefault={isDefault}
             locationLabel={locationLabel}
