@@ -58,38 +58,52 @@ const PRIMARY_CENTROIDS: Record<string, { lat: number; lng: number }> = {
 
 // Extra anchors for neighborhoods whose centroid misrepresents part of their
 // area. Each anchor maps a point to the slug that truly contains it.
-const EXTRA_ANCHORS: { slug: string; lat: number; lng: number }[] = [
+// `label` is the NTA-level display name for the badge: UHF areas are health-
+// data units ("Long Island City - Astoria"), not what a person calls where
+// they're standing — 47-10 Vernon Blvd is Hunters Point, and "ASTORIA" in the
+// banner there reads wrong (July 5 audit). Links keep the UHF slug.
+const EXTRA_ANCHORS: { slug: string; lat: number; lng: number; label?: string }[] = [
   // Midtown/Times Square sits between the Chelsea and Murray Hill centroids
-  { slug: "chelsea-village", lat: 40.759, lng: -73.989 },
+  { slug: "chelsea-village", lat: 40.759, lng: -73.989, label: "Midtown / Times Square" },
   // Hunters Point / LIC waterfront (Vernon Blvd corridor) — the wedge's launch area
-  { slug: "long-island-city-astoria", lat: 40.7425, lng: -73.954 },
+  { slug: "long-island-city-astoria", lat: 40.7425, lng: -73.954, label: "Hunters Point / Long Island City" },
   // Court Square / Jackson Ave LIC
-  { slug: "long-island-city-astoria", lat: 40.747, lng: -73.943 },
+  { slug: "long-island-city-astoria", lat: 40.747, lng: -73.943, label: "Long Island City" },
   // Astoria proper (keeps the north end anchored too)
-  { slug: "long-island-city-astoria", lat: 40.772, lng: -73.93 },
+  { slug: "long-island-city-astoria", lat: 40.772, lng: -73.93, label: "Astoria" },
   // Roosevelt Island belongs with LIC-Astoria's UHF, not the UES
-  { slug: "long-island-city-astoria", lat: 40.762, lng: -73.949 },
+  { slug: "long-island-city-astoria", lat: 40.762, lng: -73.949, label: "Roosevelt Island" },
   // Red Hook is far from the downtown-heights-slope centroid
-  { slug: "downtown-heights-slope", lat: 40.6755, lng: -74.012 },
+  { slug: "downtown-heights-slope", lat: 40.6755, lng: -74.012, label: "Red Hook" },
   // Lower East Side waterfront vs. the Union Square-anchored centroid
-  { slug: "union-square-lower-east-side", lat: 40.715, lng: -73.984 },
+  { slug: "union-square-lower-east-side", lat: 40.715, lng: -73.984, label: "Lower East Side" },
 ];
+
+// The LIC-Astoria UHF centroid sits in Astoria — when IT wins, say so
+const PRIMARY_LABELS: Record<string, string> = {
+  "long-island-city-astoria": "Astoria",
+};
 
 interface Anchor {
   slug: string;
   lat: number;
   lng: number;
+  label?: string;
 }
 
 const ALL_ANCHORS: Anchor[] = [
-  ...Object.entries(PRIMARY_CENTROIDS).map(([slug, c]) => ({ slug, ...c })),
+  ...Object.entries(PRIMARY_CENTROIDS).map(([slug, c]) => ({
+    slug,
+    ...c,
+    label: PRIMARY_LABELS[slug],
+  })),
   ...EXTRA_ANCHORS,
 ];
 
 const COS_NYC_LAT = Math.cos((40.7 * Math.PI) / 180);
 
-export function findNearestNeighborhood(lat: number, lng: number) {
-  let bestSlug = ALL_ANCHORS[0].slug;
+function nearestAnchor(lat: number, lng: number): Anchor {
+  let best = ALL_ANCHORS[0];
   let bestDist = Infinity;
   for (const a of ALL_ANCHORS) {
     const dLat = lat - a.lat;
@@ -97,8 +111,21 @@ export function findNearestNeighborhood(lat: number, lng: number) {
     const d = dLat * dLat + dLng * dLng;
     if (d < bestDist) {
       bestDist = d;
-      bestSlug = a.slug;
+      best = a;
     }
   }
-  return neighborhoods.find((n) => n.slug === bestSlug) ?? neighborhoods[0];
+  return best;
+}
+
+export function findNearestNeighborhood(lat: number, lng: number) {
+  const a = nearestAnchor(lat, lng);
+  return neighborhoods.find((n) => n.slug === a.slug) ?? neighborhoods[0];
+}
+
+/** UHF neighborhood (slug/borough for health-data links) + the NTA-level
+ *  display label for badges. Label falls back to the UHF name. */
+export function findNearestNeighborhoodDetail(lat: number, lng: number) {
+  const a = nearestAnchor(lat, lng);
+  const hood = neighborhoods.find((n) => n.slug === a.slug) ?? neighborhoods[0];
+  return { ...hood, displayLabel: a.label ?? hood.name };
 }

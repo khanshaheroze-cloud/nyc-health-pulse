@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CHAINS, type MenuItem as ChainMenuItem } from "@/lib/restaurantData";
 import { inferMealType, mealMatches, type MealCategory } from "@/lib/inferMealType";
-import { matchGenericCategory, templateByCuisineKey, type GenericTemplate, type GenericPick } from "@/lib/genericRestaurants";
+import { matchGenericCategory, templateByCuisineKey, displayCuisine, type GenericTemplate, type GenericPick } from "@/lib/genericRestaurants";
 import { classificationOverride } from "@/lib/venueClassification";
 import { canonicalBrand, normalizeVenueName, healthyPickEligibility } from "@/lib/venue-normalize";
 import { snapCoords, snapPadMeters, GRID_FINE } from "@/lib/geoSnap";
@@ -284,7 +284,20 @@ export async function GET(req: NextRequest) {
     const url = `https://data.cityofnewyork.us/resource/43nn-pn8j.json?$where=${encodeURIComponent(where)}&$select=camis,dba,cuisine_description,grade,building,street,boro,latitude,longitude,inspection_date&$limit=800&$order=grade ASC`;
 
     const res = await fetch(url, { next: { revalidate: 3600 } });
-    const rows: DOHMHRow[] = res.ok ? await res.json() : [];
+    const rawRows: DOHMHRow[] = res.ok ? await res.json() : [];
+
+    // DOHMH returns one row per inspection(×violation). Collapse to the most
+    // recent graded inspection per venue BEFORE ranking — first-row-wins was
+    // showing R40's Apr 2023 inspection instead of its Apr 2026 grade (July 5
+    // audit). The query already filters grade IN('A','B'), so the max-date row
+    // per venue is the latest graded one.
+    const byVenue = new Map<string, DOHMHRow>();
+    for (const r of rawRows) {
+      const key = r.camis || `${r.dba}-${r.building}-${r.street}`;
+      const prev = byVenue.get(key);
+      if (!prev || (r.inspection_date ?? "") > (prev.inspection_date ?? "")) byVenue.set(key, r);
+    }
+    const rows = [...byVenue.values()];
 
     const filterFn = mealFilterFn(meal);
     const chainResults: ApiResult[] = [];
@@ -500,11 +513,14 @@ export async function GET(req: NextRequest) {
         // Generic template = no real venue identity, so hours are unknown.
         // Allowed in picks, but the card shows "Hours unknown", never "open".
         const genState: OpenState = "unknown";
+        // Chip tells the truth about the VENUE (DOHMH cuisine), not the pick
+        // template (Havana Central is Cuban, not "Mexican" — July 5 audit)
+        const venueCuisine = displayCuisine(r.cuisine_description || "") || template.category;
         genericResults.push({
           restaurantId: `generic-${template.cuisineKey}-${rLat.toFixed(4)}`,
           slug: `generic-${template.cuisineKey}`,
           restaurantName: dba,
-          cuisine: template.category,
+          cuisine: venueCuisine,
           priceRange: template.priceRange,
           priceTier: priceTierLabel(template.priceRange),
           distance: Math.round(distMeters),

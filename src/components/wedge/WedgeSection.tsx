@@ -14,7 +14,7 @@ import { detectMealType, type MealCategory } from "@/lib/inferMealType";
 import { trackEvent } from "@/lib/analytics";
 import { fetchWithTimeout } from "@/lib/fetchWithTimeout";
 import { reverseGeocode } from "@/lib/geocode";
-import { findNearestNeighborhood } from "@/lib/nearestNeighborhood";
+import { findNearestNeighborhoodDetail } from "@/lib/nearestNeighborhood";
 import {
   readLocation,
   writeLocation,
@@ -77,9 +77,11 @@ function wedgeScore(r: ResultSpot): number {
 }
 
 function syncNeighborhood(lat: number, lng: number, source: "gps" | "manual") {
-  const hood = findNearestNeighborhood(lat, lng);
+  const hood = findNearestNeighborhoodDetail(lat, lng);
   if (!hood) return;
-  const detail = { slug: hood.slug, name: hood.name, borough: hood.borough };
+  // Badge shows the NTA-level label (Hunters Point ≠ Astoria); slug stays the
+  // UHF unit so /neighborhood links and health data keep working
+  const detail = { slug: hood.slug, name: hood.displayLabel, borough: hood.borough };
   try {
     localStorage.setItem("pulse-my-neighborhood", JSON.stringify(detail));
   } catch {}
@@ -311,16 +313,16 @@ export function WedgeSection() {
     }
 
     const { lat, lng } = result.coords!;
-    const hood = findNearestNeighborhood(lat, lng);
+    const hood = findNearestNeighborhoodDetail(lat, lng);
 
     if (result.lowConfidence) {
       // Desktop IP-level accuracy: show the resolved neighborhood and ask the
       // user to confirm instead of silently committing a city-block guess.
       setCoords({ lat, lng });
-      setLowConfidenceHood(hood?.name ?? "your area");
+      setLowConfidenceHood(hood?.displayLabel ?? "your area");
       setLocationStatus("success");
       setIsDefault(false);
-      setLocationLabel(hood ? `Near ${hood.name}?` : "Near you (approximate)");
+      setLocationLabel(hood ? `Near ${hood.displayLabel}?` : "Near you (approximate)");
       return;
     }
 

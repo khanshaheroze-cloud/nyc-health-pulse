@@ -315,6 +315,41 @@ const DOHMH_CUISINE_MAP: Record<string, string> = {
   "scandinavian": "cafe",
 };
 
+/* Category chips must tell the truth about the VENUE, not the template family
+ * that supplies its picks (July 5 audit: Havana Central — Cuban — wore a
+ * "MEXICAN" chip because Cuban borrows the Mexican pick template). Long DOHMH
+ * descriptors get a short display form; everything else passes through. */
+const CUISINE_DISPLAY_OVERRIDES: Record<string, string> = {
+  "latin (cuban, dominican, puerto rican, south & central american)": "Latin American",
+  "café/coffee/tea": "Café",
+  "cafe/coffee/tea": "Café",
+  "coffee/tea": "Café",
+  "juice, smoothies, fruit salads": "Juice & Smoothies",
+  "sandwiches/salads/mixed buffet": "Sandwiches",
+  "soups/salads/sandwiches": "Sandwiches",
+  "pizza/italian": "Pizza",
+  "bagels/pretzels": "Bagels",
+  "hotdogs/pretzels": "Hot Dogs",
+  "jewish/kosher": "Kosher",
+  "bakery products/desserts": "Bakery",
+  "ice cream, gelato, yogurt, ices": "Ice Cream",
+  "delicatessen": "Deli",
+  "chinese/cuban": "Chinese",
+  "chinese/japanese": "Chinese",
+  "vietnamese/chinese": "Vietnamese",
+  "asian/asian fusion": "Asian Fusion",
+  "creole/cajun": "Creole",
+};
+
+export function displayCuisine(cuisineDescription: string): string {
+  const key = (cuisineDescription || "").toLowerCase().trim();
+  if (!key || key === "not listed/not applicable") return "";
+  const override = CUISINE_DISPLAY_OVERRIDES[key];
+  if (override) return override;
+  // Title-case the raw descriptor ("AMERICAN" → "American", "middle eastern" → "Middle Eastern")
+  return key.replace(/(^|[\s/(-])([a-z])/g, (_, sep, ch) => sep + ch.toUpperCase());
+}
+
 /** Look up a template by cuisineKey directly (used by the classification
  *  override path). Returns null for the sentinel "none". */
 export function templateByCuisineKey(cuisineKey: string): GenericTemplate | null {

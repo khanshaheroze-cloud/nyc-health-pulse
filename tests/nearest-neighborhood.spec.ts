@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { findNearestNeighborhood } from "../src/lib/nearestNeighborhood";
+import { findNearestNeighborhood, findNearestNeighborhoodDetail } from "../src/lib/nearestNeighborhood";
 
 // The Jun 9 audit's flagship bug: the hero badge showed "GREENPOINT" for
 // 47-10 Vernon Blvd, Long Island City — the single LIC-Astoria centroid sits
@@ -29,4 +29,29 @@ test("Greenpoint proper still resolves to Greenpoint", () => {
 test("Midtown still resolves to a Manhattan neighborhood", () => {
   const hood = findNearestNeighborhood(40.758, -73.9855);
   expect(hood.borough).toBe("Manhattan");
+});
+
+// July 5 audit: 47-10 Vernon Blvd badge said "LONG ISLAND CITY / ASTORIA" —
+// Astoria is wrong for Hunters Point. The DISPLAY label must be NTA-level.
+test.describe("NTA display labels", () => {
+  test("Vernon Blvd corridor labels as Hunters Point / LIC, never Astoria", () => {
+    const d = findNearestNeighborhoodDetail(40.7448, -73.9536);
+    expect(d.displayLabel).toBe("Hunters Point / Long Island City");
+  });
+
+  test("Court Square labels as Long Island City", () => {
+    const d = findNearestNeighborhoodDetail(40.7474, -73.9418);
+    expect(d.displayLabel).toBe("Long Island City");
+  });
+
+  test("Astoria proper labels as Astoria", () => {
+    // 30th Ave & Steinway St
+    const d = findNearestNeighborhoodDetail(40.7643, -73.9186);
+    expect(d.displayLabel).toBe("Astoria");
+  });
+
+  test("UHF slug is preserved for health-data links", () => {
+    const d = findNearestNeighborhoodDetail(40.7448, -73.9536);
+    expect(d.slug).toBe("long-island-city-astoria");
+  });
 });

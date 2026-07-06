@@ -5,6 +5,7 @@ import { normalizeVenueName } from "@/lib/venue-normalize";
 import { matchGenericCategory, templateByCuisineKey } from "@/lib/genericRestaurants";
 import { classificationOverride } from "@/lib/venueClassification";
 import { getVenueByCamis } from "@/lib/verifiedVenues";
+import { latestGradedInspection } from "@/lib/inspection";
 
 // Shareable per-venue page for REAL DOHMH venues, keyed by CAMIS (not template
 // id). ISR on-demand: nothing is prebuilt, but each requested CAMIS is cached.
@@ -28,15 +29,19 @@ interface DohmhVenue {
   lat: number | null;
   lng: number | null;
   inspectedAt: string | null;
+  /** venue has inspections but none graded yet */
+  notYetGraded: boolean;
 }
 
 async function fetchVenue(camis: string): Promise<DohmhVenue | null> {
   if (!/^\d{5,9}$/.test(camis)) return null;
+  // One row per inspection: fetch recent rows and pick the most recent GRADED
+  // one (July 5 audit: limit=1 could land on an ungraded/older cycle row).
   const params = new URLSearchParams({
     "$where": `camis='${camis}'`,
     "$select": "camis,dba,cuisine_description,grade,building,street,boro,latitude,longitude,inspection_date",
     "$order": "inspection_date DESC",
-    "$limit": "1",
+    "$limit": "25",
   });
   const token = process.env.NYC_OPEN_DATA_APP_TOKEN;
   try {
@@ -48,15 +53,17 @@ async function fetchVenue(camis: string): Promise<DohmhVenue | null> {
     const rows = (await res.json()) as Record<string, string>[];
     const r = rows[0];
     if (!r) return null;
+    const latest = latestGradedInspection(rows);
     return {
       camis: r.camis,
       dba: r.dba || "",
       cuisine: r.cuisine_description || "",
-      grade: r.grade || null,
+      grade: latest.grade,
       address: [r.building, r.street, r.boro].filter(Boolean).join(" "),
       lat: r.latitude ? parseFloat(r.latitude) : null,
       lng: r.longitude ? parseFloat(r.longitude) : null,
-      inspectedAt: r.inspection_date ?? null,
+      inspectedAt: latest.inspectedAt,
+      notYetGraded: latest.notYetGraded,
     };
   } catch {
     return null;
@@ -123,7 +130,15 @@ export default async function SpotPage({ params }: Props) {
 
       <h1 className="font-display text-[28px] sm:text-[34px] text-text leading-tight">{name}</h1>
       <p className="text-sm text-dim mt-1">
-        {[v.cuisine, template?.category, v.grade ? `DOHMH Grade ${v.grade}` : null].filter(Boolean).join(" · ")}
+        {[
+          v.cuisine,
+          template?.category,
+          v.grade
+            ? `DOHMH Grade ${v.grade}${v.inspectedAt ? ` · Inspected ${new Date(v.inspectedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}` : ""}`
+            : v.notYetGraded
+              ? "Not yet graded"
+              : null,
+        ].filter(Boolean).join(" · ")}
       </p>
       {v.address && <p className="text-[13px] text-dim mt-1">{v.address}</p>}
 
