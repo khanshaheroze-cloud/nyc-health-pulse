@@ -110,6 +110,9 @@ export function LocalMap({ center, spots, isDefault, onSpotClick, onVisible, vis
             style={{ width: "100%", height: "100%" }}
             zoomControl={false}
             attributionControl={false}
+            // Wheel over the map must scroll the PAGE, not zoom (July 5 audit:
+            // wheel dead zones). Pinch/double-click zoom still work.
+            scrollWheelZoom={false}
           >
             <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
             <FitBounds center={center} spots={spots} />

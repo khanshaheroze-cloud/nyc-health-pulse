@@ -589,10 +589,12 @@
 }
 
 /* Scroll-triggered reveal — VISIBLE BY DEFAULT, animation is progressive enhancement.
-   Content never depends on JS to become visible. */
+   Content never depends on JS to become visible, and never dips below 0.6
+   opacity (July 5 audit: paint-safety rule — a missed observer or a stalled
+   animation must still leave readable content, not a blank band). */
 .reveal-on-scroll {
   /* No opacity: 0 here — content is visible if animation/JS fails */
-  animation: revealFadeUp 0.5s ease-out forwards;
+  animation: revealFadeUp 0.4s ease-out;
 }
 .reveal-on-scroll.revealed {
   opacity: 1;
@@ -600,7 +602,7 @@
   animation: none;
 }
 @keyframes revealFadeUp {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0.6; transform: translateY(10px); }
   to   { opacity: 1; transform: none; }
 }
 
@@ -737,9 +739,11 @@
 
 /* duplicate dark block removed — dark overrides are in the [data-theme="dark"] block above */
 
-html {
-  scroll-behavior: smooth;
-}
+/* NATIVE SCROLL ONLY (July 5 audit): global scroll-behavior:smooth made every
+   anchor/programmatic scroll animated, and wheel input during an in-flight
+   smooth glide can be superseded in Chromium — the audit's "wheel does
+   nothing over the hero". Smooth scrolling stays scoped to modal scroll
+   areas; the document scrolls natively. */
 
 body {
   background-color: var(--color-bg, #FAFAF7);
@@ -1295,12 +1299,17 @@ body::before {
 /* ===================================================================
    PAGE TRANSITIONS — fade between routes
    =================================================================== */
+/* Paint-safe (July 5 audit): the old version transformed <main> — the ENTIRE
+   page — with a forwards fill, keeping a viewport-tall composited layer alive
+   forever. After fast keyboard scrolls Chromium rasterized it late and whole
+   scroll positions painted blank cream. Opacity-only, never below 0.6, no
+   fill so the animation fully detaches when done. */
 @keyframes pageFadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0.6; }
+  to   { opacity: 1; }
 }
 main {
-  animation: pageFadeIn 0.3s ease-out forwards;
+  animation: pageFadeIn 0.25s ease-out;
 }
 
 /* ===================================================================
