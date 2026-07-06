@@ -9,6 +9,7 @@ import { getVenueByCamis, badgeState, type BadgeState } from "@/lib/verifiedVenu
 import { chainHours, parseVerifiedHours, evaluateOpen, hoursChip, type OpenState, type VenueHours } from "@/lib/hours";
 import { orderPicks, applyCalDisplayRule } from "@/lib/pickRanking";
 import { isDessertBrand, classifyBar, barChipLabel } from "@/lib/venuePolicy";
+import { chainTypicalPrice } from "@/lib/chainPrices";
 
 export const dynamic = "force-dynamic";
 
@@ -368,7 +369,10 @@ export async function GET(req: NextRequest) {
                 fat: item.fat,
                 fiber: item.fiber ?? 0,
                 pulseScore: ps,
-                estPrice: null, // chain item prices arrive with verified-venue data
+                // Brand-level typical-price band (src/data/chain-prices.json):
+                // every ranked card shows a price and the under-$15 cap logic
+                // covers chains (round 5 — null exempted them).
+                estPrice: chainTypicalPrice(chainSlug),
               },
               strict,
             };

@@ -21,6 +21,14 @@ import {
 import { CHAINS } from "@/lib/restaurantData";
 import { getVerifiedVenues, getMenuVerifiedVenues } from "@/lib/verifiedVenues";
 
+// Explicit ISR window (must be a literal — Next 16 validation). Round 5: the
+// live homepage served a pre-round-4 prerender long after the deploy — with no
+// page-level revalidate the prerender could persist across deploys. An hourly
+// window guarantees a stale prerender heals itself; the post-deploy smoke
+// check (scripts/postdeploy-smoke.mjs, run by `pnpm deploy:prod`) fails the
+// deploy loudly if the live HTML still shows a hand-typed proof line.
+export const revalidate = 3600;
+
 const WEDGE_TITLE = "PulseNYC — Healthy food under $15 near you, right now";
 const WEDGE_DESCRIPTION =
   "The 5 best macro-friendly meals under $15, within a 10-minute walk — with exactly what to order. Live DOHMH grades, real macros, and subway-stop-aware search across NYC.";

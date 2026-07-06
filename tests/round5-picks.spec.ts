@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { orderPicks, applyCalDisplayRule, classifyItemType, headlineEligible } from "../src/lib/pickRanking";
+import { CHAINS } from "../src/lib/restaurantData";
 
 // Round 5 P0 (July 5 evening audit): the headline pick must be the best
 // coherent MEAL — Woodbines led with "Pasta with Marinara" (45) over "Roast
@@ -128,6 +129,24 @@ test.describe("near-me API — pick ordering invariants", () => {
         }
       }
     });
+  }
+});
+
+// ── Chain price bands: estPrice is never null for chain picks (round 5 P1) ───
+test("every chain pick carries a price band — chains are under the $15 cap logic", async ({ request }) => {
+  const chainSlugs = new Set(CHAINS.map((c) => c.slug));
+  for (const meal of ["breakfast", "lunch", "dinner"]) {
+    const res = await request.get(`/api/smart-menu/near-me?${LIC}&meal=${meal}`, { timeout: 60_000 });
+    const data = (await res.json()) as {
+      restaurants: { slug: string; restaurantName: string; topPicks: { name: string; estPrice: number | null }[] }[];
+    };
+    for (const r of data.restaurants) {
+      if (!chainSlugs.has(r.slug)) continue;
+      for (const p of r.topPicks) {
+        expect(p.estPrice, `${r.restaurantName} chain pick "${p.name}" has no price`).not.toBeNull();
+        expect(typeof p.estPrice).toBe("number");
+      }
+    }
   }
 });
 
