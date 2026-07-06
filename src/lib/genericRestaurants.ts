@@ -175,6 +175,55 @@ export const GENERIC_TEMPLATES: GenericTemplate[] = [
     ],
   },
   {
+    // Round 6: bagel shops were licensed as Diner and got grilled-chicken
+    // picks. Breakfast picks carry the bagel; lunch picks are the sandwich
+    // counter every NYC bagel shop actually runs.
+    category: "Bagel Shop",
+    cuisineKey: "bagels",
+    emoji: "🥯",
+    priceRange: 1,
+    orderingTip: "Egg whites on whole wheat beats a BEC on a plain bagel (−150 cal). Scooped + light schmear saves another ~120.",
+    picks: [
+      { name: "Egg White & Cheese Bagel (whole wheat)", description: "Egg whites, cheese, whole-wheat bagel", cal: 380, protein: 22, estimatedPrice: 7 },
+      { name: "Lox Bagel (no cream cheese)", description: "Nova lox, tomato, onion, capers on whole wheat — skip the schmear", cal: 400, protein: 26, estimatedPrice: 12 },
+      { name: "Whole-Wheat Bagel with Peanut Butter", description: "Grab-and-go breakfast", cal: 450, protein: 14, estimatedPrice: 5 },
+      { name: "Turkey Sandwich (whole wheat, mustard)", description: "From the sandwich counter — on a scooped bagel or wheat bread", cal: 380, protein: 28, estimatedPrice: 9 },
+      { name: "Tuna Salad Sandwich (scooped)", description: "Scooped bagel or wheat bread, light mayo tuna", cal: 420, protein: 24, estimatedPrice: 9 },
+      { name: "Grilled Chicken Sandwich", description: "Grilled chicken, lettuce, tomato from the deli case", cal: 380, protein: 34, estimatedPrice: 10 },
+    ],
+  },
+  {
+    // Round 6: "The Inkan" (Peruvian) was getting the Mexican taco template —
+    // Peruvian places don't serve tacos. Rotisserie chicken is the anchor.
+    category: "Peruvian",
+    cuisineKey: "peruvian",
+    emoji: "🍗",
+    priceRange: 2,
+    orderingTip: "Pollo a la brasa 1/4 white meat (no skin) + salad is the order. Ají verde is only ~30 cal — the fried sides are where it slips.",
+    picks: [
+      { name: "Pollo a la Brasa (1/4 white, no skin) + Salad", description: "Rotisserie chicken with a side salad instead of fries", cal: 380, protein: 42, estimatedPrice: 13 },
+      { name: "Lomo Saltado (light rice)", description: "Beef stir-fry — ask for half rice, extra vegetables", cal: 550, protein: 34, estimatedPrice: 14 },
+      { name: "Ceviche Mixto", description: "Citrus-cured fish and seafood — lean protein, no oil", cal: 280, protein: 26, estimatedPrice: 14 },
+      { name: "Pollo a la Brasa (1/4) + Beans", description: "Rotisserie quarter with beans instead of fries", cal: 480, protein: 40, estimatedPrice: 12 },
+    ],
+  },
+  {
+    // Round 6: Caribbean/South-American cuisines used to borrow the Mexican
+    // TACO template. Pan-Latin plates are the real menu shape.
+    category: "Latin",
+    cuisineKey: "latin",
+    emoji: "🥘",
+    priceRange: 1,
+    orderingTip: "Grilled or rotisserie chicken with beans is the anchor order — half the rice, skip the fried sides (tostones +300 cal).",
+    picks: [
+      { name: "Grilled Chicken + Rice & Beans (half rice)", description: "Ask for half rice, double beans", cal: 520, protein: 38, estimatedPrice: 11 },
+      { name: "Roast Pork (Pernil) + Black Beans + Salad", description: "Lean cut, beans, side salad — skip the rice", cal: 480, protein: 32, estimatedPrice: 11 },
+      { name: "Rotisserie Chicken (1/4) + Beans", description: "Quarter chicken, beans, no fried sides", cal: 430, protein: 36, estimatedPrice: 10 },
+      { name: "Grilled Fish + Salad", description: "Grilled white fish with salad, dressing on the side", cal: 340, protein: 30, estimatedPrice: 12 },
+      { name: "Chicken Soup (Sancocho, bowl)", description: "Hearty broth-based soup with chicken and root vegetables", cal: 320, protein: 22, estimatedPrice: 9 },
+    ],
+  },
+  {
     category: "Seafood",
     cuisineKey: "seafood",
     emoji: "🐟",
@@ -194,18 +243,21 @@ const DOHMH_CUISINE_MAP: Record<string, string> = {
   "delicatessen": "deli",
   "sandwiches": "sandwiches",
   "sandwiches/salads/mixed buffet": "sandwiches",
-  "bagels/pretzels": "deli",
+  "bagels/pretzels": "bagels",
   "pizza": "pizza",
   "pizza/italian": "pizza",
   "italian": "pizza",
   "chinese": "chinese",
   "chinese/cuban": "chinese",
   "chinese/japanese": "chinese",
+  // Only actual Mexican/Tex-Mex cuisines get the taco template (July 6
+  // audit: "The Inkan", Peruvian, was serving taco picks). The rest of the
+  // Latin family gets pan-Latin plates; Peruvian gets pollo a la brasa.
   "mexican": "mexican",
-  "latin american": "mexican",
-  "latin (cuban, dominican, puerto rican, south & central american)": "mexican",
   "tex-mex": "mexican",
-  "spanish": "mexican",
+  "latin american": "latin",
+  "latin (cuban, dominican, puerto rican, south & central american)": "latin",
+  "spanish": "latin",
   "hamburgers": "diner",
   "american": "diner",
   "hotdogs": "diner",
@@ -276,19 +328,19 @@ const DOHMH_CUISINE_MAP: Record<string, string> = {
   "polish": "diner",
   "german": "diner",
 
-  // Caribbean & Latin → mexican
-  "caribbean": "mexican",
-  "peruvian": "mexican",
-  "brazilian": "mexican",
-  "colombian": "mexican",
-  "salvadoran": "mexican",
-  "ecuadorian": "mexican",
-  "guatemalan": "mexican",
-  "honduran": "mexican",
-  "venezuelan": "mexican",
-  "cuban": "mexican",
-  "dominican": "mexican",
-  "puerto rican": "mexican",
+  // Caribbean & Latin → pan-Latin plates (NOT tacos); Peruvian → its own
+  "caribbean": "latin",
+  "peruvian": "peruvian",
+  "brazilian": "latin",
+  "colombian": "latin",
+  "salvadoran": "latin",
+  "ecuadorian": "latin",
+  "guatemalan": "latin",
+  "honduran": "latin",
+  "venezuelan": "latin",
+  "cuban": "latin",
+  "dominican": "latin",
+  "puerto rican": "latin",
 
   // Mediterranean & Middle Eastern → halal
   "tapas": "halal",

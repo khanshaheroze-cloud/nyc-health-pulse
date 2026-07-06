@@ -14,6 +14,13 @@ const OVERRIDES: Record<string, ClassificationOverride> = {
   maman: "cafe",
 };
 
+// Name-pattern rules — the venue name states its category regardless of the
+// DOHMH cuisine string ("Pumpernickel Bagel" was licensed as a Diner and got
+// grilled-chicken picks — July 6 audit). Checked after per-venue overrides.
+const NAME_PATTERN_RULES: { re: RegExp; key: ClassificationOverride }[] = [
+  { re: /\bbagels?\b/i, key: "bagels" },
+];
+
 /** Normalize a venue name for override lookup: lowercase, strip store numbers,
  *  punctuation, and common suffixes. */
 export function classificationKey(name: string): string {
@@ -33,6 +40,9 @@ export function classificationOverride(name: string): ClassificationOverride | n
   // Prefix match so "Maman Tribeca" / "Maman Soho" resolve to the "maman" seed.
   for (const [k, v] of Object.entries(OVERRIDES)) {
     if (key === k || key.startsWith(k + " ")) return v;
+  }
+  for (const { re, key: cuisineKey } of NAME_PATTERN_RULES) {
+    if (re.test(name)) return cuisineKey;
   }
   return null;
 }

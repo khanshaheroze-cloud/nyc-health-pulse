@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 const NON_FOOD_VENUE_RE = /\b(golf|bowling|cinema|theatre|theater|gym|fitness|coworking|workspace|co-work|members?\s*club|club\s*lounge|axe\s*throw|escape\s*room|trampoline|laser\s*tag|arcade|batting\s*cage|billiard|pool\s*hall|hookah|karaoke|night\s*club|strip\s*club|gentlemen|tattoo|spa\b(?!ghetti)|nail\s*salon|barber|beauty|laundromat|dry\s*clean|self.?storage|parking|gas\s*station)\b/i;
 
-const COFFEE_ALLOWED_CATS = new Set(["cafe", "café", "deli", "sandwiches"]);
+const COFFEE_ALLOWED_CATS = new Set(["cafe", "café", "deli", "sandwiches", "bagels"]);
 const COFFEE_ALLOWED_CHAIN_CATS = new Set(["Coffee & Bakery"]);
 
 const BODEGA_CLASS_KEYS = new Set(["deli", "halal"]);
