@@ -193,6 +193,9 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
                       <p className="text-[13px] font-semibold text-[#1A1A1A]">
                         {i === 0 && <span className="text-[#2F8F4D] mr-1">★</span>}
                         {pick.name}
+                        {pick.overCalTarget && (
+                          <span className="text-[10px] font-normal text-[#B06A1E] ml-1.5">over the 600-cal target</span>
+                        )}
                       </p>
                     </div>
                     <span className="text-[11px] text-[#6B716B] whitespace-nowrap flex-shrink-0">

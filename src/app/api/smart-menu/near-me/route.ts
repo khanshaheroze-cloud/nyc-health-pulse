@@ -7,6 +7,7 @@ import { canonicalBrand, normalizeVenueName, healthyPickEligibility } from "@/li
 import { snapCoords, snapPadMeters, GRID_FINE } from "@/lib/geoSnap";
 import { getVenueByCamis, badgeState, type BadgeState } from "@/lib/verifiedVenues";
 import { chainHours, parseVerifiedHours, evaluateOpen, hoursChip, type OpenState, type VenueHours } from "@/lib/hours";
+import { orderPicks, applyCalDisplayRule } from "@/lib/pickRanking";
 
 export const dynamic = "force-dynamic";
 
@@ -216,6 +217,9 @@ interface TopPick {
   pulseScore: number;
   /** Estimated price of this order in dollars; null = unknown (UI shows the ~$ band) */
   estPrice: number | null;
+  /** True when this brand has nothing under the 600-cal display target — the
+   *  UI labels it instead of silently showing a 780-cal "top pick" */
+  overCalTarget?: boolean;
 }
 
 interface ApiResult {
@@ -335,42 +339,49 @@ export async function GET(req: NextRequest) {
         if (meal === "coffee" && !COFFEE_ALLOWED_CHAIN_CATS.has(chain.category)) continue;
 
         const activeMeal = meal as MealCategory;
+        // Pure PulseScore ordering (strict meal-match only breaks ties) — the
+        // card says "ranked by PulseScore", so a strictness bonus must never
+        // put a 65 above an 80 (July 5 audit, P0).
         const scoredAll = chain.items
           .filter(filterFn)
           .map((item) => {
             const ps = pulseScore(item);
             const strict = inferMealType(item.name, item.tags) === activeMeal;
             return {
-              id: `${chainSlug}-${item.name.replace(/\s+/g, "-").toLowerCase()}`,
-              name: item.name,
-              calories: item.cal,
-              protein: item.protein,
-              carbs: item.carbs,
-              fat: item.fat,
-              fiber: item.fiber ?? 0,
-              pulseScore: ps,
-              estPrice: null, // chain item prices arrive with verified-venue data
-              _sort: ps + (strict ? 10 : 0),
+              pick: {
+                id: `${chainSlug}-${item.name.replace(/\s+/g, "-").toLowerCase()}`,
+                name: item.name,
+                calories: item.cal,
+                protein: item.protein,
+                carbs: item.carbs,
+                fat: item.fat,
+                fiber: item.fiber ?? 0,
+                pulseScore: ps,
+                estPrice: null, // chain item prices arrive with verified-venue data
+              },
+              strict,
             };
           })
-          .sort((a, b) => b._sort - a._sort)
-          .map(({ _sort, ...rest }) => rest);
+          .sort((a, b) => b.pick.pulseScore - a.pick.pulseScore || Number(b.strict) - Number(a.strict))
+          .map((s) => s.pick);
 
         if (scoredAll.length === 0) continue;
 
         // Headline rule: for breakfast/lunch/dinner the "best order" must be a
-        // real meal (>=200 cal, not a beverage). Drinks surface separately as
-        // bestDrink — a 5-cal cold brew can never headline a Dunkin' card.
+        // real MEAL (>=200 cal, not a beverage OR side — round 5 extends the
+        // round-2 drink rule). Drinks surface separately as bestDrink. The
+        // 600-cal display rule drops over-target items from ranked cards when
+        // the brand has anything under target (BWW's 780-cal Caesar stays on
+        // the chain's full menu page, never in the ranked card).
         const drinks = scoredAll.filter((s) => BEVERAGE_RE.test(s.name));
-        let scored: TopPick[];
-        if (meal === "breakfast" || meal === "lunch" || meal === "dinner") {
-          const meals = scoredAll.filter((s) => s.calories >= 200 && !BEVERAGE_RE.test(s.name));
-          const rest = scoredAll.filter((s) => !meals.includes(s) && !BEVERAGE_RE.test(s.name));
-          scored = (meals.length > 0 ? [...meals, ...rest] : rest).slice(0, 3);
-        } else {
-          scored = scoredAll.slice(0, 3);
+        const candidates = meal === "coffee" || meal === "snack"
+          ? scoredAll
+          : scoredAll.filter((s) => !BEVERAGE_RE.test(s.name));
+        const scored: TopPick[] = orderPicks(applyCalDisplayRule(candidates), activeMeal).slice(0, 3);
+        if (scored.length === 0) {
+          logExclusion(r.dba, "no coherent meal pick for this tab (chain)");
+          continue;
         }
-        if (scored.length === 0) continue;
         const bestDrink = meal !== "coffee" && drinks.length > 0
           ? { name: drinks[0].name, calories: drinks[0].calories, protein: drinks[0].protein }
           : null;
@@ -421,10 +432,18 @@ export async function GET(req: NextRequest) {
           if (seenKeys.has(vKey)) continue;
           seenKeys.add(vKey);
 
-          const ranked = [...vv.menuItems]
-            .map((m) => ({
-              m,
-              ps: pulseScore({
+          // PulseScore first (the card's stated ranking), the in-person
+          // isRecommended flag breaks ties. Headline must still be a meal.
+          const rankedPicks = [...vv.menuItems]
+            .map((m, i) => ({
+              id: `${vv.slug}-verified-${i}`,
+              name: m.name,
+              calories: m.calories ?? 0,
+              protein: m.protein ?? 0,
+              carbs: m.carbs ?? 0,
+              fat: m.fat ?? 0,
+              fiber: 0,
+              pulseScore: pulseScore({
                 name: m.name,
                 cal: m.calories ?? 0,
                 protein: m.protein ?? 0,
@@ -432,8 +451,12 @@ export async function GET(req: NextRequest) {
                 carbs: m.carbs ?? 0,
                 sodium: m.sodium ?? 0,
               } as ChainMenuItem),
+              estPrice: m.price,
+              _rec: m.isRecommended,
             }))
-            .sort((a, b) => Number(b.m.isRecommended) - Number(a.m.isRecommended) || b.ps - a.ps);
+            .sort((a, b) => b.pulseScore - a.pulseScore || Number(b._rec) - Number(a._rec))
+            .map(({ _rec, ...rest }) => rest);
+          const vvPicks: TopPick[] = orderPicks(applyCalDisplayRule(rankedPicks), meal as MealCategory).slice(0, 3);
 
           const vvHours = parseVerifiedHours(vv.hours);
           const vvState = evaluateOpen(vvHours, when);
@@ -453,17 +476,7 @@ export async function GET(req: NextRequest) {
             inspectedAt: r.inspection_date ?? vv.dohmhInspectedAt,
             isGeneric: false,
             category: vv.venueType,
-            topPicks: ranked.slice(0, 3).map(({ m, ps }, i) => ({
-              id: `${vv.slug}-verified-${i}`,
-              name: m.name,
-              calories: m.calories ?? 0,
-              protein: m.protein ?? 0,
-              carbs: m.carbs ?? 0,
-              fat: m.fat ?? 0,
-              fiber: 0,
-              pulseScore: ps,
-              estPrice: m.price,
-            })),
+            topPicks: vvPicks,
             bestDrink: null,
             locationCount: 1,
             otherLocations: [],
@@ -498,17 +511,26 @@ export async function GET(req: NextRequest) {
         const seed = hashStr(dba + (r.building || "") + (r.street || ""));
 
         const filteredPicks = filterGenericPicks(template.picks, meal, template.category, seed);
-        const topPicks = filteredPicks.map((p, i) => ({
-          id: `${template.cuisineKey}-generic-${seed}-${i}`,
-          name: p.name,
-          calories: p.cal,
-          protein: p.protein,
-          carbs: 0,
-          fat: 0,
-          fiber: 0,
-          pulseScore: p.protein >= 30 ? 80 : p.protein >= 20 ? 65 : p.protein >= 10 ? 45 : 30,
-          estPrice: p.estimatedPrice ?? null,
-        }));
+        // Seed rotation decides WHICH picks a venue shows (variety across
+        // venues sharing a template); orderPicks decides their ORDER — score
+        // descending, meal headline (Woodbines must lead with Roast Chicken 80,
+        // not Pasta 45; Tamashii must never headline Edamame).
+        const topPicks: TopPick[] = orderPicks(
+          applyCalDisplayRule(
+            filteredPicks.map((p, i) => ({
+              id: `${template.cuisineKey}-generic-${seed}-${i}`,
+              name: p.name,
+              calories: p.cal,
+              protein: p.protein,
+              carbs: 0,
+              fat: 0,
+              fiber: 0,
+              pulseScore: p.protein >= 30 ? 80 : p.protein >= 20 ? 65 : p.protein >= 10 ? 45 : 30,
+              estPrice: p.estimatedPrice ?? null,
+            })),
+          ),
+          meal as MealCategory,
+        );
 
         // Generic template = no real venue identity, so hours are unknown.
         // Allowed in picks, but the card shows "Hours unknown", never "open".

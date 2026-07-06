@@ -14,7 +14,7 @@ export interface ResultSpot {
   topPickScore?: number;
   /** Estimated price of the recommended order; null = show the ~$ band */
   topPickPrice?: number | null;
-  topPicks?: { name: string; calories: number; protein: number; pulseScore: number }[];
+  topPicks?: { name: string; calories: number; protein: number; pulseScore: number; overCalTarget?: boolean }[];
   bestDrink?: { name: string; calories: number; protein: number } | null;
   priceRange: number;
   priceTier?: string;
@@ -168,6 +168,9 @@ function SpotCard({ spot, onSpotClick }: { spot: ResultSpot; onSpotClick?: (slug
             <strong className="text-[#1A1A1A]">Order:</strong> {spot.topPickName}
             <span className="text-[#1A1A1A] font-semibold whitespace-nowrap"> — {orderPriceLabel(spot)}</span>
             {spot.isGeneric && <span className="text-[11px] text-[#9A9F9A] ml-1">est.</span>}
+            {spot.topPicks?.[0]?.overCalTarget && (
+              <span className="text-[11px] text-[#B06A1E] ml-1">over the 600-cal target</span>
+            )}
           </>
         ) : (
           <>

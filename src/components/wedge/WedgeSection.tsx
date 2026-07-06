@@ -41,7 +41,7 @@ interface ApiRestaurant {
   inspectedAt?: string | null;
   isGeneric: boolean;
   category: string;
-  topPicks: { name: string; calories: number; protein: number; pulseScore: number; estPrice?: number | null }[];
+  topPicks: { name: string; calories: number; protein: number; pulseScore: number; estPrice?: number | null; overCalTarget?: boolean }[];
   bestDrink?: { name: string; calories: number; protein: number } | null;
   locationCount?: number;
   otherLocations?: { address: string; walkMinutes: number; grade: string }[];
