@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { orderPicks, applyCalDisplayRule, classifyItemType, headlineEligible } from "../src/lib/pickRanking";
+import { orderPicks, applyCalDisplayRule, classifyItemType, headlineEligible, type RankablePick } from "../src/lib/pickRanking";
 import { CHAINS } from "../src/lib/restaurantData";
 
 // Round 5 P0 (July 5 evening audit): the headline pick must be the best
@@ -7,7 +7,7 @@ import { CHAINS } from "../src/lib/restaurantData";
 // Chicken Dinner" (80), Tamashii led with Edamame (a side), and BWW's 780-cal
 // Caesar could appear in a ranked card.
 
-const pick = (name: string, calories: number, pulseScore: number) => ({ name, calories, pulseScore });
+const pick = (name: string, calories: number, pulseScore: number): RankablePick => ({ name, calories, pulseScore });
 
 test.describe("orderPicks — score ordering + meal headline", () => {
   test("Woodbines fixture: Roast Chicken (80) headlines over Pasta Marinara (45)", () => {
