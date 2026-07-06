@@ -8,7 +8,7 @@ import { snapCoords, snapPadMeters, GRID_FINE } from "@/lib/geoSnap";
 import { getVenueByCamis, badgeState, type BadgeState } from "@/lib/verifiedVenues";
 import { chainHours, parseVerifiedHours, evaluateOpen, hoursChip, type OpenState, type VenueHours } from "@/lib/hours";
 import { orderPicks, applyCalDisplayRule } from "@/lib/pickRanking";
-import { isDessertBrand } from "@/lib/venuePolicy";
+import { isDessertBrand, classifyBar, barChipLabel } from "@/lib/venuePolicy";
 
 export const dynamic = "force-dynamic";
 
@@ -547,8 +547,13 @@ export async function GET(req: NextRequest) {
         // Allowed in picks, but the card shows "Hours unknown", never "open".
         const genState: OpenState = "unknown";
         // Chip tells the truth about the VENUE (DOHMH cuisine), not the pick
-        // template (Havana Central is Cuban, not "Mexican" — July 5 audit)
-        const venueCuisine = displayCuisine(r.cuisine_description || "") || template.category;
+        // template (Havana Central is Cuban, not "Mexican" — July 5 audit).
+        // Ranked food-forward bars say so: Woodbines is a "Gastropub", not a
+        // "Diner" (its Irish cuisine borrows the diner template).
+        const barChip = classifyBar(r.dba || "", r.cuisine_description || "") === "food-forward-bar"
+          ? barChipLabel(r.dba || "")
+          : null;
+        const venueCuisine = barChip ?? (displayCuisine(r.cuisine_description || "") || template.category);
         genericResults.push({
           restaurantId: `generic-${template.cuisineKey}-${rLat.toFixed(4)}`,
           slug: `generic-${template.cuisineKey}`,
@@ -564,7 +569,7 @@ export async function GET(req: NextRequest) {
           grade: r.grade || "",
           inspectedAt: r.inspection_date ?? null,
           isGeneric: true,
-          category: template.category,
+          category: barChip ?? template.category,
           topPicks,
           bestDrink: null,
           locationCount: 1,

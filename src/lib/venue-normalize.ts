@@ -1,4 +1,5 @@
 import { CHAINS } from "@/lib/restaurantData";
+import { classifyBar } from "@/lib/venuePolicy";
 
 /* ── Venue name normalization ──────────────────────────────────────────────
  * DOHMH `dba` values arrive as raw ALL-CAPS strings with store numbers and
@@ -201,9 +202,6 @@ export function canonicalBrand(raw: string): Brand | null {
  * are exempt (Dunkin' is curated even though "DONUT" appears).
  */
 
-// "BAR" is excluded only when it is not a healthy bar type (juice/salad/poke/etc.)
-const HEALTHY_BAR_RE = /\b(juice|salad|poke|smoothie|acai|grain|soup|veggie|wellness)\s+bar\b/i;
-
 /* THE WALK-IN TEST (July 5 2026 audit, P0): a ranked pick must be a venue a
  * member of the public can walk into and order at, during posted hours. DOHMH
  * licenses plenty of real food-service operations that fail this test —
@@ -227,7 +225,6 @@ const EXCLUDED_NAME_RE =
 // Venues whose name ENDS in "EVENT(S)" are event spaces, not walk-in lunch
 // ("HILTON EVENTS") — separate pattern because $ can't live inside the \b group
 const EVENTS_SUFFIX_RE = /\bevents?\s*$/i;
-const BAR_WORD_RE = /\bbar\b/i;
 const EXCLUDED_CUISINE_RE =
   /^(bottled beverages|donuts|bakery products\/desserts|frozen desserts|coffee\/tea|not listed\/not applicable)$/i;
 // Cuisine "Coffee/Tea" stays eligible in coffee mode — handled by caller.
@@ -251,11 +248,18 @@ export function healthyPickEligibility(
   if (nonWalkIn) {
     return { eligible: false, reason: nonWalkIn };
   }
+  // Bar policy (round 5, owner directive): drink-first dive bars are OUT of
+  // ranked picks; food-forward bars — gastropubs with real kitchens, or the
+  // curated allowlist (Woodbines, Gantry) — rank normally. classifyBar runs
+  // BEFORE the nightlife name patterns so "X TAVERN KITCHEN" with a food
+  // cuisine isn't killed by the tavern token.
+  const barClass = classifyBar(name, cuisineDescription);
+  if (barClass === "food-forward-bar") return { eligible: true };
+  if (barClass === "drink-first-bar") {
+    return { eligible: false, reason: "drink-first bar" };
+  }
   if (EXCLUDED_NAME_RE.test(name) || EVENTS_SUFFIX_RE.test(name)) {
     return { eligible: false, reason: "nightlife/dessert/event venue" };
-  }
-  if (BAR_WORD_RE.test(name) && !HEALTHY_BAR_RE.test(name)) {
-    return { eligible: false, reason: "bar" };
   }
   const cuisine = (cuisineDescription || "").trim();
   if (EXCLUDED_CUISINE_RE.test(cuisine)) {

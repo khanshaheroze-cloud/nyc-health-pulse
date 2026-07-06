@@ -30,8 +30,11 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
   const scrollYRef = useRef(0);
 
   const chain = spot && !spot.isGeneric ? CHAINS.find(c => c.slug === spot.slug) : null;
-  const template: GenericTemplate | undefined = spot?.isGeneric && spot.category
-    ? GENERIC_TEMPLATES.find(t => t.category === spot.category)
+  // Slug ("generic-{cuisineKey}") is the stable template key — category may be
+  // an honest venue chip ("Gastropub") that no template carries (round 5).
+  const template: GenericTemplate | undefined = spot?.isGeneric
+    ? GENERIC_TEMPLATES.find(t => `generic-${t.cuisineKey}` === spot.slug)
+      ?? (spot.category ? GENERIC_TEMPLATES.find(t => t.category === spot.category) : undefined)
     : undefined;
 
   const isOpen = !!(spot && (chain || template));

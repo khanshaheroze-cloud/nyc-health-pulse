@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { canonicalBrand, normalizeVenueName, nonWalkInReason } from "@/lib/venue-normalize";
+import { classifyBar } from "@/lib/venuePolicy";
 import { snapCoords, snapPadMeters, GRID_COARSE } from "@/lib/geoSnap";
 
 export const dynamic = "force-dynamic";
@@ -188,6 +189,9 @@ export async function GET(req: NextRequest) {
           // Fails the walk-in test (Fooda/cafeteria/caterer): stays on the map
           // but renders dimmed with a "Private/institutional" label, never ranked
           institutional: nonWalkInReason(r.dba || "", cuisine) !== null,
+          // Drink-first bars (round 5 owner directive): findable, dimmed,
+          // never in ranked picks
+          drinkFirst: classifyBar(r.dba || "", cuisine) === "drink-first-bar",
         };
       })
       .filter((r): r is NonNullable<typeof r> => r !== null)

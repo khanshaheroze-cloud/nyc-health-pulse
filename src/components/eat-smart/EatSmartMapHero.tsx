@@ -32,6 +32,8 @@ export interface NearbyResult {
   isHealthy: boolean;
   /** Fails the walk-in test (Fooda/cafeteria/caterer) — dimmed on the map, never ranked */
   institutional?: boolean;
+  /** Drink-first bar (round 5): findable, dimmed, never in ranked picks */
+  drinkFirst?: boolean;
 }
 
 export interface EnrichedResult extends NearbyResult {
