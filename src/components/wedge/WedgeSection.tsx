@@ -130,6 +130,9 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
   // envelope (set in the same state batch as allSpots) so the map center and
   // any origin-derived UI can never mix a new location with stale venues.
   const [resultsOrigin, setResultsOrigin] = useState<{ lat: number; lng: number } | null>(null);
+  // Where the current origin came from — attached to results_rendered so any
+  // client-side origin bug is visible in the event stream (round 5, P2)
+  const locationSourceRef = useRef<"default" | "gps" | "manual" | "ip">("default");
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [mapVisible, setMapVisible] = useState(false);
@@ -220,6 +223,7 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
       // "LIVE · 10:38 PM · GREENPOINT" for fresh visitors). Only gps/manual
       // locations — explicitly set by the user — name a neighborhood.
       const isConfident = cached.source === "gps" || cached.source === "manual";
+      locationSourceRef.current = cached.source;
       setCoords({ lat: cached.lat, lng: cached.lng });
       setLocationStatus("success");
       if (isConfident) {
@@ -236,6 +240,7 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
 
     // Live sync: setting a location on /eat-smart (or anywhere) updates here too
     return subscribeLocation((loc) => {
+      locationSourceRef.current = loc.source;
       setCoords({ lat: loc.lat, lng: loc.lng });
       if (loc.label) setLocationLabel(loc.label);
       setIsDefault(false);
@@ -316,6 +321,18 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
       setResultsOrigin({ lat, lng }); // origin travels with the response, never read at render time
       setFetchedAt(Date.now());
       setTotalCount(restaurants.length);
+      // Origin transparency (round 5): every rendered result set reports the
+      // origin that produced it, so a wrong-location bug is diagnosable from
+      // the event stream instead of an owner hunch.
+      trackEvent("results_rendered", {
+        meta: {
+          count: mapped.length,
+          meal,
+          originLat: Number(lat.toFixed(5)),
+          originLng: Number(lng.toFixed(5)),
+          originSource: locationSourceRef.current,
+        },
+      });
     } catch {
       if (reqId !== fetchSeq.current) return; // abort of a superseded request is not an error
       setAllSpots([]);
@@ -343,6 +360,7 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
     }
 
     const { lat, lng } = result.coords!;
+    locationSourceRef.current = "gps";
     const hood = findNearestNeighborhoodDetail(lat, lng);
 
     if (result.lowConfidence) {
@@ -378,6 +396,7 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
 
   const handleManualLocation = useCallback(async (query: string, resolvedCoords?: { lat: number; lng: number }) => {
     setLowConfidenceHood(null);
+    locationSourceRef.current = "manual";
     if (resolvedCoords) {
       const { lat, lng } = resolvedCoords;
       writeLocation({ lat, lng, label: query, source: "manual" });
@@ -505,6 +524,10 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
             onSortChange={setSortBy}
             fetchError={fetchError}
             onRetry={() => coords && fetchResults(coords.lat, coords.lng, mealType)}
+            onEditLocation={() => {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+              window.dispatchEvent(new CustomEvent("pulse-open-location-picker"));
+            }}
           />
 
           {/* Waitlist — THE primary email capture, shown contextually after a

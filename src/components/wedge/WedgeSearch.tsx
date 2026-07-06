@@ -43,6 +43,18 @@ export function WedgeSearch({ locationLabel, onRequestLocation, onManualLocation
     }
   }, []);
 
+  // "Update location" on the results origin line (round 5): opens this picker
+  // from anywhere on the page and focuses the address input.
+  useEffect(() => {
+    const open = () => {
+      setPickerOpen(true);
+      pickerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => inputRef.current?.focus(), 350);
+    };
+    window.addEventListener("pulse-open-location-picker", open);
+    return () => window.removeEventListener("pulse-open-location-picker", open);
+  }, []);
+
   // Close the picker once a location resolves successfully
   const prevStatusRef = useRef(locationStatus);
   useEffect(() => {

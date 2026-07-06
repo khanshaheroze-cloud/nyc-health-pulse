@@ -54,6 +54,8 @@ interface LiveResultsStripProps {
   onSortChange?: (key: SortKey) => void;
   fetchError?: boolean;
   onRetry?: () => void;
+  /** Opens the location editor — the origin line's "Update location" action */
+  onEditLocation?: () => void;
 }
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -185,7 +187,7 @@ function SpotCard({ spot, onSpotClick }: { spot: ResultSpot; onSpotClick?: (slug
   );
 }
 
-export function LiveResultsStrip({ spots, splurgeSpots = [], guidanceSpots = [], totalCount, isDefault, locationLabel, loading, mealLabel, onSpotClick, fetchedAt, sortBy = "score", onSortChange, fetchError, onRetry }: LiveResultsStripProps) {
+export function LiveResultsStrip({ spots, splurgeSpots = [], guidanceSpots = [], totalCount, isDefault, locationLabel, loading, mealLabel, onSpotClick, fetchedAt, sortBy = "score", onSortChange, fetchError, onRetry, onEditLocation }: LiveResultsStripProps) {
   const sortLabel = SORT_OPTIONS.find((o) => o.key === sortBy)?.label ?? "PulseScore";
   return (
     <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-14">
@@ -203,6 +205,22 @@ export function LiveResultsStrip({ spots, splurgeSpots = [], guidanceSpots = [],
           )}
         </span>
       </div>
+
+      {/* Origin transparency (round 5): the user never infers the origin from
+          venue names — it's stated, with a one-click correction path. */}
+      {!loading && spots.length > 0 && (
+        <p data-testid="origin-line" className="text-[12px] text-[#6B716B] mb-2">
+          Near <strong className="text-[#1A1A1A]">{isDefault ? "Times Square (default)" : locationLabel}</strong>
+          {" · wrong? "}
+          <button
+            type="button"
+            onClick={onEditLocation}
+            className="text-[#2A6BC9] hover:underline font-medium"
+          >
+            Update location
+          </button>
+        </p>
+      )}
 
       {/* Sort selector */}
       <div className="mb-5 flex items-center gap-1.5 flex-wrap">
