@@ -124,11 +124,13 @@ export function LocalMap({ center, spots, isDefault, onSpotClick, onVisible, vis
               </Popup>
             </Marker>
 
-            {/* Spot pins — open/unknown get numbered ranks; known-closed get a
-                dimmed unranked dot but stay on the map for context. */}
+            {/* Spot pins — open/unknown get numbered ranks; known-closed AND
+                liveness-gated venues (permanently closed, unverified-stale,
+                address-mismatch) get a dimmed unranked dot but stay on the map
+                for context, labeled honestly. */}
             {(() => { let rank = 0; return spots.map((spot) => {
               if (!spot.lat || !spot.lng) return null;
-              const isClosed = spot.openState === "closed";
+              const isClosed = spot.openState === "closed" || !!spot.livenessLabel;
               if (!isClosed) rank += 1;
               const thisRank = rank;
               return (
@@ -141,9 +143,11 @@ export function LocalMap({ center, spots, isDefault, onSpotClick, onVisible, vis
                   <Popup>
                     <div style={{ minWidth: 160, fontSize: "12px" }}>
                       <strong style={{ fontSize: "13px" }}>{spot.name}</strong>
-                      {isClosed && spot.hoursChip && (
+                      {spot.livenessLabel ? (
+                        <div style={{ color: "#B0503F", fontWeight: 600, marginTop: 2 }}>{spot.livenessLabel}</div>
+                      ) : isClosed && spot.hoursChip ? (
                         <div style={{ color: "#B0503F", fontWeight: 600, marginTop: 2 }}>{spot.hoursChip.label}</div>
-                      )}
+                      ) : null}
                       <div style={{ display: "flex", gap: 6, marginTop: 4, marginBottom: 6 }}>
                         <span style={{ color: "#2A6BC9" }}>{spot.walkMinutes} min</span>
                         <span style={{ color: "#2F8F4D" }}>{spot.topPickProtein}g protein</span>

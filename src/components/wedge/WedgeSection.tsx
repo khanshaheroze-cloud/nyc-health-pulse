@@ -57,6 +57,51 @@ interface ApiRestaurant {
   openState?: "open" | "closed" | "unknown";
   hoursChip?: { label: string; tone: "open" | "closed" | "unknown" } | null;
   camis?: string | null;
+  liveness?: string;
+  livenessCheckedAt?: string | null;
+  livenessLabel?: string | null;
+  placeId?: string | null;
+}
+
+// One mapping for ranked results AND liveness-gated map-only venues — the two
+// arrays must never drift in shape.
+function mapApiRestaurant(r: ApiRestaurant): ResultSpot {
+  const topPick = r.topPicks[0];
+  return {
+    id: r.restaurantId || `${r.slug}-${r.address}`,
+    slug: r.slug,
+    name: r.restaurantName,
+    walkMinutes: r.walkMinutes,
+    topPickName: topPick?.name ?? "",
+    topPickProtein: topPick?.protein ?? 0,
+    topPickCalories: topPick?.calories ?? 0,
+    topPickScore: topPick?.pulseScore ?? 0,
+    topPickPrice: topPick?.estPrice ?? null,
+    topPicks: r.topPicks,
+    bestDrink: r.bestDrink ?? null,
+    priceRange: r.priceRange,
+    priceTier: r.priceTier,
+    lat: r.lat,
+    lng: r.lng,
+    address: r.address,
+    grade: r.grade,
+    inspectedAt: r.inspectedAt ?? null,
+    isGeneric: r.isGeneric,
+    category: r.category,
+    locationCount: r.locationCount ?? 1,
+    otherLocations: r.otherLocations ?? [],
+    orderingTip: r.orderingTip,
+    verifiedBadge: r.verifiedBadge ?? null,
+    verifiedAt: r.verifiedAt ?? null,
+    verifiedSlug: r.verifiedSlug ?? null,
+    openState: r.openState ?? "unknown",
+    hoursChip: r.hoursChip ?? null,
+    camis: r.camis ?? null,
+    liveness: r.liveness,
+    livenessCheckedAt: r.livenessCheckedAt ?? null,
+    livenessLabel: r.livenessLabel ?? null,
+    placeId: r.placeId ?? null,
+  };
 }
 
 function readCachedMeal(): MealCategory | null {
@@ -131,6 +176,9 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
   const [mealType, setMealType] = useState<MealCategory>(() => detectMealType());
 
   const [allSpots, setAllSpots] = useState<ResultSpot[]>([]);
+  // Liveness-gated venues (permanently/temporarily closed, unverified-stale,
+  // address-mismatch, community-closed): map-only, dimmed, never ranked.
+  const [excludedSpots, setExcludedSpots] = useState<ResultSpot[]>([]);
   // The origin that PRODUCED the current result set. Travels with the response
   // envelope (set in the same state batch as allSpots) so the map center and
   // any origin-derived UI can never mix a new location with stale venues.
@@ -175,8 +223,10 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
     });
     // Known-closed venues are excluded from the ranked top-5 — "right now" must
     // be true. Open + unknown-hours venues remain rankable. (Closed venues still
-    // reach the map below, dimmed.)
-    let filtered = canonical.filter(r => r.openState !== "closed");
+    // reach the map below, dimmed.) Liveness-gated venues arrive in a separate
+    // `excluded` array, but a belt-and-suspenders filter here means a gated
+    // venue can never rank even if one leaks into the main list.
+    let filtered = canonical.filter(r => r.openState !== "closed" && !r.livenessLabel);
     if (activeChips.has("quick")) {
       filtered = filtered.filter(r => r.walkMinutes <= 5);
     }
@@ -210,11 +260,12 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
   }, [allSpots, activeChips, sortBy]);
 
   // Map shows the ranked picks PLUS any known-closed venues nearby, dimmed —
-  // the prompt's "still on the map, dimmed, 'Closed · opens 7am'".
+  // the prompt's "still on the map, dimmed, 'Closed · opens 7am'" — plus the
+  // liveness-gated venues ("Permanently closed — report if wrong").
   const mapSpots = useMemo(() => {
     const closed = allSpots.filter(r => r.openState === "closed").slice(0, 6);
-    return [...spots, ...splurgeSpots, ...guidanceSpots, ...closed];
-  }, [spots, splurgeSpots, guidanceSpots, allSpots]);
+    return [...spots, ...splurgeSpots, ...guidanceSpots, ...closed, ...excludedSpots.slice(0, 6)];
+  }, [spots, splurgeSpots, guidanceSpots, allSpots, excludedSpots]);
 
   const activeSpot = useMemo(() => {
     if (!spotSlug) return null;
@@ -287,41 +338,10 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
       if (!res.ok) throw new Error("fetch failed");
       const data = await res.json();
       const restaurants: ApiRestaurant[] = data.restaurants || [];
+      const excluded: ApiRestaurant[] = data.excluded || [];
 
-      const mapped: ResultSpot[] = restaurants.map(r => {
-        const topPick = r.topPicks[0];
-        return {
-          id: r.restaurantId || `${r.slug}-${r.address}`,
-          slug: r.slug,
-          name: r.restaurantName,
-          walkMinutes: r.walkMinutes,
-          topPickName: topPick?.name ?? "",
-          topPickProtein: topPick?.protein ?? 0,
-          topPickCalories: topPick?.calories ?? 0,
-          topPickScore: topPick?.pulseScore ?? 0,
-          topPickPrice: topPick?.estPrice ?? null,
-          topPicks: r.topPicks,
-          bestDrink: r.bestDrink ?? null,
-          priceRange: r.priceRange,
-          priceTier: r.priceTier,
-          lat: r.lat,
-          lng: r.lng,
-          address: r.address,
-          grade: r.grade,
-          inspectedAt: r.inspectedAt ?? null,
-          isGeneric: r.isGeneric,
-          category: r.category,
-          locationCount: r.locationCount ?? 1,
-          otherLocations: r.otherLocations ?? [],
-          orderingTip: r.orderingTip,
-          verifiedBadge: r.verifiedBadge ?? null,
-          verifiedAt: r.verifiedAt ?? null,
-          verifiedSlug: r.verifiedSlug ?? null,
-          openState: r.openState ?? "unknown",
-          hoursChip: r.hoursChip ?? null,
-          camis: r.camis ?? null,
-        };
-      });
+      const mapped: ResultSpot[] = restaurants.map(mapApiRestaurant);
+      const mappedExcluded: ResultSpot[] = excluded.map(mapApiRestaurant);
 
       if (reqId !== fetchSeq.current) return; // superseded — a newer request owns the UI
 
@@ -337,6 +357,7 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
       }
 
       setAllSpots(mapped);
+      setExcludedSpots(mappedExcluded);
       setResultsOrigin({ lat, lng }); // origin travels with the response, never read at render time
       setFetchedAt(Date.now());
       setTotalCount(restaurants.length);
@@ -355,6 +376,7 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
     } catch {
       if (reqId !== fetchSeq.current) return; // abort of a superseded request is not an error
       setAllSpots([]);
+      setExcludedSpots([]);
       setTotalCount(0);
       setFetchError(true);
     } finally {

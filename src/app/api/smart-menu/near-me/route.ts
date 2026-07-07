@@ -10,6 +10,9 @@ import { chainHours, parseVerifiedHours, evaluateOpen, hoursChip, type OpenState
 import { orderPicks, applyCalDisplayRule } from "@/lib/pickRanking";
 import { isDessertBrand, classifyBar, barChipLabel } from "@/lib/venuePolicy";
 import { chainTypicalPrice } from "@/lib/chainPrices";
+import { getPlacesProvider } from "@/lib/places";
+import { computeLiveness, livenessLabel, RANKED_EXCLUDED_LIVENESS, type Liveness } from "@/lib/liveness";
+import { fetchCommunityClosed, isCommunityClosed } from "@/lib/communityClosed";
 
 export const dynamic = "force-dynamic";
 
@@ -255,6 +258,16 @@ interface ApiResult {
   verifiedSlug?: string | null;
   /** DOHMH CAMIS id — the shareable /spot/[venueId] key for real venues. */
   camis?: string | null;
+  /** Round 7 liveness — Google Places is the liveness source of truth.
+   *  Gated states (closed/stale/mismatch) never occupy a ranked slot. */
+  liveness?: Liveness;
+  /** When Places last confirmed this venue (confident matches only) */
+  livenessCheckedAt?: string | null;
+  /** Dimmed-map label for liveness-gated venues; absent for rankable ones */
+  livenessLabel?: string | null;
+  /** Google place_id (confident matches) — anchors directions to the door */
+  placeId?: string | null;
+  matchConfidence?: number | null;
   /** Open/closed at query time. "unknown" when we have no hours source. */
   openState: OpenState;
   /** Where the hours came from: brand-default | verified | api | unknown */
@@ -435,6 +448,7 @@ export async function GET(req: NextRequest) {
           bestDrink,
           locationCount: 1,
           otherLocations: [],
+          camis: r.camis ?? null,
           openState: chState,
           hoursSource: chHours.source,
           hoursChip: hoursChip(chState, chHours, when),
@@ -510,6 +524,7 @@ export async function GET(req: NextRequest) {
             verifiedBadge: badgeState(vv.verification),
             verifiedAt: vv.verification.verifiedAt,
             verifiedSlug: vv.slug,
+            camis: r.camis ?? null,
             openState: vvState,
             hoursSource: vvHours.source,
             hoursChip: hoursChip(vvState, vvHours, when),
@@ -707,7 +722,51 @@ export async function GET(req: NextRequest) {
 
     // Ranked candidates first, then up to 3 guidance-only venues (clearly
     // pickless — the client shows them under an "ordering guidance" divider).
-    const final = [...deduped.slice(0, 10), ...guidanceOnly.slice(0, 3)];
+    const candidates = [...deduped.slice(0, 10), ...guidanceOnly.slice(0, 3)];
+
+    // ── Liveness gate (Round 7) ─────────────────────────────────────────────
+    // Lazy enrichment: ONLY venues that reached the candidate set hit Places
+    // (≤13 per query, 7-day cached). A null enrichment = the lookup was not
+    // attempted (no key / budget / network) — behavior stays DOHMH-only.
+    const provider = getPlacesProvider();
+    const communityClosedIndex = await fetchCommunityClosed();
+    await Promise.all(
+      candidates.map(async (v) => {
+        const enrichment = provider.enabled
+          ? await provider.enrichVenue({
+              key: v.camis ?? v.restaurantId,
+              name: v.restaurantName,
+              address: v.address,
+              lat: v.lat,
+              lng: v.lng,
+            })
+          : null;
+        const community = isCommunityClosed(communityClosedIndex, {
+          camis: v.camis,
+          restaurantId: v.restaurantId,
+          name: v.restaurantName,
+          address: v.address,
+        });
+        v.liveness = computeLiveness(enrichment, v.inspectedAt, community);
+        if (enrichment?.status === "matched" && enrichment.place) {
+          v.placeId = enrichment.place.placeId;
+          v.matchConfidence = enrichment.matchConfidence;
+          v.livenessCheckedAt = enrichment.fetchedAt;
+        }
+        if (v.liveness === "address-mismatch") {
+          // Review trail: a name match beyond the 150m gate is the commissary
+          // pattern — never a walkable recommendation (Maman/Austell class).
+          console.warn(
+            `[places] ADDRESS-MISMATCH: "${v.restaurantName}" (${v.address}) — best Places name match is ${enrichment?.distanceM}m away at "${enrichment?.place?.formattedAddress}". Excluded from ranked; review.`,
+          );
+        }
+      }),
+    );
+
+    // Gated venues never rank — they go to the map only, dimmed and labeled.
+    const gatedOut = candidates.filter((v) => RANKED_EXCLUDED_LIVENESS.has(v.liveness ?? "dohmh-only"));
+    for (const v of gatedOut) v.livenessLabel = livenessLabel(v.liveness!);
+    const final = candidates.filter((v) => !RANKED_EXCLUDED_LIVENESS.has(v.liveness ?? "dohmh-only"));
 
     if (process.env.NODE_ENV !== "production") {
       // Standing tripwire (round 6 — third institutional leak: Fooda →
@@ -722,12 +781,14 @@ export async function GET(req: NextRequest) {
           );
         }
       }
-      console.log(`[smart-menu] meal=${meal} venueGateExcluded=${venueGateExcluded} chains=${chainResults.length} generic=${genericResults.length} final=${final.length}`);
+      console.log(`[smart-menu] meal=${meal} venueGateExcluded=${venueGateExcluded} chains=${chainResults.length} generic=${genericResults.length} final=${final.length} livenessGated=${gatedOut.length}`);
       const bodegaInFinal = final.filter(r => r.isGeneric && BODEGA_CLASS_KEYS.has(r.slug.replace("generic-", "")));
       if (bodegaInFinal.length > 0) console.log(`[smart-menu] bodega in results: ${bodegaInFinal.map(r => r.restaurantName).join(", ")}`);
     }
 
-    return NextResponse.json({ restaurants: final });
+    // `excluded` = liveness-gated venues: still shown on the map (dimmed,
+    // labeled "Permanently closed — report if wrong" etc), never ranked.
+    return NextResponse.json({ restaurants: final, excluded: gatedOut });
   } catch (err) {
     console.error("smart-menu/near-me error:", err);
     return NextResponse.json({ restaurants: [] });

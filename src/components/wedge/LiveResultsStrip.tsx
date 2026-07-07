@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { formatRelative, formatMonthYear } from "@/lib/freshness";
 
 export type SortKey = "score" | "protein" | "calories" | "distance" | "protein-per-dollar";
@@ -38,6 +39,13 @@ export interface ResultSpot {
   hoursChip?: { label: string; tone: "open" | "closed" | "unknown" } | null;
   /** DOHMH CAMIS — the /spot/[venueId] key for real generic venues */
   camis?: string | null;
+  /** Round 7 liveness (see src/lib/liveness.ts) */
+  liveness?: string;
+  livenessCheckedAt?: string | null;
+  /** Present only on liveness-gated venues — dims the map pin, never ranks */
+  livenessLabel?: string | null;
+  /** Google place_id — anchors directions to the storefront door */
+  placeId?: string | null;
 }
 
 interface LiveResultsStripProps {
@@ -83,6 +91,63 @@ function orderPriceLabel(spot: ResultSpot): string {
   return "~$15+";
 }
 
+// One-tap community correction (Round 7): "This place is closed" lives in the
+// card's overflow — two distinct reports soft-exclude the venue immediately
+// (the flywheel where APIs lag reality). A sibling of the card element, not a
+// child: the card itself may be a <button>, and nesting buttons is invalid.
+function ClosedReportOverflow({ spot }: { spot: ResultSpot }) {
+  const [open, setOpen] = useState(false);
+  const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
+
+  const report = async () => {
+    setState("sending");
+    try {
+      await fetch("/api/eat-smart/report-error", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          venueId: spot.camis ?? spot.id,
+          venueName: spot.name,
+          address: spot.address ?? null,
+          field: "closed",
+          message: "one-tap card report",
+          reportedAt: new Date().toISOString(),
+        }),
+      });
+    } catch {}
+    setState("sent");
+  };
+
+  return (
+    <div className="absolute top-2 right-2 z-[1]">
+      <button
+        type="button"
+        aria-label={`More options for ${spot.name}`}
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        className="w-6 h-6 flex items-center justify-center rounded-md text-[#9A9F9A] hover:text-[#1A1A1A] hover:bg-[#F5F0EB] text-[14px] leading-none"
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-1 w-52 bg-white border border-[#E6E5DE] rounded-xl shadow-lg p-1">
+          {state === "sent" ? (
+            <p className="text-[11px] text-[#2F8F4D] px-2 py-1.5">Thanks — flagged for review.</p>
+          ) : (
+            <button
+              type="button"
+              disabled={state === "sending"}
+              onClick={(e) => { e.stopPropagation(); report(); }}
+              className="w-full text-left text-[12px] text-[#B0503F] px-2 py-1.5 rounded-lg hover:bg-[#F9F1EF] disabled:opacity-50"
+            >
+              🚫 This place is closed
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // One result card — shared by the ranked five and the "Worth a splurge" row.
 // Generic venues render as <button> — they have no /restaurants/* page, and a
 // crawlable/cmd-clickable href would 404.
@@ -96,6 +161,8 @@ function SpotCard({ spot, onSpotClick }: { spot: ResultSpot; onSpotClick?: (slug
       : null;
   const Card = detailHref ? ("a" as const) : ("button" as const);
   return (
+    <div className="relative">
+    <ClosedReportOverflow spot={spot} />
     <Card
       {...(detailHref
         ? {
@@ -110,7 +177,7 @@ function SpotCard({ spot, onSpotClick }: { spot: ResultSpot; onSpotClick?: (slug
         : { type: "button" as const, onClick: () => onSpotClick?.(spot.id) })}
       data-venue-id={spot.id}
       data-venue-name={spot.name}
-      className="bg-white border border-[#E6E5DE] rounded-2xl p-4 hover:-translate-y-0.5 transition-transform duration-150 block text-left w-full focus:outline-none focus:ring-2 focus:ring-[#2F8F4D]/40 focus:ring-offset-2"
+      className="bg-white border border-[#E6E5DE] rounded-2xl p-4 hover:-translate-y-0.5 transition-transform duration-150 block text-left w-full h-full focus:outline-none focus:ring-2 focus:ring-[#2F8F4D]/40 focus:ring-offset-2"
     >
       {spot.isGeneric && spot.category && (
         <span className="text-[11px] tracking-[1px] uppercase text-[#6B716B] font-semibold block mb-1">
@@ -189,6 +256,7 @@ function SpotCard({ spot, onSpotClick }: { spot: ResultSpot; onSpotClick?: (slug
         )}
       </div>
     </Card>
+    </div>
   );
 }
 

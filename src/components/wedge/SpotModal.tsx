@@ -132,6 +132,18 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
                 ✓ Menu verified by PulseNYC — we check menus, prices, and hours in person
               </p>
             )}
+            {/* Liveness honesty (Round 7): say where "this place exists and is
+                open" came from — or that nobody has independently checked. */}
+            {spot.liveness === "places-verified" && (
+              <p className="text-[11px] text-[#2F8F4D] mt-0.5">
+                ✓ Verified open via Google{spot.livenessCheckedAt ? ` · ${formatMonthYear(spot.livenessCheckedAt)}` : ""}
+              </p>
+            )}
+            {spot.liveness === "dohmh-only" && (
+              <p className="text-[11px] text-[#8A8F8A] mt-0.5">
+                Not independently verified — listing from NYC DOHMH records
+              </p>
+            )}
             {(spot.locationCount ?? 1) > 1 && spot.otherLocations && spot.otherLocations.length > 0 && (
               <details className="mt-1">
                 <summary className="text-[12px] text-[#2A6BC9] cursor-pointer select-none">
@@ -243,7 +255,9 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                      venueId: spot.slug,
+                      // camis/id, never slug — generic slugs collide across
+                      // venues and the 2-report closed threshold needs identity
+                      venueId: spot.camis ?? spot.id,
                       venueName: displayName,
                       address: spot.address ?? null,
                       field: reportReason,
@@ -297,6 +311,37 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
               >
                 Report an error
               </button>
+              {/* One-tap community correction (Round 7): no form — a dead
+                  venue at 11 PM deserves a single tap, not a dropdown. */}
+              {reportState !== "sent" && (
+                <button
+                  type="button"
+                  disabled={reportState === "sending"}
+                  onClick={async () => {
+                    setReportState("sending");
+                    try {
+                      const res = await fetch("/api/eat-smart/report-error", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          venueId: spot.camis ?? spot.id,
+                          venueName: displayName,
+                          address: spot.address ?? null,
+                          field: "closed",
+                          message: "one-tap modal report",
+                          reportedAt: new Date().toISOString(),
+                        }),
+                      });
+                      setReportState(res.ok ? "sent" : "error");
+                    } catch {
+                      setReportState("error");
+                    }
+                  }}
+                  className="text-[12px] text-[#B0503F] hover:underline disabled:opacity-50"
+                >
+                  This place is closed
+                </button>
+              )}
               {visiblePicks.length > 0 && (
                 <ShareOrderButton
                   venue={displayName}
