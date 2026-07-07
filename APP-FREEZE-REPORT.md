@@ -53,6 +53,7 @@ what the test suite covers, and what the app build needs to run.
 | Source | Dataset | Cadence in app |
 |---|---|---|
 | DOHMH restaurant inspections | Socrata `43nn-pn8j` | near-me: 1h revalidate (geo-snapped cache cells); /spot: 24h |
+| **Google Places (New) — liveness/geometry/hours/type/bodegas** (Round 7) | `places:searchText` + `places:searchNearby`, strict field mask | lazy per ranked candidate (≤13/query) + per-cell bodega query; **7-day cache** (Supabase `places_cache` + per-lambda LRU); nightly warm cron; hard `PLACES_DAILY_BUDGET` circuit-breaker. **Dark unless `GOOGLE_PLACES_API_KEY` is set.** |
 | Chain nutrition (55 brands) | `src/lib/restaurantData.ts` | static, hand-swept July 2026 (`lastVerified` per chain) |
 | Generic templates (14 cuisines incl. bagels/peruvian/latin) | `src/lib/genericRestaurants.ts` | static, estimates ±15% |
 | Verified venues (LIC guide) | `src/lib/verifiedVenues` | static; **0 of 11 menu-verified** (all `estimated`) |
@@ -86,6 +87,16 @@ All Socrata fetches send `X-App-Token` when `NYC_OPEN_DATA_APP_TOKEN` is set.
 - Health-data caveats (documented on /sources & /methodology): CDC PLACES is model-based;
   DEP wastewater methodology break Apr 2023; blood-lead threshold ≥5 µg/dL (not CDC 3.5);
   maternal-mortality API case sensitivity.
+- **Liveness is verified only for venues Google Places confidently matches** (Round 7).
+  Unmatched venues stay `dohmh-only` (rankable if inspected ≤14 months — new/renamed
+  venues aren't punished) or `unverified-stale` (excluded) if the last inspection is older.
+  With no `GOOGLE_PLACES_API_KEY` the whole layer is dark and behavior is identical to
+  round 6 (DOHMH-only): no liveness gating, DOHMH geometry, DOHMH-derived categories, no
+  bodegas. The gate is fail-open — a null Places lookup is "no information", never "closed".
+- **Bodega coverage = Places coverage** (Round 7). Bodegas/delis are NYS Ag & Markets
+  licensed, not DOHMH, so they exist only through the Places ingestion path. They carry no
+  letter grade — the card shows "NYS retail food store" and the modal explains the two
+  regulators. Their picks are `deli_bodega` template estimates (±15%), never a claimed menu.
 
 ## 4. Test-suite map (`pnpm test` = chromium + 375px mobile projects)
 
@@ -96,6 +107,9 @@ All Socrata fetches send `X-App-Token` when `NYC_OPEN_DATA_APP_TOKEN` is set.
 | `round6-sort-filter(.mobile).spec.ts` | **sort/filter idempotence** (owner repro), API param hygiene — desktop + 375px |
 | `round6-eligibility.spec.ts` | org-token sweep (UNFCU/Boyce fixtures), false-positive guards, live no-org-ranked |
 | `round6-templates.spec.ts` | bagel/Peruvian/pan-Latin mapping, no borrowed tacos, under-$15 |
+| `round7-places.spec.ts` | **liveness gate** — Yards/Maman/matched fixtures, every `computeLiveness` branch, name similarity, refined category from Places types, Places-hours → WeeklyHours |
+| `round7-bodega.spec.ts` | bodega template bounds (200–700 cal, ≤$10), dedupe vs DOHMH, liveness-from-status, place-anchored directions URL |
+| `round7-bodega-render.spec.ts` | Places bodega card renders "NYS retail food store" (never a grade), deli/bodega chip, open state, template order (mocked endpoint) |
 | `round5-picks.spec.ts` | PulseScore-desc ordering, meal headline, 600-cal rule, chain price bands |
 | `round5-rank.spec.ts` | dessert blocklist, pickless-venues-never-rank (+ rendered guidance section) |
 | `round5-bars.spec.ts` | classifyBar (Woodbines Gastropub live), dive-bar exclusions |
@@ -126,6 +140,15 @@ Plus `pnpm ci:menus` (chain-menu audit) and `pnpm smoke:live` (post-deploy proof
 **Email (inactive until Resend domain DNS is done)**
 - `RESEND_API_KEY`, `RESEND_AUDIENCE_ID`, `DIGEST_SECRET`, `DIGEST_FROM_EMAIL`
 
+**Places enrichment layer (Round 7 — the whole layer is dark without the key)**
+- `GOOGLE_PLACES_API_KEY` — **Places API (New) must be enabled + billing on** in the Google
+  Cloud project. Powers liveness (closed/stale/mismatch gating), storefront geometry +
+  place-anchored directions, real hours, refined categories, and bodega ingestion. Absent →
+  the app runs exactly as round 6 (logged once, DOHMH-only).
+- `PLACES_DAILY_BUDGET` (optional, default 1000) — hard daily call ceiling; past it the layer
+  serves cache-only and logs. Supabase `places_cache` (7-day) + `places_counters` back the
+  cache + budget across lambdas; both degrade to no-op if Supabase is absent.
+
 **Analytics / admin / push (optional)**
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_URL`,
   `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_METRICS_SECRET`, `PUSH_SECRET`, `CRON_SECRET`
@@ -138,4 +161,54 @@ API routes return 503 (never crash) when their env vars are missing.
 
 - `src/data/venue-policy.json` — dessert/bubble-tea blocklist + food-forward bar allowlist
 - `src/data/chain-prices.json` — 55 brand typical-order prices (under-$15 cap inputs)
-- `src/lib/venueClassification.ts` — per-venue template overrides + name-pattern rules
+- `src/lib/venueClassification.ts` — per-venue template overrides + name-pattern rules +
+  refined-category owner overrides (Round 7)
+- `src/lib/placesConfig.ts` — every Places tunable in one place: 14-month stale threshold,
+  150m distance gate, 0.62 name-similarity threshold, 7-day cache TTL, daily budget default,
+  bodega cell/dedup radii, warm-cron cells
+
+---
+
+## 7. Round 7 addendum — the Liveness & Places enrichment layer (July 6, 2026)
+
+The round-6 freeze was reopened for **one API-side data layer** (no new UI surfaces). It fixes
+three failure modes the DOHMH-only architecture cannot, all of which break the product's one
+promise ("trust our pick"). **Business rule: a wrong pointer (closed venue, wrong address) is
+a product-killing error; an imprecise estimate is not.** Google Places is the
+liveness/type/geometry/hours source of truth; **DOHMH stays the health-grade source of truth.**
+
+**What it does (all lazy + 7-day cached, only for venues that reach the ranked candidate set):**
+1. **Liveness gate** (`src/lib/liveness.ts`) — `CLOSED_PERMANENTLY`/`CLOSED_TEMPORARILY`,
+   `unverified-stale` (no match + inspection >14 months — the "Yards Bar & Grill" dead-permit
+   class), and `address-mismatch` (confident name match beyond the 150m gate — the "Maman at
+   the Austell Pl commissary" class) are all **excluded from ranked**, shown dimmed on the map
+   only. One-tap "This place is closed" community reports soft-exclude at ≥2 reports.
+2. **Storefront geometry** — confident matches use the Places location for pins/distance/walk
+   time and `formattedAddress` for display; "Get directions" is place-anchored
+   (`destination_place_id`, routes to the door, not a block-face dot).
+3. **Real hours** — `regularOpeningHours` adopted as `hoursSource: 'google'` (above
+   brand-default, below owner-verified), evaluated in America/New_York; lifts hours coverage
+   past the chain-only ~25% ceiling and gates the "Open now" chip at ≥80% coverage.
+4. **Refined categories** (`src/lib/refinedCategory.ts`) — Places `types` → 8-category enum
+   (restaurant/cafe/bakery/bar/fast_food/deli_bodega/juice_smoothie/dessert) driving the card
+   chip+icon, template selection, and dessert/bar eligibility (owner override → Places type →
+   DOHMH heuristic). Fixes the Mango-Mango "Fruits/Vegetables" class.
+5. **Bodegas as first-class citizens** (`src/lib/bodegas.ts`, phase 5) — bodegas/delis are
+   licensed by **NY State Agriculture & Markets, not DOHMH**, so they never appear in the
+   inspection feed. A cached per-cell `searchNearby` (convenience_store/deli) merges them as
+   `source: 'places'`, `category: 'deli_bodega'`, with a dedicated bodega template
+   (egg-white sandwich, turkey & swiss, honest-calorie chopped cheese, cold-case Greek
+   yogurt). **Two-regulator honesty:** no letter grade — the card shows "NYS retail food
+   store" and the modal explains why. Places bodegas that duplicate a DOHMH venue
+   (name + ≤80m) are dropped in favor of the graded DOHMH record.
+
+**Cost model = caching.** Strict field masks + 7-day Supabase cache + per-lambda LRU + a
+nightly warm cron over the LIC/Manhattan-core cells keep this inside Google's monthly credit
+at current traffic; `PLACES_DAILY_BUDGET` (default 1000) is the hard circuit-breaker.
+
+**Ship state:** the layer ships **dark** until `GOOGLE_PLACES_API_KEY` is provisioned in the
+Vercel env (Places API (New) enabled, billing on). Until then behavior is byte-for-byte
+round-6 (DOHMH-only) and the three named live-acceptance cases (Yards absent, no Austell-Pl
+Maman, LIC Gourmet as a bodega) cannot be verified against LIVE — only the pure-logic and
+mocked-render tests pass. **Provisioning the key activates the entire layer with no redeploy
+needed** beyond the env change.
