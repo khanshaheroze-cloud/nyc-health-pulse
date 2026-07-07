@@ -46,6 +46,12 @@ export interface ResultSpot {
   livenessLabel?: string | null;
   /** Google place_id — anchors directions to the storefront door */
   placeId?: string | null;
+  /** Refined category (owner override → Places types → DOHMH heuristic) */
+  refinedCategory?: string | null;
+  /** Chip label + icon for the refined category */
+  categoryChip?: { label: string; icon: string } | null;
+  /** 'places' = bodega ingestion path (no DOHMH grade — NYS retail store) */
+  source?: "dohmh" | "places";
 }
 
 interface LiveResultsStripProps {
@@ -179,9 +185,9 @@ function SpotCard({ spot, onSpotClick }: { spot: ResultSpot; onSpotClick?: (slug
       data-venue-name={spot.name}
       className="bg-white border border-[#E6E5DE] rounded-2xl p-4 hover:-translate-y-0.5 transition-transform duration-150 block text-left w-full h-full focus:outline-none focus:ring-2 focus:ring-[#2F8F4D]/40 focus:ring-offset-2"
     >
-      {spot.isGeneric && spot.category && (
+      {spot.isGeneric && (spot.categoryChip || spot.category) && (
         <span className="text-[11px] tracking-[1px] uppercase text-[#6B716B] font-semibold block mb-1">
-          {spot.category}
+          {spot.categoryChip ? `${spot.categoryChip.icon} ${spot.categoryChip.label}` : spot.category}
         </span>
       )}
       <p className="font-semibold text-[15px] text-[#1A1A1A] mb-0.5">

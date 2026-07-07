@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { CHAINS, type MenuItem as ChainMenuItem } from "@/lib/restaurantData";
 import { inferMealType, mealMatches, type MealCategory } from "@/lib/inferMealType";
 import { matchGenericCategory, templateByCuisineKey, displayCuisine, type GenericTemplate, type GenericPick } from "@/lib/genericRestaurants";
-import { classificationOverride } from "@/lib/venueClassification";
+import { classificationOverride, refinedCategoryOverride } from "@/lib/venueClassification";
+import { categoryFromPlacesTypes, categoryFromDohmhCuisine, CATEGORY_META, type RefinedCategory } from "@/lib/refinedCategory";
 import { canonicalBrand, normalizeVenueName, healthyPickEligibility, classifyOrgVenue } from "@/lib/venue-normalize";
 import { snapCoords, snapPadMeters, GRID_FINE } from "@/lib/geoSnap";
 import { getVenueByCamis, badgeState, type BadgeState } from "@/lib/verifiedVenues";
 import { chainHours, parseVerifiedHours, evaluateOpen, hoursChip, type OpenState, type VenueHours } from "@/lib/hours";
 import { orderPicks, applyCalDisplayRule } from "@/lib/pickRanking";
-import { isDessertBrand, classifyBar, barChipLabel } from "@/lib/venuePolicy";
+import { isDessertBrand, classifyBar, barChipLabel, isAllowlistedFoodBar } from "@/lib/venuePolicy";
 import { chainTypicalPrice } from "@/lib/chainPrices";
 import { getPlacesProvider } from "@/lib/places";
 import { computeLiveness, livenessLabel, RANKED_EXCLUDED_LIVENESS, type Liveness } from "@/lib/liveness";
@@ -268,6 +269,13 @@ interface ApiResult {
   /** Google place_id (confident matches) — anchors directions to the door */
   placeId?: string | null;
   matchConfidence?: number | null;
+  /** Refined category (owner override → Places types → DOHMH heuristic) */
+  refinedCategory?: RefinedCategory | null;
+  /** Card chip for the refined category (consistent icon set) */
+  categoryChip?: { label: string; icon: string } | null;
+  /** Where the venue record came from: DOHMH inspections (default) or the
+   *  Places bodega ingestion path (no DOHMH grade — NYS retail food store) */
+  source?: "dohmh" | "places";
   /** Open/closed at query time. "unknown" when we have no hours source. */
   openState: OpenState;
   /** Where the hours came from: brand-default | verified | api | unknown */
@@ -607,10 +615,15 @@ export async function GET(req: NextRequest) {
           otherLocations: [],
           orderingTip: template.orderingTip,
           camis: r.camis ?? null,
+          // Refined category baseline: owner override → DOHMH heuristic.
+          // A Places-type match upgrades this in the enrichment pass.
+          refinedCategory: refinedCategoryOverride(dba) ?? categoryFromDohmhCuisine(r.cuisine_description),
           openState: genState,
           hoursSource: "unknown",
           hoursChip: hoursChip(genState, null, when),
         });
+        const gLast = genericResults[genericResults.length - 1];
+        if (gLast.refinedCategory) gLast.categoryChip = CATEGORY_META[gLast.refinedCategory];
       }
     }
 
@@ -776,6 +789,13 @@ export async function GET(req: NextRequest) {
             v.hoursSource = "google";
             v.hoursChip = hoursChip(v.openState, gHours, when);
           }
+          // Refined category (phase 4): Places types beat the DOHMH cuisine
+          // heuristic, but never the owner override table.
+          const placesCat = categoryFromPlacesTypes(place.types);
+          if (placesCat && !refinedCategoryOverride(v.restaurantName)) {
+            v.refinedCategory = placesCat;
+          }
+          if (v.refinedCategory) v.categoryChip = CATEGORY_META[v.refinedCategory];
         }
         if (v.liveness === "address-mismatch") {
           // Review trail: a name match beyond the 150m gate is the commissary
@@ -787,10 +807,27 @@ export async function GET(req: NextRequest) {
       }),
     );
 
+    // Category eligibility (phase 4): a Places-typed dessert shop or a
+    // drink-first bar never occupies a ranked slot — the refined category is
+    // more reliable than DOHMH cuisine strings (the Mango Mango
+    // "Fruits/Vegetables" class). Same treatment as the name-based dessert
+    // gate: dropped from ranked, still findable in the full map view.
+    const categoryEligible = (v: ApiResult): boolean => {
+      if (!v.isGeneric || v.verifiedSlug) return true;
+      if (v.refinedCategory === "dessert") return false;
+      if (v.refinedCategory === "bar" && !isAllowlistedFoodBar(v.restaurantName)) return false;
+      return true;
+    };
+    for (const v of candidates) {
+      if (!categoryEligible(v)) logExclusion(v.restaurantName, `refined category "${v.refinedCategory}" (Places types)`);
+    }
+
     // Gated venues never rank — they go to the map only, dimmed and labeled.
     const gatedOut = candidates.filter((v) => RANKED_EXCLUDED_LIVENESS.has(v.liveness ?? "dohmh-only"));
     for (const v of gatedOut) v.livenessLabel = livenessLabel(v.liveness!);
-    const final = candidates.filter((v) => !RANKED_EXCLUDED_LIVENESS.has(v.liveness ?? "dohmh-only"));
+    const final = candidates.filter(
+      (v) => !RANKED_EXCLUDED_LIVENESS.has(v.liveness ?? "dohmh-only") && categoryEligible(v),
+    );
 
     if (process.env.NODE_ENV !== "production") {
       // Standing tripwire (round 6 — third institutional leak: Fooda →

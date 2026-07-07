@@ -8,6 +8,8 @@
 // produced "Lasagna" as its healthy pick under Breakfast — a café/bakery should
 // get café picks.
 
+import type { RefinedCategory } from "@/lib/refinedCategory";
+
 export type ClassificationOverride = string; // a cuisineKey, or "none"
 
 const OVERRIDES: Record<string, ClassificationOverride> = {
@@ -43,6 +45,24 @@ export function classificationOverride(name: string): ClassificationOverride | n
   }
   for (const { re, key: cuisineKey } of NAME_PATTERN_RULES) {
     if (re.test(name)) return cuisineKey;
+  }
+  return null;
+}
+
+// ── Refined-category owner overrides (Round 7 phase 4) ──────────────────────
+// The refined category (restaurant | cafe | bakery | bar | fast_food |
+// deli_bodega | juice_smoothie | dessert) resolves owner override → Places
+// type → DOHMH heuristic. This table is the owner override: keyed by
+// classificationKey(name), same prefix-match semantics as OVERRIDES above.
+// Seeded empty — grows from the Report-an-error queue and audits.
+const CATEGORY_OVERRIDES: Record<string, RefinedCategory> = {};
+
+/** Owner-set refined category for a venue name, or null if none. */
+export function refinedCategoryOverride(name: string): RefinedCategory | null {
+  const key = classificationKey(name);
+  if (CATEGORY_OVERRIDES[key]) return CATEGORY_OVERRIDES[key];
+  for (const [k, v] of Object.entries(CATEGORY_OVERRIDES)) {
+    if (key === k || key.startsWith(k + " ")) return v;
   }
   return null;
 }

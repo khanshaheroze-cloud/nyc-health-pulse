@@ -82,8 +82,8 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
   if (!isOpen || !spot) return null;
 
   const displayName = chain?.name ?? spot.name;
-  const displayCategory = chain?.category ?? spot.category ?? "";
-  const displayEmoji = chain?.emoji ?? template?.emoji ?? "📍";
+  const displayCategory = chain?.category ?? spot.categoryChip?.label ?? spot.category ?? "";
+  const displayEmoji = chain?.emoji ?? spot.categoryChip?.icon ?? template?.emoji ?? "📍";
   const displayPrice = chain?.priceRange ?? spot.priceRange;
   const orderingTip = chain?.orderingTip ?? template?.orderingTip;
   const isGeneric = spot.isGeneric ?? false;

@@ -62,6 +62,9 @@ interface ApiRestaurant {
   livenessCheckedAt?: string | null;
   livenessLabel?: string | null;
   placeId?: string | null;
+  refinedCategory?: string | null;
+  categoryChip?: { label: string; icon: string } | null;
+  source?: "dohmh" | "places";
 }
 
 // One mapping for ranked results AND liveness-gated map-only venues — the two
@@ -102,6 +105,9 @@ function mapApiRestaurant(r: ApiRestaurant): ResultSpot {
     livenessCheckedAt: r.livenessCheckedAt ?? null,
     livenessLabel: r.livenessLabel ?? null,
     placeId: r.placeId ?? null,
+    refinedCategory: r.refinedCategory ?? null,
+    categoryChip: r.categoryChip ?? null,
+    source: r.source ?? "dohmh",
   };
 }
 
