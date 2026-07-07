@@ -1,6 +1,6 @@
 "use client";
 
-export type ChipId = "high-protein" | "quick" | "under-15";
+export type ChipId = "high-protein" | "quick" | "under-15" | "open-now";
 
 // "Under $15" replaced the abstract $/$$/$$$ tier pills — the wedge is a
 // price-anchored sentence, so the filter is the same sentence.
@@ -10,15 +10,28 @@ const CHIPS: { id: ChipId; emoji: string; label: string }[] = [
   { id: "quick", emoji: "⚡", label: "Quick (under 5 min)" },
 ];
 
+// "Open now" graduates from metric to chip only when the current result set's
+// hours coverage clears the bar (Round 7 — Google hours lifted coverage past
+// the chain-only ceiling). It filters to KNOWN-open venues: unknown hours are
+// excluded while the chip is active — we never claim open without data.
+const OPEN_NOW_CHIP: { id: ChipId; emoji: string; label: string } = {
+  id: "open-now",
+  emoji: "🕐",
+  label: "Open now",
+};
+
 interface QuickFilterChipsProps {
   active: Set<ChipId>;
   onToggle: (id: ChipId) => void;
+  /** Show the "Open now" chip — gated on ≥80% hours coverage upstream */
+  showOpenNow?: boolean;
 }
 
-export function QuickFilterChips({ active, onToggle }: QuickFilterChipsProps) {
+export function QuickFilterChips({ active, onToggle, showOpenNow = false }: QuickFilterChipsProps) {
+  const chips = showOpenNow ? [...CHIPS, OPEN_NOW_CHIP] : CHIPS;
   return (
     <div className="flex flex-wrap justify-center gap-2 mt-5 px-4">
-      {CHIPS.map((chip) => {
+      {chips.map((chip) => {
         const isActive = active.has(chip.id);
         return (
           <button

@@ -22,6 +22,7 @@ import {
   requestBrowserLocation,
   type LocationStatus,
 } from "@/lib/locationStore";
+import { PLACES_CONFIG } from "@/lib/placesConfig";
 
 const LocalMap = dynamic(() => import("./LocalMap").then(m => m.LocalMap), { ssr: false });
 
@@ -230,6 +231,11 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
     if (activeChips.has("quick")) {
       filtered = filtered.filter(r => r.walkMinutes <= 5);
     }
+    // "Open now" filters to KNOWN-open only — unknown hours are excluded
+    // while the chip is active; we never claim open without data.
+    if (activeChips.has("open-now")) {
+      filtered = filtered.filter(r => r.openState === "open");
+    }
     // Known order price wins; unknown falls back to the venue's price band
     const isUnder15 = (r: ResultSpot) =>
       r.topPickPrice != null ? r.topPickPrice <= 15 : r.priceRange <= 2;
@@ -266,6 +272,14 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
     const closed = allSpots.filter(r => r.openState === "closed").slice(0, 6);
     return [...spots, ...splurgeSpots, ...guidanceSpots, ...closed, ...excludedSpots.slice(0, 6)];
   }, [spots, splurgeSpots, guidanceSpots, allSpots, excludedSpots]);
+
+  // Hours coverage of the CURRENT result set — the "Open now" chip may only
+  // show when coverage clears the bar (still never claims open for unknowns).
+  const hoursCoveragePct = useMemo(() => {
+    if (allSpots.length === 0) return 0;
+    const known = allSpots.filter(r => r.openState !== "unknown").length;
+    return Math.round((known / allSpots.length) * 100);
+  }, [allSpots]);
 
   const activeSpot = useMemo(() => {
     if (!spotSlug) return null;
@@ -549,7 +563,11 @@ export function WedgeSection({ proofStats }: { proofStats?: ProofStats }) {
             </div>
           )}
           <MealTypeToggle active={mealType} onChange={handleMealChange} />
-          <QuickFilterChips active={activeChips} onToggle={handleChipToggle} />
+          <QuickFilterChips
+            active={activeChips}
+            onToggle={handleChipToggle}
+            showOpenNow={hoursCoveragePct >= PLACES_CONFIG.OPEN_NOW_CHIP_COVERAGE_PCT}
+          />
           <LiveResultsStrip
             spots={spots}
             splurgeSpots={activeChips.has("under-15") ? [] : splurgeSpots}

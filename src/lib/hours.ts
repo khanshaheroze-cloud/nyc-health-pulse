@@ -17,7 +17,10 @@ export interface Interval {
  *  An empty array for a day means closed all day. */
 export type WeeklyHours = Interval[][];
 
-export type HoursSource = "brand-default" | "verified" | "api" | "unknown";
+/** Priority when several sources exist: verified (owner walked in) beats
+ *  google (Places regularOpeningHours) beats brand-default beats unknown.
+ *  "api" is the legacy alias kept for older fixtures. */
+export type HoursSource = "brand-default" | "verified" | "google" | "api" | "unknown";
 
 export interface VenueHours {
   weekly: WeeklyHours | null; // null = unknown

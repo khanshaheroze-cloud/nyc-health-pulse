@@ -765,6 +765,17 @@ export async function GET(req: NextRequest) {
           if (place.formattedAddress) {
             v.address = place.formattedAddress.replace(/,\s*USA$/, "");
           }
+          // Real hours (phase 3): Places regularOpeningHours beat brand
+          // defaults and "unknown", but never owner-verified hours. This is
+          // what lifts hours coverage past the ~25% chain-only ceiling —
+          // and evaluateOpen stays NYC-local, so a closed breakfast café
+          // can't rank at 11 PM while the 24h diner can.
+          if (place.weeklyHours && v.hoursSource !== "verified") {
+            const gHours: VenueHours = { weekly: place.weeklyHours, source: "google" };
+            v.openState = evaluateOpen(gHours, when);
+            v.hoursSource = "google";
+            v.hoursChip = hoursChip(v.openState, gHours, when);
+          }
         }
         if (v.liveness === "address-mismatch") {
           // Review trail: a name match beyond the 150m gate is the commissary
