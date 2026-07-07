@@ -749,9 +749,22 @@ export async function GET(req: NextRequest) {
         });
         v.liveness = computeLiveness(enrichment, v.inspectedAt, community);
         if (enrichment?.status === "matched" && enrichment.place) {
-          v.placeId = enrichment.place.placeId;
+          const place = enrichment.place;
+          v.placeId = place.placeId;
           v.matchConfidence = enrichment.matchConfidence;
           v.livenessCheckedAt = enrichment.fetchedAt;
+          // Storefront geometry beats DOHMH block-face geocoding: pins,
+          // distance and walk time recompute from the door, and the display
+          // address is the real storefront (the Maman/Austell class of "pin
+          // points at a dot" errors). DOHMH lat/lng stays only as fallback.
+          v.lat = place.lat;
+          v.lng = place.lng;
+          const correctedDist = haversine(latNum, lngNum, place.lat, place.lng);
+          v.distance = Math.round(correctedDist);
+          v.walkMinutes = Math.round(correctedDist / 80);
+          if (place.formattedAddress) {
+            v.address = place.formattedAddress.replace(/,\s*USA$/, "");
+          }
         }
         if (v.liveness === "address-mismatch") {
           // Review trail: a name match beyond the 150m gate is the commissary

@@ -163,7 +163,7 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 <span className="truncate">{spot.address}</span>
                 <button
-                  onClick={() => openDirections({ lat: spot.lat, lng: spot.lng, address: spot.address, name: displayName })}
+                  onClick={() => openDirections({ lat: spot.lat, lng: spot.lng, address: spot.address, name: displayName, placeId: spot.placeId })}
                   className="text-[12px] text-[#2A6BC9] font-medium whitespace-nowrap hover:underline flex-shrink-0"
                 >
                   Get directions &rarr;

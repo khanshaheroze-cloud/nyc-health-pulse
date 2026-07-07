@@ -7,6 +7,8 @@ import { matchGenericCategory, templateByCuisineKey } from "@/lib/genericRestaur
 import { classificationOverride } from "@/lib/venueClassification";
 import { getVenueByCamis } from "@/lib/verifiedVenues";
 import { latestGradedInspection } from "@/lib/inspection";
+import { getPlacesProvider } from "@/lib/places";
+import { computeLiveness, livenessLabel } from "@/lib/liveness";
 
 // Shareable per-venue page for REAL DOHMH venues, keyed by CAMIS (not template
 // id). ISR on-demand: nothing is prebuilt, but each requested CAMIS is cached.
@@ -107,23 +109,41 @@ export default async function SpotPage({ params }: Props) {
   const override = classificationOverride(name || v.dba);
   const template = override ? templateByCuisineKey(override) : matchGenericCategory(v.cuisine);
 
+  // Places enrichment (Round 7, cached 7d): storefront geometry + address for
+  // the pin and directions, liveness for the honesty line. DOHMH lat/lng is
+  // block-face geocoding — only a fallback.
+  const enrichment =
+    v.lat != null && v.lng != null
+      ? await getPlacesProvider().enrichVenue({ key: v.camis, name, address: v.address, lat: v.lat, lng: v.lng })
+      : null;
+  const matchedPlace = enrichment?.status === "matched" ? enrichment.place : null;
+  const liveness = computeLiveness(enrichment, v.inspectedAt, false);
+  const livenessWarning = livenessLabel(liveness);
+
+  const geoLat = matchedPlace?.lat ?? v.lat;
+  const geoLng = matchedPlace?.lng ?? v.lng;
+  const displayAddress = matchedPlace?.formattedAddress?.replace(/,\s*USA$/, "") || v.address;
+
   const mapToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-  const hasGeo = v.lat != null && v.lng != null;
+  const hasGeo = geoLat != null && geoLng != null;
   const staticMap =
     mapToken && hasGeo
-      ? `https://api.mapbox.com/styles/v1/mapbox/light-v11/static/pin-s+2f8f4d(${v.lng},${v.lat})/${v.lng},${v.lat},15,0/640x280@2x?access_token=${mapToken}`
+      ? `https://api.mapbox.com/styles/v1/mapbox/light-v11/static/pin-s+2f8f4d(${geoLng},${geoLat})/${geoLng},${geoLat},15,0/640x280@2x?access_token=${mapToken}`
       : null;
-  const directionsUrl = hasGeo
-    ? `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + " " + v.address)}`;
+  // Place-anchored directions route to the storefront DOOR, not a dot.
+  const directionsUrl = matchedPlace
+    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${name} ${displayAddress}`)}&destination_place_id=${matchedPlace.placeId}`
+    : hasGeo
+      ? `https://www.google.com/maps/dir/?api=1&destination=${geoLat},${geoLng}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + " " + v.address)}`;
 
   const ld = {
     "@context": "https://schema.org",
     "@type": "Restaurant",
     name,
     url: `https://pulsenyc.app/spot/${venueId}`,
-    ...(v.address ? { address: { "@type": "PostalAddress", streetAddress: v.address, addressLocality: "New York", addressRegion: "NY" } } : {}),
-    ...(hasGeo ? { geo: { "@type": "GeoCoordinates", latitude: v.lat, longitude: v.lng } } : {}),
+    ...(displayAddress ? { address: { "@type": "PostalAddress", streetAddress: displayAddress, addressLocality: "New York", addressRegion: "NY" } } : {}),
+    ...(hasGeo ? { geo: { "@type": "GeoCoordinates", latitude: geoLat, longitude: geoLng } } : {}),
     ...(v.cuisine ? { servesCuisine: v.cuisine } : {}),
     ...(template ? { priceRange: "$".repeat(template.priceRange) } : {}),
   };
@@ -150,7 +170,21 @@ export default async function SpotPage({ params }: Props) {
               : null,
         ].filter(Boolean).join(" · ")}
       </p>
-      {v.address && <p className="text-[13px] text-dim mt-1">{v.address}</p>}
+      {displayAddress && <p className="text-[13px] text-dim mt-1">{displayAddress}</p>}
+      {/* Liveness honesty (Round 7): who says this place exists, or a warning
+          when the evidence says it may not. */}
+      {livenessWarning ? (
+        <p className="text-[13px] font-semibold text-[#B0503F] mt-2">
+          ⚠ {livenessWarning}
+        </p>
+      ) : liveness === "places-verified" ? (
+        <p className="text-[12px] text-hp-green mt-1">
+          ✓ Verified open via Google
+          {enrichment?.fetchedAt ? ` · ${new Date(enrichment.fetchedAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}` : ""}
+        </p>
+      ) : (
+        <p className="text-[12px] text-muted mt-1">Not independently verified — listing from NYC DOHMH records</p>
+      )}
 
       <div className="flex flex-wrap gap-2 mt-3">
         <a href={directionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-hp-green text-white text-[13px] font-semibold hover:opacity-90 transition-opacity">

@@ -160,7 +160,7 @@ export function LocalMap({ center, spots, isDefault, onSpotClick, onVisible, vis
                           Open details
                         </button>
                         <button
-                          onClick={() => openDirections({ lat: spot.lat, lng: spot.lng, address: spot.address, name: spot.name })}
+                          onClick={() => openDirections({ lat: spot.lat, lng: spot.lng, address: spot.address, name: spot.name, placeId: spot.placeId })}
                           style={{ color: "#2A6BC9", fontWeight: 500, cursor: "pointer", background: "none", border: "none", padding: 0, fontSize: "12px" }}
                         >
                           Directions
