@@ -867,6 +867,18 @@ export async function GET(req: NextRequest) {
             })
           : null;
         v.liveness = computeLiveness(enrichment, v.inspectedAt, community);
+
+        // Brand-matched chains and in-person-verified venues are known real,
+        // live venues. The stale/commissary gates exist for dead INDEPENDENT
+        // permits — so a Starbucks whose nearest Places branch is >150m from
+        // its DOHMH block-face point (geocoding noise or a busier sibling
+        // branch) must NOT be dropped from ranked as a "commercial kitchen".
+        // A genuine closed-status still gates them; only the geometry-noise
+        // states are exempted.
+        if (!v.isGeneric && (v.liveness === "address-mismatch" || v.liveness === "unverified-stale")) {
+          v.liveness = "dohmh-only";
+        }
+
         if (enrichment?.status === "matched" && enrichment.place) {
           const place = enrichment.place;
           v.placeId = place.placeId;

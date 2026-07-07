@@ -400,7 +400,11 @@ class GooglePlacesProvider implements PlacesProvider {
     if (cached) return cached;
 
     const places = await this.post("searchNearby", {
-      includedTypes: ["convenience_store", "deli"],
+      // deli + convenience store + grocery: "LIC Gourmet Organic & Deli" and
+      // most NYC bodegas Google types as grocery_store, not convenience_store.
+      // Big-box "supermarket" is intentionally excluded — a Key Food is not a
+      // bodega and shouldn't get the bodega template.
+      includedTypes: ["convenience_store", "deli", "grocery_store"],
       maxResultCount: 20,
       rankPreference: "DISTANCE",
       locationRestriction: {
