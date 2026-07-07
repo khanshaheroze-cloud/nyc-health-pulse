@@ -222,11 +222,17 @@ function SpotCard({ spot, onSpotClick }: { spot: ResultSpot; onSpotClick?: (slug
             {spot.isGeneric ? "~" : ""}{spot.topPickCalories} cal
           </span>
         )}
-        {spot.grade && (
+        {spot.grade ? (
           <span className="bg-[#E5F1E8] text-[#2F8F4D] text-[11px] font-bold px-2 py-0.5 rounded-full border border-[#2F8F4D]/20" title="DOHMH inspection grade">
             Grade {spot.grade}
           </span>
-        )}
+        ) : spot.source === "places" ? (
+          // Bodegas/delis are licensed by NY State Ag & Markets, not DOHMH —
+          // they have no letter grade. Never show a fake one (Round 7 phase 5).
+          <span className="bg-[#EDEBF7] text-[#6B5BB5] text-[11px] font-semibold px-2 py-0.5 rounded-full border border-[#6B5BB5]/20" title="Licensed by NY State Agriculture & Markets, not the NYC DOHMH letter-grade system">
+            NYS retail food store
+          </span>
+        ) : null}
         <span className="bg-[#F0EFE8] text-[#1A1A1A] text-[11px] px-2 py-0.5 rounded-full">
           {spot.priceTier || priceTierFallback(spot.priceRange)}
         </span>

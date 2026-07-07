@@ -33,6 +33,12 @@ export const PLACES_CONFIG = {
   /** Radius of a bodega-ingestion cell (matches the ranked-results radius). */
   BODEGA_CELL_RADIUS_M: 800,
 
+  /** A Places bodega this close to a DOHMH venue with a similar name is the
+   *  SAME storefront under both regulators — keep the DOHMH record (it carries
+   *  a letter grade) and drop the Places duplicate rather than showing two. */
+  BODEGA_DEDUP_DISTANCE_M: 80,
+  BODEGA_DEDUP_NAME_SIMILARITY: 0.6,
+
   /** Two distinct community "this place is closed" reports soft-exclude a
    *  venue immediately, pending review from the report queue. */
   COMMUNITY_CLOSED_REPORT_THRESHOLD: 2,

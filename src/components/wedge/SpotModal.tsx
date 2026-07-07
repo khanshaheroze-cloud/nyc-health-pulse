@@ -125,7 +125,7 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
               </h2>
             </div>
             <p className="text-[12px] text-[#6B716B] mt-0.5">
-              {displayCategory}{displayPrice ? ` · ${"$".repeat(displayPrice)}` : ""}{spot.walkMinutes != null ? ` · ${spot.walkMinutes} min walk` : ""}{spot.grade ? ` · Grade ${spot.grade}` : ""}{inspectedLabel ? ` · Inspected ${inspectedLabel}` : ""}
+              {displayCategory}{displayPrice ? ` · ${"$".repeat(displayPrice)}` : ""}{spot.walkMinutes != null ? ` · ${spot.walkMinutes} min walk` : ""}{spot.grade ? ` · Grade ${spot.grade}` : spot.source === "places" ? " · NYS retail food store" : ""}{inspectedLabel ? ` · Inspected ${inspectedLabel}` : ""}
             </p>
             {spot.verifiedBadge === "verified" && (
               <p className="text-[11px] font-bold text-[#2F8F4D] mt-0.5">
@@ -187,6 +187,14 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
           {isGeneric && (
             <div className="mb-4 p-3 bg-[#FBF6E8] border border-[#F0E3B5] rounded-xl text-[13px] text-[#8A6A1C]">
               <strong>PulseNYC pick</strong> &middot; &plusmn;15% variance expected. These are our recommended healthy choices for a typical {displayCategory.toLowerCase()} like this. {displayName}&apos;s actual items and prices may differ slightly. Macros based on standard USDA composition.
+            </div>
+          )}
+
+          {/* Two-regulator honesty (Round 7 phase 5): bodegas/delis have no
+              DOHMH letter grade because a different agency licenses them. */}
+          {spot.source === "places" && (
+            <div className="mb-4 p-3 bg-[#F1EFFA] border border-[#DAD3F0] rounded-xl text-[12px] text-[#5A4FA0]">
+              <strong>NYS retail food store.</strong> Bodegas and delis are licensed by NY State Agriculture &amp; Markets, not the NYC DOHMH restaurant program — so this spot carries a state retail-food registration instead of a letter grade.
             </div>
           )}
 

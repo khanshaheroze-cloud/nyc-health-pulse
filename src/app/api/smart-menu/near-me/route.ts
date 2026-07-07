@@ -14,6 +14,7 @@ import { chainTypicalPrice } from "@/lib/chainPrices";
 import { getPlacesProvider } from "@/lib/places";
 import { computeLiveness, livenessLabel, RANKED_EXCLUDED_LIVENESS, type Liveness } from "@/lib/liveness";
 import { fetchCommunityClosed, isCommunityClosed } from "@/lib/communityClosed";
+import { BODEGA_CUISINE_KEY, bodegaLiveness, isDuplicateOfDohmh } from "@/lib/bodegas";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,10 @@ const NON_FOOD_VENUE_RE = /\b(golf|bowling|cinema|theatre|theater|gym|fitness|co
 const COFFEE_ALLOWED_CATS = new Set(["cafe", "café", "deli", "sandwiches", "bagels"]);
 const COFFEE_ALLOWED_CHAIN_CATS = new Set(["Coffee & Bakery"]);
 
-const BODEGA_CLASS_KEYS = new Set(["deli", "halal"]);
+// Keys that satisfy the "at least one bodega/deli in results" floor. "bodega"
+// is the Places-ingested deli_bodega template (Round 7 phase 5) — a real,
+// live bodega now counts toward the minimum, not just a DOHMH deli fallback.
+const BODEGA_CLASS_KEYS = new Set(["deli", "halal", "bodega"]);
 
 function isPrimaryFoodVenue(dba: string, cuisine: string): boolean {
   if (process.env.PULSENYC_VENUE_GATE === "off") return true;
@@ -107,7 +111,7 @@ function matchChain(dba: string): string | null {
 
 const BEVERAGE_RE = /\b(latte|cappuccino|espresso|americano|matcha|cold.?brew|drip coffee|chai|macchiato|mocha|frappuccino|refresher|hot.?chocolate|hot.?cocoa)\b/i;
 const STRICT_BREAKFAST_RE = /\b(egg.?(and|&).?cheese|breakfast (wrap|burrito|sandwich|taco)|pancakes?|waffles?|french.?toast|hash.?browns?|biscuits?|omelets?|omelettes?|hotcakes|egg.?whites?.*(wrap|sandwich)|bagels?.*(cream|cheese)|mcmuffin|scrambled?)\b/i;
-const ALL_DAY_BREAKFAST_CATS = new Set(["deli", "diner", "cafe", "café"]);
+const ALL_DAY_BREAKFAST_CATS = new Set(["deli", "diner", "cafe", "café", "bodega"]);
 
 function applyMealGuards(name: string, protein: number, cal: number, activeMeal: MealCategory, categoryKey: string, sugar?: number): boolean {
   if (BEVERAGE_RE.test(name)) {
@@ -627,6 +631,98 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // ── Bodega ingestion (Round 7 phase 5) ────────────────────────────────
+    // Bodegas/delis without a full prepared-food permit are licensed by NY
+    // State Ag & Markets, not DOHMH, so they never appear in the inspection
+    // feed — yet the hero promises picks "even at the bodega". Pull them from
+    // Places (cached per cell) and merge as first-class deli_bodega candidates
+    // with real geometry, hours and a live businessStatus. They carry no
+    // letter grade (the card shows "NYS retail food store"). Skipped in coffee
+    // mode and whenever the layer is dark (no key) — behavior stays identical.
+    const provider = getPlacesProvider();
+    const bodegaTemplate = templateByCuisineKey(BODEGA_CUISINE_KEY);
+    if (provider.enabled && meal !== "coffee" && bodegaTemplate) {
+      const dohmhForDedup = rows
+        .map((r) => ({ name: r.dba || "", lat: parseFloat(r.latitude || "0"), lng: parseFloat(r.longitude || "0") }))
+        .filter((v) => v.lat !== 0 && v.name);
+      // Snapped numeric center → the per-cell bodega cache is shared by
+      // everyone in the same ~500m cell (snapCoords returns query strings).
+      const bodegaPlaces = await provider.searchBodegas({ lat: parseFloat(snapped.lat), lng: parseFloat(snapped.lng), radiusM: RADIUS_M });
+      for (const place of bodegaPlaces ?? []) {
+        const bDist = haversine(latNum, lngNum, place.lat, place.lng);
+        if (bDist > RADIUS_M) continue; // outside the user's true radius
+        // Same storefront under both regulators → keep the DOHMH record (it has
+        // a grade), drop the Places duplicate.
+        if (isDuplicateOfDohmh(place, dohmhForDedup)) continue;
+        const bId = `places-bodega-${place.placeId}`;
+        if (seenKeys.has(bId)) continue;
+        seenKeys.add(bId);
+
+        const bName = normalizeVenueName(place.displayName || bodegaTemplate.category);
+        const bSeed = hashStr(place.placeId);
+        const bPicks = filterGenericPicks(bodegaTemplate.picks, meal, bodegaTemplate.category, bSeed);
+        const bTop: TopPick[] = orderPicks(
+          applyCalDisplayRule(
+            bPicks.map((p, i) => ({
+              id: `bodega-${place.placeId}-${i}`,
+              name: p.name,
+              calories: p.cal,
+              protein: p.protein,
+              carbs: 0,
+              fat: 0,
+              fiber: 0,
+              pulseScore: p.protein >= 30 ? 80 : p.protein >= 20 ? 65 : p.protein >= 10 ? 45 : 30,
+              estPrice: p.estimatedPrice ?? null,
+            })),
+          ),
+          meal as MealCategory,
+        );
+
+        // Real hours from Places (phase 3 semantics), evaluated NYC-local — so a
+        // bodega that's closed at 11 PM can't rank as open.
+        const bHours: VenueHours = place.weeklyHours
+          ? { weekly: place.weeklyHours, source: "google" }
+          : { weekly: null, source: "unknown" };
+        const bState = evaluateOpen(bHours, when);
+
+        genericResults.push({
+          restaurantId: bId,
+          slug: `generic-${BODEGA_CUISINE_KEY}`,
+          restaurantName: bName,
+          cuisine: "Deli / Bodega",
+          priceRange: bodegaTemplate.priceRange,
+          priceTier: priceTierLabel(bodegaTemplate.priceRange),
+          distance: Math.round(bDist),
+          walkMinutes: Math.round(bDist / 80),
+          lat: place.lat,
+          lng: place.lng,
+          address: (place.formattedAddress || "").replace(/,\s*USA$/, ""),
+          grade: "", // NYS-licensed retail food store — never a DOHMH letter grade
+          inspectedAt: null,
+          isGeneric: true,
+          category: bodegaTemplate.category,
+          topPicks: bTop,
+          bestDrink: null,
+          locationCount: 1,
+          otherLocations: [],
+          orderingTip: bodegaTemplate.orderingTip,
+          camis: null,
+          source: "places",
+          placeId: place.placeId,
+          matchConfidence: null,
+          // A live Places record: liveness comes straight from businessStatus
+          // (a community 'closed' report can still override it below).
+          liveness: bodegaLiveness(place.businessStatus),
+          livenessCheckedAt: new Date().toISOString(),
+          refinedCategory: "deli_bodega",
+          categoryChip: CATEGORY_META["deli_bodega"],
+          openState: bState,
+          hoursSource: bHours.source,
+          hoursChip: hoursChip(bState, place.weeklyHours ? bHours : null, when),
+        });
+      }
+    }
+
     // ── Brand dedupe: collapse same-brand venues into one card ─────────────
     // "Dunkin' · 4 locations nearby · nearest 2 blocks" instead of four
     // identical Dunkin' cards. Nearest location is the primary.
@@ -741,10 +837,26 @@ export async function GET(req: NextRequest) {
     // Lazy enrichment: ONLY venues that reached the candidate set hit Places
     // (≤13 per query, 7-day cached). A null enrichment = the lookup was not
     // attempted (no key / budget / network) — behavior stays DOHMH-only.
-    const provider = getPlacesProvider();
+    // (`provider` is created above for bodega ingestion and reused here.)
     const communityClosedIndex = await fetchCommunityClosed();
     await Promise.all(
       candidates.map(async (v) => {
+        const community = isCommunityClosed(communityClosedIndex, {
+          camis: v.camis,
+          restaurantId: v.restaurantId,
+          name: v.restaurantName,
+          address: v.address,
+        });
+
+        // Places-sourced bodegas are already live records with geometry, hours
+        // and a businessStatus-derived liveness set at ingestion — don't
+        // re-enrich them (their key is a place_id, not a CAMIS). A community
+        // 'closed' report still soft-excludes them.
+        if (v.source === "places") {
+          if (community) v.liveness = "community-closed";
+          return;
+        }
+
         const enrichment = provider.enabled
           ? await provider.enrichVenue({
               key: v.camis ?? v.restaurantId,
@@ -754,12 +866,6 @@ export async function GET(req: NextRequest) {
               lng: v.lng,
             })
           : null;
-        const community = isCommunityClosed(communityClosedIndex, {
-          camis: v.camis,
-          restaurantId: v.restaurantId,
-          name: v.restaurantName,
-          address: v.address,
-        });
         v.liveness = computeLiveness(enrichment, v.inspectedAt, community);
         if (enrichment?.status === "matched" && enrichment.place) {
           const place = enrichment.place;

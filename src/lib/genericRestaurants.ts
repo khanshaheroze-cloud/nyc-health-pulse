@@ -17,6 +17,24 @@ export interface GenericTemplate {
 
 export const GENERIC_TEMPLATES: GenericTemplate[] = [
   {
+    // Places-sourced bodegas/delis (Round 7): licensed by NY State Ag &
+    // Markets, not DOHMH — they arrive via the Places ingestion path with
+    // source:'places' and never carry a letter grade. Cuisine-coherent picks
+    // only; the chopped cheese keeps its honest calories and gets the
+    // over-600-target label instead of a flattering estimate.
+    category: "Bodega",
+    cuisineKey: "bodega",
+    emoji: "🥪",
+    priceRange: 1,
+    orderingTip: "Ask for it on whole wheat, easy on the mayo — every bodega will do it.",
+    picks: [
+      { name: "Egg White Sandwich on Whole Wheat", description: "Egg whites off the grill, whole wheat roll, cheese optional", cal: 350, protein: 20, estimatedPrice: 5 },
+      { name: "Turkey & Swiss on Wheat (mustard)", description: "Lean turkey, swiss, mustard instead of mayo", cal: 420, protein: 28, estimatedPrice: 7 },
+      { name: "Chopped Cheese — make it lighter", description: "Half the cheese, extra lettuce & tomato — honest calories, over the 600 target", cal: 650, protein: 32, estimatedPrice: 8 },
+      { name: "Greek Yogurt + Banana (cold case)", description: "Grab-and-go protein from the cold case", cal: 250, protein: 15, estimatedPrice: 4 },
+    ],
+  },
+  {
     category: "Deli",
     cuisineKey: "deli",
     emoji: "🥪",
