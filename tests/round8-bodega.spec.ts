@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { classifyBodegaCandidate, CHAIN_CONVENIENCE_LABEL } from "../src/lib/bodegas";
-import { normalizeVenueName } from "../src/lib/venue-normalize";
+import { normalizeVenueName, normalizePlacesName } from "../src/lib/venue-normalize";
 
 // Round 8 phase 2 — bodega ingestion gate, by the July 13 live-validation
 // cases. Rule tables are owner-editable in src/data/venue-policy.json.
@@ -56,5 +56,13 @@ test.describe("real bodegas still ingest, with clean display names", () => {
 
   test("owner mixed-case names stay untouched", () => {
     expect(normalizeVenueName("by CHLOE.")).toBe("by CHLOE.");
+  });
+
+  test("Places names get the stronger per-token title-caser (July 14: 'Los griegos')", () => {
+    expect(normalizePlacesName("Los griegos")).toBe("Los Griegos");
+    expect(normalizePlacesName("Los griegos deli & grocery")).toBe("Los Griegos Deli & Grocery");
+    // Case-override map still wins, tokens with existing caps untouched.
+    expect(normalizePlacesName("lic gourmet organic & deli")).toBe("LIC Gourmet Organic & Deli");
+    expect(normalizePlacesName("Court Square Deli")).toBe("Court Square Deli");
   });
 });

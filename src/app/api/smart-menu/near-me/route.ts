@@ -3,8 +3,8 @@ import { CHAINS, type MenuItem as ChainMenuItem } from "@/lib/restaurantData";
 import { inferMealType, mealMatches, type MealCategory } from "@/lib/inferMealType";
 import { matchGenericCategory, templateByCuisineKey, displayCuisine, type GenericTemplate, type GenericPick } from "@/lib/genericRestaurants";
 import { classificationOverride, refinedCategoryOverride } from "@/lib/venueClassification";
-import { categoryFromPlacesTypes, categoryFromDohmhCuisine, chainRefinedCategory, reconcileGenericCategory, CATEGORY_META, type RefinedCategory } from "@/lib/refinedCategory";
-import { canonicalBrand, normalizeVenueName, healthyPickEligibility, classifyOrgVenue } from "@/lib/venue-normalize";
+import { categoryFromPlacesTypes, categoryFromDohmhCuisine, chainRefinedCategory, reconcileGenericCategory, confirmsCafeFoodService, CATEGORY_META, type RefinedCategory } from "@/lib/refinedCategory";
+import { canonicalBrand, normalizeVenueName, normalizePlacesName, healthyPickEligibility, classifyOrgVenue } from "@/lib/venue-normalize";
 import { snapCoords, snapPadMeters, GRID_FINE } from "@/lib/geoSnap";
 import { getVenueByCamis, badgeState, type BadgeState } from "@/lib/verifiedVenues";
 import { chainHours, parseVerifiedHours, evaluateOpen, hoursChip, type OpenState, type VenueHours } from "@/lib/hours";
@@ -683,7 +683,9 @@ export async function GET(req: NextRequest) {
           continue;
         }
 
-        const bName = normalizeVenueName(place.displayName || bodegaTemplate.category);
+        // Places casing is sloppy ("Los griegos") — the stronger title-caser
+        // applies only to Places-sourced names (July 14 closeout).
+        const bName = normalizePlacesName(place.displayName || bodegaTemplate.category);
         const bSeed = hashStr(place.placeId);
         const bPicks = filterGenericPicks(bodegaTemplate.picks, meal, bodegaTemplate.category, bSeed);
         const bTop: TopPick[] = orderPicks(
@@ -943,14 +945,13 @@ export async function GET(req: NextRequest) {
             v.hoursSource = "google";
             v.hoursChip = hoursChip(v.openState, gHours, when);
           }
-          // Café lunch upgrade (Round 8 phase 3): a café-templated venue that
-          // Places confirms as a sit-down FOOD venue (a `restaurant` type)
-          // gets the light-lunch café picks — Cafe Henri / Tournesol were
-          // guidance-only all afternoon. Coffee-only shops (typed cafe/
-          // coffee_shop without restaurant) keep the drinks/pastry template.
+          // Café lunch upgrade (Round 8 + Jul 14 closeout): a café-templated
+          // venue that Places confirms as a real food café (`cafe` or
+          // `restaurant` type — the Madame Sousou camis 50012082 class) gets
+          // the light-lunch café picks. Dessert/juice/coffee-only shops
+          // (Blended Smoothies, Didi's) keep guidance-only.
           if (v.isGeneric && v.slug === "generic-cafe" && v.topPicks.length === 0) {
-            const servesFood = place.types.includes("restaurant") || place.types.some((t) => t.endsWith("_restaurant"));
-            const foodTemplate = servesFood ? templateByCuisineKey("cafe-food") : null;
+            const foodTemplate = confirmsCafeFoodService(place.types) ? templateByCuisineKey("cafe-food") : null;
             if (foodTemplate) {
               const cfSeed = hashStr(v.restaurantName + v.address);
               const cfPicks = filterGenericPicks(foodTemplate.picks, meal, foodTemplate.category, cfSeed);
@@ -1020,6 +1021,21 @@ export async function GET(req: NextRequest) {
     const final = candidates.filter(
       (v) => !RANKED_EXCLUDED_LIVENESS.has(v.liveness ?? "dohmh-only") && categoryEligible(v),
     );
+
+    // No ranked card renders chipless (July 14 closeout: "Didi's Healthy
+    // Delights" shipped categoryChip: null after the template-coherence
+    // reconcile dropped both the Places type and the DOHMH baseline). Fall
+    // back to the refined category if one survived, else to the venue's
+    // DOHMH/template-derived category label with the template's emoji.
+    for (const v of final) {
+      if (v.categoryChip) continue;
+      if (v.refinedCategory) {
+        v.categoryChip = CATEGORY_META[v.refinedCategory];
+      } else {
+        const t = v.isGeneric ? templateByCuisineKey(v.slug.replace("generic-", "")) : null;
+        v.categoryChip = { label: v.category || v.cuisine, icon: t?.emoji ?? "🍽️" };
+      }
+    }
 
     if (process.env.NODE_ENV !== "production") {
       // Standing tripwire (round 6 — third institutional leak: Fooda →

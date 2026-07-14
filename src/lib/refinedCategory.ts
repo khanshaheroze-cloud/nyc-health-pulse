@@ -129,6 +129,18 @@ const TEMPLATE_COMPATIBLE_DEFAULT: RefinedCategory[] = ["restaurant", "fast_food
  *  - A template-compatible Places category wins (it's the fresher source).
  *  - Otherwise keep the compatible baseline (owner/DOHMH), else null — the
  *    chip falls back to the template's own category label. */
+/** Round 8 closeout: does this Places type set confirm real sit-down food
+ *  service for a café-templated venue? A `cafe` or `restaurant`(-suffixed)
+ *  type counts (the Madame Sousou class — French cafés Google types cafe
+ *  without restaurant). Dessert/juice-typed shops never do, and a bare
+ *  coffee_shop type is coffee-only — both stay guidance-only. */
+export function confirmsCafeFoodService(types: string[] | null | undefined): boolean {
+  if (!types || types.length === 0) return false;
+  const cat = categoryFromPlacesTypes(types);
+  if (cat === "dessert" || cat === "juice_smoothie") return false;
+  return types.includes("cafe") || types.includes("restaurant") || types.some((t) => t.endsWith("_restaurant"));
+}
+
 export function reconcileGenericCategory(
   placesCat: RefinedCategory,
   templateKey: string,

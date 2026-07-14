@@ -90,6 +90,21 @@ export function normalizeVenueName(raw: string): string {
     .join(" ");
 }
 
+/** Places display names arrive with sloppy casing ("Los griegos" — July 14
+ *  live validation). Stronger pass than normalizeVenueName's all-or-nothing
+ *  rule: after the shared cleanup, any remaining ALL-LOWERCASE token is
+ *  title-cased (the case-override map still wins: LIC, NYC, BBQ…). Tokens
+ *  that already carry an uppercase letter are the owner's styling and stay
+ *  untouched. Used only for Places-sourced names — DOHMH names keep the
+ *  existing conservative rule. */
+export function normalizePlacesName(raw: string): string {
+  const s = normalizeVenueName(raw);
+  return s
+    .split(" ")
+    .map((tok, i) => (tok === tok.toLowerCase() && /[a-z]/.test(tok) ? titleCaseToken(tok, i === 0) : tok))
+    .join(" ");
+}
+
 /* ── Canonical brand matching ─────────────────────────────────────────────── */
 
 export interface Brand {

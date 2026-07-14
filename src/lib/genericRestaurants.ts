@@ -161,9 +161,9 @@ export const GENERIC_TEMPLATES: GenericTemplate[] = [
     priceRange: 2,
     orderingTip: "Ask for dressing on the side — café salads arrive pre-dressed heavy. A cup of soup + half sandwich beats the pastry case.",
     picks: [
-      { name: "Soup + Half Sandwich", description: "Cup of the day's soup with half a sandwich", cal: 420, protein: 22, estimatedPrice: 13 },
-      { name: "Niçoise-Style Salad", description: "Tuna, egg, green beans, olives — dressing on the side", cal: 430, protein: 30, estimatedPrice: 14 },
-      { name: "Omelette + Side Salad", description: "Three-egg omelette with greens instead of fries", cal: 400, protein: 24, estimatedPrice: 13 },
+      { name: "Soup + Half Sandwich", description: "Cup of the day's soup with half a sandwich", cal: 420, protein: 20, estimatedPrice: 11 },
+      { name: "Niçoise-Style Salad", description: "Tuna, egg, green beans, olives — dressing on the side", cal: 450, protein: 28, estimatedPrice: 14 },
+      { name: "Omelette + Side Salad", description: "Three-egg omelette with greens instead of fries", cal: 400, protein: 24, estimatedPrice: 12 },
     ],
   },
   {
