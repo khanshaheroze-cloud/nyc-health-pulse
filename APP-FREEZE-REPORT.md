@@ -1,6 +1,6 @@
-# PulseNYC — App Freeze Report (July 13, 2026)
+# PulseNYC — App Freeze Report (July 14, 2026)
 
-**FINAL — Android build proceeds from this freeze.**
+**FINAL — Android build proceeds from this freeze (July 14, 2026).**
 
 The web surface is **FROZEN** as of round 8 (round 6 froze the surface; round 7 added the
 Places data layer; round 8 polished it after the July 13 live validation and re-froze).
@@ -73,10 +73,12 @@ All Socrata fetches send `X-App-Token` when `NYC_OPEN_DATA_APP_TOKEN` is set.
 
 ## 3. Known limitations (honesty affordances — keep them)
 
-- **Hours coverage is low:** at the LIC launch coords only ~25% of ranked venues have a
-  known open/closed state (2/7–2/8 per meal on July 6; chains via brand defaults). Everything
-  else renders "Hours unknown" — never claimed open. `results_hours_coverage` analytics
-  tracks this; "Open now" cannot become a default filter until coverage rises.
+- **Hours coverage** (re-measured July 14 with the Places layer LIVE): **100% of ranked
+  venues at the LIC cell have a known open/closed state** (9/9 breakfast, 7/7 lunch, 7/7
+  dinner — all `hoursSource: google`), up from the ~25% chain-only ceiling documented at
+  the round-6 freeze. Cells where Google lacks hours still render "Hours unknown" — never
+  claimed open. `results_hours_coverage` analytics tracks this per result set; the "Open
+  now" chip shows only at ≥80% coverage.
 - **Most picks are template estimates:** ~71–75% of ranked venues at LIC are generic-template
   venues (5/7–6/8 per meal). Cards carry "est." and ±15% disclaimers; venues with no coherent
   meal for a tab show ordering guidance and never rank.
@@ -333,6 +335,36 @@ before relying on hit-rate**; calls display regardless).
 - **(e) Round-7 named cases hold:** Maman excluded ("Listed address may be a commercial
   kitchen"), no Yards, bodegas present; excluded payload capped (len 1 ≤ 6) with
   `topPicks` stripped. `/methodology#accuracy` + footer link live.
+
+### The `excluded[]` API contract (near-me response)
+`GET /api/smart-menu/near-me?lat&lng&meal[&at]` returns
+`{ restaurants: ApiResult[], excluded: ApiResult[] }`:
+- `restaurants` — rankable venues first (client re-ranks by wedgeScore), then up to 3
+  guidance-only venues (`topPicks: []` + `orderingTip`). **Every entry carries a
+  `categoryChip`** (July 14 closeout — refined category, else DOHMH/template fallback).
+- `excluded` — liveness-gated venues + chain convenience stores: map-only, dimmed, each
+  with a human `livenessLabel` ("Permanently closed — report if wrong", "Unverified — may
+  have closed", "Listed address may be a commercial kitchen", "Chain convenience store —
+  not ranked"). **Capped at 6, `topPicks` always stripped.** The client renders these as
+  dimmed labeled map pins and must never rank them (server cap + client `livenessLabel`
+  filter, belt and suspenders).
+
+### July 14 closeout (final four items, live-validated at the Astoria cell)
+1. **Café food-service gate widened** — Google types real French cafés `cafe` without
+   `restaurant`, so the round-8 restaurant-only gate missed them ("Madame Sousou", camis
+   50012082, guidance-only at lunch). `confirmsCafeFoodService`: a `cafe` or
+   `restaurant`(-suffixed) type confirms food service; dessert/juice-typed and bare
+   `coffee_shop` venues stay guidance-only (Blended Smoothies, Didi's). Template macros
+   set to spec: soup + half sandwich 420/20g/$11 · Niçoise 450/28g/$14 · omelette +
+   side salad 400/24g/$12.
+2. **Places display names title-cased per token** — "Los griegos" → "Los Griegos"
+   (`normalizePlacesName`: all-lowercase tokens title-cased, case-override map wins,
+   already-styled tokens untouched; applied only to Places-sourced names).
+3. **No chipless ranked cards** — every `restaurants[]` entry gets a `categoryChip`;
+   fallback = DOHMH/template-derived category label + template emoji (the "Didi's
+   Healthy Delights" `chip: null` fix).
+4. **This report re-stamped FINAL (July 14)** with re-measured hours coverage and the
+   `excluded[]` contract above.
 
 ### Remaining limitations (final list)
 - All Round-7 limitations stand (hours coverage, template estimates ±15%, 0/11 menus
