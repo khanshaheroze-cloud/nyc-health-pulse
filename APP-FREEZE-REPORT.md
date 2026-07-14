@@ -320,6 +320,20 @@ before relying on hit-rate**; calls display regardless).
 | `round8-cafe.spec.ts` | cafe-food template bounds + unreachability from DOHMH strings |
 | `round8-fits.spec.ts` | fits-your-day logic (budget fit, exhausted day, unknown calories) |
 
+### Live verification (July 13, against production post-deploy)
+- **(a) Starbucks chip:** `Coffee & Bakery ☕` / `refined=cafe` at all three probed cells
+  (Queens Blvd, Skillman, Court Sq) — the deli_bodega re-type is gone.
+- **(b) Skillman cell:** zero fuel-brand ranked cards; real bodega present
+  ("Millie's Deli & Grocery", no grade, Deli/Bodega chip, Google hours); a CVS surfaced
+  as `excluded` with label "Chain convenience store — not ranked", picks stripped.
+- **(c) Café lunch:** Cafe Henri and Tournesol both rank at lunch with
+  "Niçoise-Style Salad | Soup + Half Sandwich | Omelette + Side Salad".
+- **(d) Warm-cache timing:** 5 consecutive hits on the Hunters Point cell:
+  0.156–0.222s (target <500ms) — `places_calls=0` path.
+- **(e) Round-7 named cases hold:** Maman excluded ("Listed address may be a commercial
+  kitchen"), no Yards, bodegas present; excluded payload capped (len 1 ≤ 6) with
+  `topPicks` stripped. `/methodology#accuracy` + footer link live.
+
 ### Remaining limitations (final list)
 - All Round-7 limitations stand (hours coverage, template estimates ±15%, 0/11 menus
   verified in person, DOHMH cuisine strings, institutional-permit class, health-data
