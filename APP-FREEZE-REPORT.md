@@ -1,8 +1,12 @@
-# PulseNYC — App Freeze Report (July 6, 2026)
+# PulseNYC — App Freeze Report (July 13, 2026)
 
-The web surface is **FROZEN** as of round 6. This document is the handoff artifact for the
-Android app build: what exists, where the data comes from, what the known limitations are,
-what the test suite covers, and what the app build needs to run.
+**FINAL — Android build proceeds from this freeze.**
+
+The web surface is **FROZEN** as of round 8 (round 6 froze the surface; round 7 added the
+Places data layer; round 8 polished it after the July 13 live validation and re-froze).
+This document is the handoff artifact for the Android app build: what exists, where the
+data comes from, what the known limitations are, what the test suite covers, and what the
+app build needs to run.
 
 - **Live domain:** https://pulsenyc.app (alias https://nyc-health.vercel.app)
 - **Frozen at branch:** `feat/may16-design-overhaul` (round-6 head; see `git log` for the
@@ -53,7 +57,7 @@ what the test suite covers, and what the app build needs to run.
 | Source | Dataset | Cadence in app |
 |---|---|---|
 | DOHMH restaurant inspections | Socrata `43nn-pn8j` | near-me: 1h revalidate (geo-snapped cache cells); /spot: 24h |
-| **Google Places (New) — liveness/geometry/hours/type/bodegas** (Round 7) | `places:searchText` + `places:searchNearby`, strict field mask | lazy per ranked candidate (≤13/query) + per-cell bodega query; **7-day cache** (Supabase `places_cache` + per-lambda LRU); nightly warm cron; hard `PLACES_DAILY_BUDGET` circuit-breaker. **Dark unless `GOOGLE_PLACES_API_KEY` is set.** |
+| **Google Places (New) — liveness/geometry/hours/type/bodegas** (Round 7, LIVE since July 13) | `places:searchText` + `places:searchNearby`, strict field mask | lazy per ranked candidate (≤13/query) + per-cell bodega query; **24h cache** (Supabase `places_cache` + per-lambda LRU — a Places-policy decision, see Round 8 addendum); nightly warm cron keeps warm-cell user requests at ~0 calls; hard `PLACES_DAILY_BUDGET` circuit-breaker. Dark without `GOOGLE_PLACES_API_KEY`. |
 | Chain nutrition (55 brands) | `src/lib/restaurantData.ts` | static, hand-swept July 2026 (`lastVerified` per chain) |
 | Generic templates (14 cuisines incl. bagels/peruvian/latin) | `src/lib/genericRestaurants.ts` | static, estimates ±15% |
 | Verified venues (LIC guide) | `src/lib/verifiedVenues` | static; **0 of 11 menu-verified** (all `estimated`) |
@@ -159,13 +163,14 @@ API routes return 503 (never crash) when their env vars are missing.
 
 ## 6. Owner-editable policy tables (edit + redeploy, no code changes)
 
-- `src/data/venue-policy.json` — dessert/bubble-tea blocklist + food-forward bar allowlist
+- `src/data/venue-policy.json` — dessert/bubble-tea blocklist, food-forward bar allowlist,
+  **fuel-brand list + chain-convenience/drugstore list** (Round 8 bodega ingestion rules)
 - `src/data/chain-prices.json` — 55 brand typical-order prices (under-$15 cap inputs)
 - `src/lib/venueClassification.ts` — per-venue template overrides + name-pattern rules +
   refined-category owner overrides (Round 7)
 - `src/lib/placesConfig.ts` — every Places tunable in one place: 14-month stale threshold,
-  150m distance gate, 0.62 name-similarity threshold, 7-day cache TTL, daily budget default,
-  bodega cell/dedup radii, warm-cron cells
+  150m distance gate, 0.62 name-similarity threshold, 24h cache TTL (policy decision),
+  daily budget default, bodega cell/dedup radii, warm-cron cells
 
 ---
 
@@ -212,3 +217,118 @@ round-6 (DOHMH-only) and the three named live-acceptance cases (Yards absent, no
 Maman, LIC Gourmet as a bodega) cannot be verified against LIVE — only the pure-logic and
 mocked-render tests pass. **Provisioning the key activates the entire layer with no redeploy
 needed** beyond the env change.
+
+**Update July 13:** the key was provisioned and the layer passed a hard live validation —
+Maman excluded (`address-mismatch`), Asir-Et excluded (`closed-permanent`), Yards gone,
+bodegas ingested with the bodega template and no fake grades, Google hours on nearly every
+venue. The rough edges that validation found are fixed in Round 8 below.
+
+---
+
+## 8. Round 8 addendum — Places-layer polish + ship prep (July 13, 2026) — FINAL
+
+The last web round before the Android build. No new surfaces; every change is a fix to
+something the July 13 live validation surfaced, plus the app-groundwork items. Rule applied
+throughout: **accuracy > coverage** on every judgment call.
+
+### Category precedence (final order)
+`owner override (venueClassification.ts) → brand-matched chain category → Places type →
+DOHMH cuisine heuristic`
+
+- **Chains:** a brand match is ground truth. The card chip renders the curated chain
+  category verbatim (`categoryChip: { label: chain.category, icon: chain.emoji }`) and the
+  enrichment pass never re-types a brand match from Places types — the Queens Blvd
+  Starbucks (Google types include `convenience_store`) stays "Coffee & Bakery", never
+  "Deli / Bodega".
+- **Non-chains:** a Places type is adopted only when it doesn't contradict the venue's
+  assigned pick template (`reconcileGenericCategory` in `refinedCategory.ts`) — a card
+  whose picks are subs can't be chipped "Bakery" (the Fresco Deli Cafe fix). Incompatible
+  Places types fall back to a compatible baseline or to the template's own label.
+  `dessert`/`bar` always pass through: they are ranked-eligibility signals (Mango Mango
+  protection), and gated venues never render a chip anyway.
+
+### Bodega inclusion rules (final)
+1. **Gas stations are not bodegas.** Candidates with a `gas_station` type or a fuel-brand
+   name (owner-editable `fuelBrands` in venue-policy.json) are never ingested — unless the
+   display name carries a deli/food token ("BP — Vernon Deli" passes; a bare "bp" pump
+   does not). The Skillman "bp" card with turkey-sandwich picks is gone.
+2. **Chain convenience/drugstores are map-only** (owner-editable `chainConvenienceBrands`:
+   7-Eleven, Duane Reade, CVS, Walgreens, …). Decision: "even at the bodega" means
+   bodegas — a 7-Eleven card undercuts the brand's local credibility. They keep a dimmed
+   map pin labeled "Chain convenience store — not ranked", never a ranked slot.
+3. **Display names** run through the shared normalizer, which now also title-cases
+   all-lowercase Places artifacts ("lic gourmet organic & deli" → "LIC Gourmet Organic &
+   Deli"); owner mixed-case names stay untouched.
+
+### Hours polish
+- Midnight-split listings ([Tue 21:00–24:00] + [Wed 00:00–00:30]) re-join into one
+  overnight window at parse time — no phantom "opens Wed 12:00am".
+- Genuine 12:00–4:59am openings render as "opens Wed early morning (12:30am)" — stated,
+  not glitch-read. Overnight evaluation unit-tested in both directions.
+
+### Café lunch upgrade
+A café-templated venue that Places confirms as a sit-down food venue (`restaurant` type)
+gets a light-lunch café template (soup + half sandwich, Niçoise-style salad, omelette +
+salad — all ≤$15) instead of dropping to guidance-only at noon (Cafe Henri / Tournesol
+class). The `cafe-food` template is **unreachable from DOHMH cuisine strings alone** —
+Places confirmation is the only path in, so coffee-only shops stay guidance-only.
+
+### Payload hygiene & latency
+- `excluded` (transparency array) is capped at 6 entries with `topPicks` stripped — the
+  client renders at most 6 dimmed labeled map pins and never renders excluded venues as
+  ranked cards (server cap + client `livenessLabel` filter, belt and suspenders).
+- Every near-me request logs `[smart-menu] timing ms=… places_calls=…`. Warm-cell target:
+  <500ms, ~0 Places calls (nightly cron refresh sits inside the 24h TTL).
+
+### Google Places attribution & caching policy (decisions)
+Verified July 13 2026 against the Places API policies + Google Maps Platform Service
+Specific Terms:
+- **Place IDs** may be stored indefinitely; **lat/lng** up to 30 days; **businessStatus /
+  regularOpeningHours / types have no caching allowance.**
+- Decision: cache TTL reduced **7 days → 24 hours** (`CACHE_TTL_HOURS`), aligned with the
+  nightly warm cron so warm-cell user requests still make ~0 calls. Minimum retention that
+  keeps cost sane; also better for accuracy (a closure surfaces within a day). Documented
+  in code at `placesConfig.CACHE_TTL_HOURS`.
+- **Attribution:** "powered by Google" renders wherever Places-sourced content shows
+  without a Google map — under the results grid (`google-attribution` testid) and in the
+  venue modal for any place-anchored or Places-sourced venue.
+
+### "Fits your day" (app groundwork)
+Ranked cards annotate picks that fit the tracker's remaining day — "✓ Fits your day —
+420 cal left". Pure client calculation (`src/lib/eat-smart/remainingMacros.ts`) against
+the nutrition tracker's existing localStorage (goals + today's log); renders only for
+users with goals set; protein is a target, never a disqualifier. This is the retention
+hook tying Find Food to the tracker loop — it ships to the app as-is.
+
+### Accuracy manifesto
+`/methodology#accuracy` ("Why our data is right", linked from the footer): two-regulator
+explanation, the liveness layer, the verified-menu program, and the correction loop —
+stated plainly, no competitor named. This is the positioning wedge against the incumbent
+failure mode (wrong data at local non-chain venues).
+
+### Budget observability
+`/admin/metrics` now shows daily `places_counters` rows: API calls, cache hits, hit-rate
+(hits need the `20260713_places_hits.sql` migration — **run it in the Supabase SQL editor
+before relying on hit-rate**; calls display regardless).
+
+### New/updated tests (all in `pnpm test`)
+| Spec | Covers |
+|---|---|
+| `round8-category.spec.ts` | brand-category precedence (Starbucks/convenience fixture), template coherence (Fresco), dessert/bar pass-through |
+| `round8-bodega.spec.ts` | bp excluded, "BP — Vernon Deli" rescued, whole-word fuel matching, 7-Eleven/Duane Reade map-only, lowercase title-casing |
+| `round8-hours.spec.ts` | overnight both directions, midnight-split re-join, early-morning copy, 24/7 guard |
+| `round8-cafe.spec.ts` | cafe-food template bounds + unreachability from DOHMH strings |
+| `round8-fits.spec.ts` | fits-your-day logic (budget fit, exhausted day, unknown calories) |
+
+### Remaining limitations (final list)
+- All Round-7 limitations stand (hours coverage, template estimates ±15%, 0/11 menus
+  verified in person, DOHMH cuisine strings, institutional-permit class, health-data
+  caveats) — see section 3.
+- Caching businessStatus/hours even for 24h exceeds the letter of the Places policy (which
+  allows none for those fields); accepted as a short-lived performance cache with
+  attribution, no redistribution, and nightly refresh. Owner review item if Google's
+  terms tighten.
+- Cache hit-rate on /admin/metrics reads "—" until the hits migration runs.
+- "Fits your day" reads localStorage only — account-synced macros are an app-build task.
+- Chain-convenience map pins depend on the same Places bodega cells; where the cell cache
+  predates Round 8 they may take up to 24h to reclassify.
