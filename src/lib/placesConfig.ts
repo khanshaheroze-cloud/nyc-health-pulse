@@ -20,8 +20,20 @@ export const PLACES_CONFIG = {
    *  normalized names) for a Places result to count as a match at all. */
   NAME_SIMILARITY_THRESHOLD: 0.62,
 
-  /** Enrichment results cache this long (per CAMIS / per bodega cell). */
-  CACHE_TTL_DAYS: 7,
+  /** Enrichment results cache this long (per CAMIS / per bodega cell).
+   *
+   *  POLICY DECISION (Round 8, verified July 13 2026 against the Places API
+   *  policies + Google Maps Platform Service Specific Terms): place IDs may
+   *  be stored indefinitely; latitude/longitude for up to 30 days; but
+   *  businessStatus / regularOpeningHours / types have NO caching allowance.
+   *  We hold the payload 24 HOURS as a short-lived performance cache aligned
+   *  with the nightly warm cron (warm cells refresh off-peak, so the user
+   *  path still makes ~0 calls), always render it with "powered by Google"
+   *  attribution, and never redistribute it. This is the minimum retention
+   *  that keeps per-request cost sane — and a venue that closes permanently
+   *  now surfaces within a day instead of a week, which is what an
+   *  accuracy-first product wants anyway. Was 7 days in Round 7. */
+  CACHE_TTL_HOURS: 24,
 
   /** Hard daily budget of Google Places API calls; past it the layer serves
    *  cache-only. Override with env PLACES_DAILY_BUDGET. */

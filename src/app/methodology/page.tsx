@@ -111,6 +111,43 @@ export default function MethodologyPage() {
         </li>
       </ul>
 
+      {/* The accuracy manifesto (Round 8) — the positioning wedge. Linked
+          from the footer as "Why our data is right". States the pipeline
+          plainly, without naming competitors. */}
+      <h2 id="accuracy" className="font-display text-[20px] text-text mb-3">Why our data is right</h2>
+      <div className="space-y-3 text-[13px] text-dim leading-relaxed mb-8">
+        <p>
+          Most food apps get local places wrong because they trust one stale database. We assume every
+          database is wrong somewhere, and cross-check.
+        </p>
+        <p>
+          <strong className="text-text">Two regulators, both read.</strong> NYC restaurants are inspected by
+          the city health department (DOHMH letter grades); bodegas and delis are licensed by NY State
+          Agriculture &amp; Markets and never appear in the city feed. We read both, so the corner deli
+          exists here — and we never invent a letter grade for a venue the city doesn&apos;t grade.
+        </p>
+        <p>
+          <strong className="text-text">A liveness check on every ranked venue.</strong> Government permit
+          data outlives real storefronts. Before a venue can rank, we verify it against a live places
+          index: permanently closed venues are excluded and labeled, dead permits with years-old
+          inspections are excluded, and a listing whose real kitchen is a commissary blocks away is
+          excluded rather than pointing you at a door with no restaurant behind it. Opening hours come
+          from the same live source, evaluated on the NYC clock — &ldquo;open now&rdquo; is never claimed without
+          data.
+        </p>
+        <p>
+          <strong className="text-text">Menus verified in person.</strong> For our launch neighborhoods we
+          walk in, photograph the menu, and record real dishes and prices. Verified venues carry a dated
+          badge; everything else is honestly labeled an estimate (&ldquo;est.&rdquo;, ±15%) — the label tells you
+          which kind of data you&apos;re looking at.
+        </p>
+        <p>
+          <strong className="text-text">A correction loop that actually closes.</strong> Every card has a
+          one-tap &ldquo;this place is closed&rdquo; report; two independent reports pull a venue from rankings
+          immediately, pending review. When we&apos;re wrong, we&apos;d rather be wrong for hours than weeks.
+        </p>
+      </div>
+
       <h2 className="font-display text-[20px] text-text mb-3">Corrections</h2>
       <p className="text-[13px] text-dim leading-relaxed mb-8">
         Every venue panel has a &ldquo;Report an error&rdquo; form. Reports land in a review queue with the venue,

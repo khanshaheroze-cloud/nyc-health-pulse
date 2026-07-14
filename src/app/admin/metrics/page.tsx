@@ -41,6 +41,30 @@ function daysAgoIso(days: number): string {
   return new Date(Date.now() - days * 86_400_000).toISOString();
 }
 
+// Places API budget observability (Round 8): daily call counts + cache
+// hit-rate from places_counters, so a cost surprise is impossible.
+interface PlacesDay {
+  day: string;
+  calls: number;
+  hits: number | null; // null until the 20260713 hits migration runs
+}
+
+async function placesBudgetRows(): Promise<PlacesDay[] | null> {
+  const supabase = await createClient();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("places_counters")
+    .select("*")
+    .order("day", { ascending: false })
+    .limit(14);
+  if (error || !data) return null;
+  return data.map((r: { day: string; calls: number; hits?: number }) => ({
+    day: r.day,
+    calls: r.calls ?? 0,
+    hits: typeof r.hits === "number" ? r.hits : null,
+  }));
+}
+
 export default async function MetricsPage({
   searchParams,
 }: {
@@ -66,12 +90,15 @@ export default async function MetricsPage({
     { label: "Since Jun 9 (gate window)", since: "2026-06-09T00:00:00Z" },
   ];
 
-  const rows = await Promise.all(
-    FUNNEL.map(async (event) => ({
-      event,
-      counts: await Promise.all(windows.map((w) => countEvents(event, w.since))),
-    })),
-  );
+  const [rows, placesRows] = await Promise.all([
+    Promise.all(
+      FUNNEL.map(async (event) => ({
+        event,
+        counts: await Promise.all(windows.map((w) => countEvents(event, w.since))),
+      })),
+    ),
+    placesBudgetRows(),
+  ]);
 
   const waitlistTotal = rows.find((r) => r.event === "waitlist_signup")?.counts[2] ?? null;
   const newsletterTotal = rows.find((r) => r.event === "newsletter_signup")?.counts[2] ?? null;
@@ -121,9 +148,48 @@ export default async function MetricsPage({
         </tbody>
       </table>
 
+      <h2 className="font-display text-[18px] text-text mt-10 mb-2">Places API budget</h2>
+      <p className="text-[12px] text-dim mb-3">
+        Daily Google Places calls vs cache hits (budget {process.env.PLACES_DAILY_BUDGET || "1000"}/day —
+        past it the layer serves cache-only). Warm cells should show a high hit-rate; a falling
+        hit-rate is a cache regression, a rising call count is a cost alarm.
+      </p>
+      {placesRows && placesRows.length > 0 ? (
+        <table className="w-full text-[13px]">
+          <thead>
+            <tr className="text-left text-[11px] uppercase tracking-wider text-muted border-b border-border">
+              <th className="py-2 pr-2">Day (NYC)</th>
+              <th className="py-2 px-2 text-right">API calls</th>
+              <th className="py-2 px-2 text-right">Cache hits</th>
+              <th className="py-2 px-2 text-right">Hit rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            {placesRows.map((r) => {
+              const total = r.calls + (r.hits ?? 0);
+              const rate = r.hits != null && total > 0 ? `${Math.round((r.hits / total) * 100)}%` : "—";
+              return (
+                <tr key={r.day} className="border-b border-border/50">
+                  <td className="py-2 pr-2 font-medium text-text tabular-nums">{r.day}</td>
+                  <td className="py-2 px-2 text-right text-dim tabular-nums">{r.calls}</td>
+                  <td className="py-2 px-2 text-right text-dim tabular-nums">{r.hits ?? "—"}</td>
+                  <td className="py-2 px-2 text-right text-dim tabular-nums">{rate}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      ) : (
+        <p className="text-[12px] text-muted">
+          No counter rows yet — the enrichment layer hasn&apos;t made a call (key not set, or Supabase not
+          configured).
+        </p>
+      )}
+
       <p className="text-[11px] text-muted mt-6">
         Events: Supabase `events` (cookieless, no PII). &ldquo;—&rdquo; = Supabase not configured or the
-        events migration hasn&apos;t run. Engaged-follower count is tracked manually (TikTok/IG).
+        events migration hasn&apos;t run (hit-rate needs the 20260713_places_hits migration).
+        Engaged-follower count is tracked manually (TikTok/IG).
       </p>
     </div>
   );

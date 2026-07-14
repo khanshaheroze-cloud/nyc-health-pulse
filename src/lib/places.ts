@@ -4,9 +4,10 @@
 // stays the health-grade source of truth. With no GOOGLE_PLACES_API_KEY the
 // whole layer no-ops (log once) and current behavior is unchanged.
 //
-// Cost model = caching: results cache 7 days per venue key (CAMIS) and per
+// Cost model = caching: results cache 24 hours per venue key (CAMIS) and per
 // bodega cell, in Supabase (shared across lambdas) + an in-memory LRU per
-// lambda. Only venues that reach the ranked candidate set are enriched, and a
+// lambda. (The TTL is a Places-policy decision — see the note on
+// PLACES_CONFIG.CACHE_TTL_HOURS.) Only venues that reach the ranked candidate set are enriched, and a
 // nightly cron pre-warms the LIC + Manhattan-core cells. A hard daily budget
 // (PLACES_DAILY_BUDGET) flips the layer to cache-only.
 
@@ -89,7 +90,22 @@ export function newPlacesPeriodsToWeekly(
     weekly[p.open.day].push({ open: openMin, close: closeMin });
     any = true;
   }
-  return any ? weekly : null;
+  if (!any) return null;
+  // Some listings split an overnight window at midnight ([Tue 21:00–24:00] +
+  // [Wed 00:00–00:30]) instead of one cross-day period. Re-join them, or the
+  // evaluator sees a phantom "opens Wed 12:00am" early-morning window where
+  // the venue is really just open late Tuesday (Round 8 phase 3). Full-day
+  // [0,1440] intervals are never tails — only a partial early-morning stub is.
+  for (let d = 0; d < 7; d++) {
+    const prev = (d + 6) % 7;
+    const tailIdx = weekly[d].findIndex((iv) => iv.open === 0 && iv.close < 1440);
+    if (tailIdx === -1) continue;
+    const head = weekly[prev].find((iv) => iv.close >= 1439 && iv.close <= 1440);
+    if (!head) continue;
+    head.close = 1440 + weekly[d][tailIdx].close;
+    weekly[d].splice(tailIdx, 1);
+  }
+  return weekly;
 }
 
 // ── Name similarity (token overlap + Jaro-Winkler on normalized names) ──────
@@ -205,7 +221,7 @@ function round2(n: number): number {
 const memoryCache = new Map<string, { value: unknown; at: number }>();
 
 function ttlMs(): number {
-  return PLACES_CONFIG.CACHE_TTL_DAYS * 24 * 60 * 60 * 1000;
+  return PLACES_CONFIG.CACHE_TTL_HOURS * 60 * 60 * 1000;
 }
 
 function memGet<T>(key: string): T | undefined {
@@ -310,6 +326,17 @@ function recordCall() {
   });
 }
 
+// Cache-hit counter (Round 8): pairs with the call counter so /admin/metrics
+// can show a daily hit-rate. Fire-and-forget — observability must never slow
+// a user request.
+function recordHit() {
+  const sb = serviceClient();
+  if (!sb) return;
+  sb.rpc("increment_places_hits", { p_day: nycDay() }).then(({ error }) => {
+    if (error && process.env.NODE_ENV !== "production") console.log("[places] hit rpc skipped:", error.message);
+  });
+}
+
 /** Today's call count as this lambda knows it — for the warm cron's report. */
 export function placesCallsToday(): number {
   return nycDay() === memDay ? memCalls : 0;
@@ -378,7 +405,10 @@ class GooglePlacesProvider implements PlacesProvider {
   async enrichVenue(v: { key: string; name: string; address: string; lat: number; lng: number }): Promise<PlacesEnrichment | null> {
     const cacheKey = `venue:${v.key}`;
     const cached = await cacheGet<PlacesEnrichment>(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      recordHit();
+      return cached;
+    }
 
     const candidates = await this.post("searchText", {
       textQuery: `${v.name} ${v.address}`.trim(),
@@ -397,7 +427,10 @@ class GooglePlacesProvider implements PlacesProvider {
   async searchBodegas(cell: { lat: number; lng: number; radiusM: number }): Promise<PlaceLite[] | null> {
     const cacheKey = `bodega-cell:${cell.lat.toFixed(3)}:${cell.lng.toFixed(3)}`;
     const cached = await cacheGet<PlaceLite[]>(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      recordHit();
+      return cached;
+    }
 
     const places = await this.post("searchNearby", {
       // deli + convenience store + grocery: "LIC Gourmet Organic & Deli" and

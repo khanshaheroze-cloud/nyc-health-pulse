@@ -216,6 +216,7 @@ export default function RootLayout({
                       { href: "/guides", label: "Neighborhood Guides" },
                       { href: "/restaurants", label: "Restaurant Guide" },
                       { href: "/methodology", label: "How PulseScore Works" },
+                      { href: "/methodology#accuracy", label: "Why our data is right" },
                       { href: "/app", label: "Get the App" },
                     ].map((link) => (
                       <a key={link.href} href={link.href} className="text-[12px] text-dim hover:text-hp-green transition-colors">{link.label}</a>

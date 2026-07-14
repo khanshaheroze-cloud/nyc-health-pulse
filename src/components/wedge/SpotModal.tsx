@@ -144,6 +144,12 @@ export function SpotModal({ spot, onClose }: SpotModalProps) {
                 Not independently verified — listing from NYC DOHMH records
               </p>
             )}
+            {/* Required attribution for Places-sourced status/hours/geometry */}
+            {(spot.placeId || spot.source === "places") && (
+              <p data-testid="modal-google-attribution" className="text-[10px] text-[#9A9F9A] mt-0.5">
+                Status, hours &amp; location powered by Google
+              </p>
+            )}
             {(spot.locationCount ?? 1) > 1 && spot.otherLocations && spot.otherLocations.length > 0 && (
               <details className="mt-1">
                 <summary className="text-[12px] text-[#2A6BC9] cursor-pointer select-none">

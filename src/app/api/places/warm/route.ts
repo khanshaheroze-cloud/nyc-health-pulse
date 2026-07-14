@@ -6,8 +6,10 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 // Nightly cache pre-warm (vercel.json cron): hit our own ranked endpoint for
-// the LIC + Manhattan-core cells so the Places enrichment cache (7-day TTL,
-// shared via Supabase) is hot before the morning rush. Warming through the
+// the LIC + Manhattan-core cells so the Places enrichment cache (24h TTL —
+// a Places-policy decision, see placesConfig.CACHE_TTL_HOURS — shared via
+// Supabase) is hot before the morning rush. With the nightly refresh inside
+// the TTL window, warm-cell user requests still make ~0 Places calls. Warming through the
 // real endpoint means we enrich exactly the venues real users would see —
 // no separate warm path to drift.
 export async function GET(req: NextRequest) {
