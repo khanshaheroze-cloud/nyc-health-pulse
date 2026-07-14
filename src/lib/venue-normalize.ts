@@ -33,6 +33,7 @@ const CASE_OVERRIDES: Record<string, string> = {
   soho: "SoHo",
   noho: "NoHo",
   jfk: "JFK",
+  cvs: "CVS",
 };
 
 // Acronyms that can be glued to a leading digit run: "4747LIC" -> "4747 LIC".

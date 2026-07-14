@@ -64,5 +64,6 @@ test.describe("real bodegas still ingest, with clean display names", () => {
     // Case-override map still wins, tokens with existing caps untouched.
     expect(normalizePlacesName("lic gourmet organic & deli")).toBe("LIC Gourmet Organic & Deli");
     expect(normalizePlacesName("Court Square Deli")).toBe("Court Square Deli");
+    expect(normalizePlacesName("CVS")).toBe("CVS"); // acronym map: never "Cvs"
   });
 });
