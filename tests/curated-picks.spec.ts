@@ -78,7 +78,9 @@ test.describe("eatSmartData CHAINS item bounds", () => {
 
 test.describe("generic template pick bounds", () => {
   for (const t of GENERIC_TEMPLATES) {
-    test(`${t.category}`, () => {
+    // Title by cuisineKey — categories can repeat ("Café" is both the
+    // drinks/pastry template and the Round-8 cafe-food lunch template).
+    test(`${t.cuisineKey}`, () => {
       for (const p of t.picks) {
         const label = `${t.category} -> ${p.name}`;
         expect(p.name?.trim().length, `${label}: empty name`).toBeGreaterThan(0);

@@ -3,7 +3,7 @@ import { CHAINS, type MenuItem as ChainMenuItem } from "@/lib/restaurantData";
 import { inferMealType, mealMatches, type MealCategory } from "@/lib/inferMealType";
 import { matchGenericCategory, templateByCuisineKey, displayCuisine, type GenericTemplate, type GenericPick } from "@/lib/genericRestaurants";
 import { classificationOverride, refinedCategoryOverride } from "@/lib/venueClassification";
-import { categoryFromPlacesTypes, categoryFromDohmhCuisine, CATEGORY_META, type RefinedCategory } from "@/lib/refinedCategory";
+import { categoryFromPlacesTypes, categoryFromDohmhCuisine, chainRefinedCategory, reconcileGenericCategory, CATEGORY_META, type RefinedCategory } from "@/lib/refinedCategory";
 import { canonicalBrand, normalizeVenueName, healthyPickEligibility, classifyOrgVenue } from "@/lib/venue-normalize";
 import { snapCoords, snapPadMeters, GRID_FINE } from "@/lib/geoSnap";
 import { getVenueByCamis, badgeState, type BadgeState } from "@/lib/verifiedVenues";
@@ -11,10 +11,10 @@ import { chainHours, parseVerifiedHours, evaluateOpen, hoursChip, type OpenState
 import { orderPicks, applyCalDisplayRule } from "@/lib/pickRanking";
 import { isDessertBrand, classifyBar, barChipLabel, isAllowlistedFoodBar } from "@/lib/venuePolicy";
 import { chainTypicalPrice } from "@/lib/chainPrices";
-import { getPlacesProvider } from "@/lib/places";
+import { getPlacesProvider, placesCallsToday } from "@/lib/places";
 import { computeLiveness, livenessLabel, RANKED_EXCLUDED_LIVENESS, type Liveness } from "@/lib/liveness";
 import { fetchCommunityClosed, isCommunityClosed } from "@/lib/communityClosed";
-import { BODEGA_CUISINE_KEY, bodegaLiveness, isDuplicateOfDohmh } from "@/lib/bodegas";
+import { BODEGA_CUISINE_KEY, bodegaLiveness, isDuplicateOfDohmh, classifyBodegaCandidate, CHAIN_CONVENIENCE_LABEL } from "@/lib/bodegas";
 
 export const dynamic = "force-dynamic";
 
@@ -295,6 +295,12 @@ const KNOWN_PARAMS = new Set(["lat", "lng", "meal", "at"]);
 const KNOWN_MEALS = new Set(["breakfast", "lunch", "coffee", "snack", "dinner"]);
 
 export async function GET(req: NextRequest) {
+  // Latency observability (Round 8 phase 3): warm-cell requests must stay
+  // <500ms with ~0 Places calls (everything cache-served). Logged on every
+  // request so a cold-cache or budget regression shows up in Vercel logs,
+  // not in a user complaint.
+  const t0 = Date.now();
+  const placesCallsBefore = placesCallsToday();
   try {
     const { searchParams } = req.nextUrl;
     for (const key of searchParams.keys()) {
@@ -461,6 +467,12 @@ export async function GET(req: NextRequest) {
           locationCount: 1,
           otherLocations: [],
           camis: r.camis ?? null,
+          // Brand category is ground truth for chains (Round 8 phase 1): the
+          // chip renders the curated category verbatim, and the enrichment
+          // pass never re-types a brand match from Places types (the Queens
+          // Blvd Starbucks is typed convenience_store — still a coffee shop).
+          refinedCategory: chainRefinedCategory(chain.category),
+          categoryChip: { label: chain.category, icon: chain.emoji },
           openState: chState,
           hoursSource: chHours.source,
           hoursChip: hoursChip(chState, chHours, when),
@@ -641,6 +653,10 @@ export async function GET(req: NextRequest) {
     // mode and whenever the layer is dark (no key) — behavior stays identical.
     const provider = getPlacesProvider();
     const bodegaTemplate = templateByCuisineKey(BODEGA_CUISINE_KEY);
+    // Chain convenience/drugstore candidates (7-Eleven, Duane Reade): never
+    // ranked — a 7-Eleven card undercuts "even at the bodega" — but kept on
+    // the map, dimmed, like liveness-gated venues (Round 8 phase 2).
+    const mapOnlyChainStores: ApiResult[] = [];
     if (provider.enabled && meal !== "coffee" && bodegaTemplate) {
       const dohmhForDedup = rows
         .map((r) => ({ name: r.dba || "", lat: parseFloat(r.latitude || "0"), lng: parseFloat(r.longitude || "0") }))
@@ -657,6 +673,15 @@ export async function GET(req: NextRequest) {
         const bId = `places-bodega-${place.placeId}`;
         if (seenKeys.has(bId)) continue;
         seenKeys.add(bId);
+
+        // Ingestion gate (Round 8): gas stations are not bodegas — a "bp"
+        // pump must never carry turkey-sandwich picks. Chain convenience/
+        // drugstores go map-only (owner-editable tables in venue-policy.json).
+        const gate = classifyBodegaCandidate(place);
+        if (gate.verdict === "exclude-fuel") {
+          logExclusion(place.displayName, gate.reason);
+          continue;
+        }
 
         const bName = normalizeVenueName(place.displayName || bodegaTemplate.category);
         const bSeed = hashStr(place.placeId);
@@ -685,7 +710,7 @@ export async function GET(req: NextRequest) {
           : { weekly: null, source: "unknown" };
         const bState = evaluateOpen(bHours, when);
 
-        genericResults.push({
+        const bodegaEntry: ApiResult = {
           restaurantId: bId,
           slug: `generic-${BODEGA_CUISINE_KEY}`,
           restaurantName: bName,
@@ -719,7 +744,18 @@ export async function GET(req: NextRequest) {
           openState: bState,
           hoursSource: bHours.source,
           hoursChip: hoursChip(bState, place.weeklyHours ? bHours : null, when),
-        });
+        };
+        if (gate.verdict === "map-only-chain") {
+          // Never ranked; map pin only, dimmed, honestly labeled. Picks are
+          // stripped — the card never renders, so the payload stays lean.
+          bodegaEntry.topPicks = [];
+          bodegaEntry.orderingTip = undefined;
+          bodegaEntry.livenessLabel = CHAIN_CONVENIENCE_LABEL;
+          logExclusion(place.displayName, gate.reason);
+          mapOnlyChainStores.push(bodegaEntry);
+        } else {
+          genericResults.push(bodegaEntry);
+        }
       }
     }
 
@@ -907,13 +943,51 @@ export async function GET(req: NextRequest) {
             v.hoursSource = "google";
             v.hoursChip = hoursChip(v.openState, gHours, when);
           }
-          // Refined category (phase 4): Places types beat the DOHMH cuisine
-          // heuristic, but never the owner override table.
-          const placesCat = categoryFromPlacesTypes(place.types);
-          if (placesCat && !refinedCategoryOverride(v.restaurantName)) {
-            v.refinedCategory = placesCat;
+          // Café lunch upgrade (Round 8 phase 3): a café-templated venue that
+          // Places confirms as a sit-down FOOD venue (a `restaurant` type)
+          // gets the light-lunch café picks — Cafe Henri / Tournesol were
+          // guidance-only all afternoon. Coffee-only shops (typed cafe/
+          // coffee_shop without restaurant) keep the drinks/pastry template.
+          if (v.isGeneric && v.slug === "generic-cafe" && v.topPicks.length === 0) {
+            const servesFood = place.types.includes("restaurant") || place.types.some((t) => t.endsWith("_restaurant"));
+            const foodTemplate = servesFood ? templateByCuisineKey("cafe-food") : null;
+            if (foodTemplate) {
+              const cfSeed = hashStr(v.restaurantName + v.address);
+              const cfPicks = filterGenericPicks(foodTemplate.picks, meal, foodTemplate.category, cfSeed);
+              v.topPicks = orderPicks(
+                applyCalDisplayRule(
+                  cfPicks.map((p, i) => ({
+                    id: `cafe-food-${cfSeed}-${i}`,
+                    name: p.name,
+                    calories: p.cal,
+                    protein: p.protein,
+                    carbs: 0,
+                    fat: 0,
+                    fiber: 0,
+                    pulseScore: p.protein >= 30 ? 80 : p.protein >= 20 ? 65 : p.protein >= 10 ? 45 : 30,
+                    estPrice: p.estimatedPrice ?? null,
+                  })),
+                ),
+                meal as MealCategory,
+              );
+              if (v.topPicks.length > 0) v.orderingTip = foodTemplate.orderingTip;
+            }
           }
-          if (v.refinedCategory) v.categoryChip = CATEGORY_META[v.refinedCategory];
+
+          // Refined category (Round 8 precedence): owner override → brand
+          // chain category → Places type → DOHMH heuristic. Places types only
+          // re-type GENERIC venues (chains/verified keep their brand chip set
+          // at push time — the Starbucks-as-deli_bodega fix), and only when
+          // the result doesn't contradict the assigned pick template (the
+          // Fresco sandwiches-chipped-"Bakery" fix). dessert/bar pass through
+          // as ranked-eligibility signals.
+          if (v.isGeneric && !refinedCategoryOverride(v.restaurantName)) {
+            const placesCat = categoryFromPlacesTypes(place.types);
+            if (placesCat) {
+              v.refinedCategory = reconcileGenericCategory(placesCat, v.slug.replace("generic-", ""), v.refinedCategory ?? null);
+            }
+            v.categoryChip = v.refinedCategory ? CATEGORY_META[v.refinedCategory] : null;
+          }
         }
         if (v.liveness === "address-mismatch") {
           // Review trail: a name match beyond the 150m gate is the commissary
@@ -965,9 +1039,22 @@ export async function GET(req: NextRequest) {
       if (bodegaInFinal.length > 0) console.log(`[smart-menu] bodega in results: ${bodegaInFinal.map(r => r.restaurantName).join(", ")}`);
     }
 
-    // `excluded` = liveness-gated venues: still shown on the map (dimmed,
-    // labeled "Permanently closed — report if wrong" etc), never ranked.
-    return NextResponse.json({ restaurants: final, excluded: gatedOut });
+    // `excluded` = liveness-gated venues + chain convenience stores: still
+    // shown on the map (dimmed, labeled "Permanently closed — report if
+    // wrong" / "Chain convenience store — not ranked"), never ranked.
+    // Payload hygiene (Round 8 phase 3): the client renders at most 6 dimmed
+    // map pins (name + label + coords) — cap the array and strip topPicks so
+    // the transparency array never bloats the response.
+    const excludedPayload = [...gatedOut, ...mapOnlyChainStores]
+      .slice(0, 6)
+      .map((v) => ({ ...v, topPicks: [], orderingTip: undefined }));
+
+    // One line per request: duration + Places calls it triggered. Warm cells
+    // must log ms<500 places_calls=0; anything else is a cache regression.
+    console.log(
+      `[smart-menu] timing ms=${Date.now() - t0} places_calls=${placesCallsToday() - placesCallsBefore} meal=${meal} results=${final.length} excluded=${excludedPayload.length}`,
+    );
+    return NextResponse.json({ restaurants: final, excluded: excludedPayload });
   } catch (err) {
     console.error("smart-menu/near-me error:", err);
     return NextResponse.json({ restaurants: [] });

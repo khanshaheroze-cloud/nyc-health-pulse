@@ -69,7 +69,9 @@ export function normalizeVenueName(raw: string): string {
     .trim();
 
   // Already mixed-case (not shouting)? Leave the owner's casing alone.
-  if (s !== s.toUpperCase()) return s;
+  // ALL-CAPS (DOHMH style) and all-lowercase (Google Places "bp"-style
+  // artifacts, Round 8) both get title-cased.
+  if (s !== s.toUpperCase() && s !== s.toLowerCase()) return s;
 
   return s
     .split(" ")

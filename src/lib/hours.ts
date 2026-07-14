@@ -103,7 +103,11 @@ export function nextOpenLabel(hours: VenueHours | null | undefined, when: Date):
     const intervals = [...weekly[day]].sort((a, b) => a.open - b.open);
     for (const iv of intervals) {
       if (ahead === 0 && iv.open <= nowMin) continue; // already past today
-      const label = fmtClock(iv.open);
+      // 12:00am–4:59am openings read as a data glitch when stated bare
+      // ("opens Wed 12:30am" — July 13 live validation, Blended Smoothies).
+      // Say what it means: that's an early-morning window.
+      const clock = fmtClock(iv.open);
+      const label = iv.open < 300 ? `early morning (${clock})` : clock;
       if (ahead === 0) return `opens ${label}`;
       if (ahead === 1) return `opens tomorrow ${label}`;
       return `opens ${dayNames[day]} ${label}`;

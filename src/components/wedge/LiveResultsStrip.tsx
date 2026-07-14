@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatRelative, formatMonthYear } from "@/lib/freshness";
+import { readRemainingMacros, fitsYourDay, type RemainingMacros } from "@/lib/eat-smart/remainingMacros";
 
 export type SortKey = "score" | "protein" | "calories" | "distance" | "protein-per-dollar";
 
@@ -157,7 +158,7 @@ function ClosedReportOverflow({ spot }: { spot: ResultSpot }) {
 // One result card — shared by the ranked five and the "Worth a splurge" row.
 // Generic venues render as <button> — they have no /restaurants/* page, and a
 // crawlable/cmd-clickable href would 404.
-function SpotCard({ spot, onSpotClick }: { spot: ResultSpot; onSpotClick?: (slug: string) => void }) {
+function SpotCard({ spot, onSpotClick, remaining }: { spot: ResultSpot; onSpotClick?: (slug: string) => void; remaining?: RemainingMacros | null }) {
   // Verified independents have a real detail page; un-verified
   // generics render as <button> (no crawlable 404 href)
   const detailHref = spot.verifiedSlug
@@ -185,7 +186,11 @@ function SpotCard({ spot, onSpotClick }: { spot: ResultSpot; onSpotClick?: (slug
       data-venue-name={spot.name}
       className="bg-white border border-[#E6E5DE] rounded-2xl p-4 hover:-translate-y-0.5 transition-transform duration-150 block text-left w-full h-full focus:outline-none focus:ring-2 focus:ring-[#2F8F4D]/40 focus:ring-offset-2"
     >
-      {spot.isGeneric && (spot.categoryChip || spot.category) && (
+      {/* Chain cards carry the brand-category chip from the API ("Coffee &
+          Bakery"); generic cards fall back to the template label. Round 8:
+          the chip is no longer generic-only — the brand chip is the fix for
+          Places re-typing a Starbucks as "Deli / Bodega". */}
+      {(spot.categoryChip || (spot.isGeneric && spot.category)) && (
         <span className="text-[11px] tracking-[1px] uppercase text-[#6B716B] font-semibold block mb-1">
           {spot.categoryChip ? `${spot.categoryChip.icon} ${spot.categoryChip.label}` : spot.category}
         </span>
@@ -220,6 +225,17 @@ function SpotCard({ spot, onSpotClick }: { spot: ResultSpot; onSpotClick?: (slug
         {(spot.topPickCalories ?? 0) > 0 && (
           <span className="bg-[#FDF1E2] text-[#B06A1E] text-[11px] px-2 py-0.5 rounded-full">
             {spot.isGeneric ? "~" : ""}{spot.topPickCalories} cal
+          </span>
+        )}
+        {/* "Fits your day" (Round 8): pure client calc against the nutrition
+            tracker's remaining macros — renders only for users with goals set. */}
+        {remaining && fitsYourDay({ calories: spot.topPickCalories ?? 0 }, remaining) && (
+          <span
+            data-testid="fits-your-day"
+            className="bg-[#E5F1E8] text-[#2F8F4D] text-[11px] font-semibold px-2 py-0.5 rounded-full border border-[#2F8F4D]/25"
+            title="Based on today's log in your nutrition tracker"
+          >
+            ✓ Fits your day — {remaining.calLeft.toLocaleString()} cal left
           </span>
         )}
         {spot.grade ? (
@@ -291,6 +307,19 @@ export function LiveResultsStrip({ spots: rawSpots, splurgeSpots: rawSplurge = [
   const spots = dedupe(rawSpots);
   const splurgeSpots = dedupe(rawSplurge);
   const guidanceSpots = dedupe(rawGuidance);
+
+  // "Fits your day" (Round 8): read the tracker's remaining macros once per
+  // result set — localStorage only, so this must run client-side post-mount.
+  const [remaining, setRemaining] = useState<RemainingMacros | null>(null);
+  useEffect(() => {
+    setRemaining(readRemainingMacros());
+  }, [fetchedAt]);
+
+  // Google attribution (Places API policy): required wherever Places-sourced
+  // content (status/hours/storefront geometry) renders without a Google map.
+  const hasPlacesData = [...spots, ...splurgeSpots, ...guidanceSpots].some(
+    (s) => s.placeId || s.source === "places",
+  );
   return (
     <div className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-14">
       {/* Header */}
@@ -397,9 +426,16 @@ export function LiveResultsStrip({ spots: rawSpots, splurgeSpots: rawSplurge = [
       {!loading && spots.length > 0 && (
         <div data-testid="ranked-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
           {spots.map((spot) => (
-            <SpotCard key={spot.id} spot={spot} onSpotClick={onSpotClick} />
+            <SpotCard key={spot.id} spot={spot} onSpotClick={onSpotClick} remaining={remaining} />
           ))}
         </div>
+      )}
+
+      {/* Required attribution for Places-sourced liveness/hours/geometry */}
+      {!loading && hasPlacesData && (
+        <p data-testid="google-attribution" className="text-[11px] text-[#9A9F9A] mt-3">
+          Venue status, hours &amp; locations powered by Google
+        </p>
       )}
 
       {/* Over-$15 venues never enter the promised five — they live here, under
@@ -415,7 +451,7 @@ export function LiveResultsStrip({ spots: rawSpots, splurgeSpots: rawSplurge = [
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {splurgeSpots.map((spot) => (
-              <SpotCard key={spot.id} spot={spot} onSpotClick={onSpotClick} />
+              <SpotCard key={spot.id} spot={spot} onSpotClick={onSpotClick} remaining={remaining} />
             ))}
           </div>
         </div>

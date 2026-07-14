@@ -16,6 +16,7 @@ import { nameSimilarity } from "@/lib/places";
 import { PLACES_CONFIG } from "@/lib/placesConfig";
 import type { BusinessStatus } from "@/lib/places";
 import type { Liveness } from "@/lib/liveness";
+import policy from "@/data/venue-policy.json";
 
 /** The generic-template key the bodega picks live under (genericRestaurants). */
 export const BODEGA_CUISINE_KEY = "bodega";
@@ -47,6 +48,54 @@ export function isDuplicateOfDohmh(
   }
   return false;
 }
+
+// ── Ingestion gate (Round 8 phase 2) ─────────────────────────────────────────
+// Live validation (July 13): a "bp" fuel station ranked as a Deli/Bodega card
+// with turkey-sandwich picks. Gas stations are not bodegas, and chain
+// convenience/drugstore food aisles (7-Eleven, Duane Reade) undercut the
+// "even at the bodega" promise. Both rule tables are owner-editable in
+// src/data/venue-policy.json.
+
+const FUEL_BRANDS: string[] = ((policy as Record<string, unknown>).fuelBrands as string[] | undefined) ?? [];
+const CHAIN_CONVENIENCE: string[] = ((policy as Record<string, unknown>).chainConvenienceBrands as string[] | undefined) ?? [];
+
+// A deli/food token in the display name rescues a fuel-brand candidate:
+// "BP — Vernon Deli" is a real deli that shares a lot with a pump; a bare
+// "bp" is a pump. Conservative token list — accuracy > coverage.
+const DELI_FOOD_TOKEN_RE = /\b(deli|bodega|grocery|grocer|gourmet|sandwich(es)?)\b/i;
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function matchesBrandWord(name: string, brands: string[]): boolean {
+  const upper = (name || "").toUpperCase();
+  return brands.some((b) => new RegExp(`(^|[^A-Z0-9])${escapeRe(b)}($|[^A-Z0-9])`).test(upper));
+}
+
+export type BodegaIngestVerdict =
+  /** A real bodega/deli candidate — rankable with the bodega template. */
+  | { verdict: "ingest" }
+  /** Fuel station — never ingested at all (not a food venue). */
+  | { verdict: "exclude-fuel"; reason: string }
+  /** Chain convenience/drugstore — never RANKED, still shown on the map dimmed. */
+  | { verdict: "map-only-chain"; reason: string };
+
+/** Gate a Places bodega candidate before it can carry the bodega template. */
+export function classifyBodegaCandidate(place: { displayName: string; types: string[] }): BodegaIngestVerdict {
+  const name = place.displayName || "";
+  const isFuel = place.types.includes("gas_station") || matchesBrandWord(name, FUEL_BRANDS);
+  if (isFuel && !DELI_FOOD_TOKEN_RE.test(name)) {
+    return { verdict: "exclude-fuel", reason: "gas station / fuel brand without a deli token" };
+  }
+  if (matchesBrandWord(name, CHAIN_CONVENIENCE)) {
+    return { verdict: "map-only-chain", reason: "chain convenience/drugstore — not a bodega" };
+  }
+  return { verdict: "ingest" };
+}
+
+/** Map-pin label for a chain-convenience candidate kept off the ranked list. */
+export const CHAIN_CONVENIENCE_LABEL = "Chain convenience store — not ranked";
 
 /** Liveness for a Places-sourced bodega — it IS a live Places record, so a
  *  present businessStatus decides directly (no DOHMH inspection to weigh).

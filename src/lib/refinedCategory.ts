@@ -1,8 +1,11 @@
 // ─── Refined venue categories from Google Places types (Round 7 phase 4) ────
 // Places `types` beat DOHMH cuisine strings for WHAT a venue is (DOHMH
 // licenses Mango Mango as "Fruits/Vegetables"; Places says dessert shop).
-// Precedence everywhere: owner override (venueClassification.ts) → Places
-// type → DOHMH cuisine heuristic (current behavior, i.e. null = no change).
+// Precedence everywhere (Round 8 phase 1): owner override
+// (venueClassification.ts) → brand-matched chain category → Places type →
+// DOHMH cuisine heuristic (null = no change). A brand match is ground truth
+// for WHAT a venue is — the Queens Blvd Starbucks whose Google types include
+// convenience_store is still a coffee shop, never a "Deli / Bodega".
 // Pure module — client-safe.
 
 export type RefinedCategory =
@@ -72,4 +75,68 @@ const DOHMH_REFINED: Record<string, RefinedCategory> = {
 export function categoryFromDohmhCuisine(cuisineDescription: string | null | undefined): RefinedCategory | null {
   if (!cuisineDescription) return null;
   return DOHMH_REFINED[cuisineDescription.toLowerCase().trim()] ?? null;
+}
+
+// ── Brand-matched chains (Round 8 phase 1) ───────────────────────────────────
+// A chain's curated menu category IS its refined category; Places types never
+// re-type a brand match (a Starbucks co-located with a convenience counter is
+// still a coffee shop). The chain card's chip renders the brand category
+// verbatim ("Coffee & Bakery"); this mapping only feeds category logic.
+const CHAIN_CATEGORY_REFINED: Record<string, RefinedCategory> = {
+  "Coffee & Bakery": "cafe",
+  Coffee: "cafe",
+  "Fast Food": "fast_food",
+  Burger: "fast_food",
+  Chicken: "fast_food",
+  Pizza: "fast_food",
+  Sandwich: "fast_food",
+  "Fast Casual": "restaurant",
+  Healthy: "restaurant",
+  Asian: "restaurant",
+  Mexican: "restaurant",
+  Seafood: "restaurant",
+  "Middle Eastern": "restaurant",
+  Diner: "restaurant",
+  Breakfast: "restaurant",
+};
+
+/** Refined category for a brand-matched chain from its curated menu category. */
+export function chainRefinedCategory(chainCategory: string): RefinedCategory {
+  return CHAIN_CATEGORY_REFINED[chainCategory] ?? "restaurant";
+}
+
+// ── Template coherence for non-chain venues (Round 8 phase 1) ────────────────
+// When Places type and DOHMH cuisine disagree (Fresco Deli Cafe: Places says
+// bakery, the assigned template is Sandwich Shop), the chip must agree with
+// the picks — a card whose picks are subs must not be chipped "Bakery".
+// Allowed refined categories per generic-template cuisineKey; a Places type
+// outside the set is dropped and the chip falls back to the template label.
+const TEMPLATE_COMPATIBLE: Record<string, RefinedCategory[]> = {
+  bodega: ["deli_bodega"],
+  deli: ["deli_bodega", "cafe"],
+  halal: ["restaurant", "fast_food"],
+  bagels: ["bakery", "cafe", "deli_bodega"],
+  cafe: ["cafe", "bakery"],
+  sandwiches: ["deli_bodega", "fast_food", "restaurant", "cafe"],
+  pizza: ["restaurant", "fast_food"],
+  diner: ["restaurant", "cafe"],
+};
+const TEMPLATE_COMPATIBLE_DEFAULT: RefinedCategory[] = ["restaurant", "fast_food"];
+
+/** Reconcile a Places-derived category with the venue's assigned template.
+ *  - dessert/bar always pass through: they are ranked-eligibility signals
+ *    (the venue is gated out of ranked, so no contradicting chip ever shows).
+ *  - A template-compatible Places category wins (it's the fresher source).
+ *  - Otherwise keep the compatible baseline (owner/DOHMH), else null — the
+ *    chip falls back to the template's own category label. */
+export function reconcileGenericCategory(
+  placesCat: RefinedCategory,
+  templateKey: string,
+  baseline: RefinedCategory | null,
+): RefinedCategory | null {
+  if (placesCat === "dessert" || placesCat === "bar") return placesCat;
+  const allowed = TEMPLATE_COMPATIBLE[templateKey] ?? TEMPLATE_COMPATIBLE_DEFAULT;
+  if (allowed.includes(placesCat)) return placesCat;
+  if (baseline && allowed.includes(baseline)) return baseline;
+  return null;
 }

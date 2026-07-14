@@ -149,6 +149,24 @@ export const GENERIC_TEMPLATES: GenericTemplate[] = [
     ],
   },
   {
+    // Round 8 phase 3: real sit-down cafés (Cafe Henri / Tournesol — French/
+    // café cuisine AND a Places `restaurant` type) serve actual lunch; they
+    // were dropping to guidance-only all afternoon. This template is applied
+    // ONLY after Places confirms food service (see near-me route) — it is NOT
+    // reachable from DOHMH_CUISINE_MAP, so coffee-only shops keep the
+    // drinks/pastry café template and stay guidance-only. Accuracy > coverage.
+    category: "Café",
+    cuisineKey: "cafe-food",
+    emoji: "☕",
+    priceRange: 2,
+    orderingTip: "Ask for dressing on the side — café salads arrive pre-dressed heavy. A cup of soup + half sandwich beats the pastry case.",
+    picks: [
+      { name: "Soup + Half Sandwich", description: "Cup of the day's soup with half a sandwich", cal: 420, protein: 22, estimatedPrice: 13 },
+      { name: "Niçoise-Style Salad", description: "Tuna, egg, green beans, olives — dressing on the side", cal: 430, protein: 30, estimatedPrice: 14 },
+      { name: "Omelette + Side Salad", description: "Three-egg omelette with greens instead of fries", cal: 400, protein: 24, estimatedPrice: 13 },
+    ],
+  },
+  {
     category: "Indian",
     cuisineKey: "indian",
     emoji: "🍛",

@@ -24,5 +24,33 @@
   "foodForwardBarAllowlist": [
     "WOODBINES",
     "GANTRY BAR & KITCHEN"
+  ],
+  "_comment_bodega": "Round 8 bodega ingestion rules. fuelBrands: gas-station brands — a Places candidate with a gas_station type or a fuel-brand name is NOT a bodega and is never ingested, unless its display name carries a deli/food token ('BP — Vernon Deli' passes; a bare 'bp' pump does not). chainConvenienceBrands: chain convenience/drugstore food aisles (7-Eleven, Duane Reade/CVS/Walgreens) — excluded from RANKED picks (a 7-Eleven card undercuts 'even at the bodega'); they still appear on the map, dimmed. Matching is case-insensitive whole-word against the Places display name.",
+  "fuelBrands": [
+    "BP",
+    "SHELL",
+    "MOBIL",
+    "EXXON",
+    "CITGO",
+    "SUNOCO",
+    "GULF",
+    "SPEEDWAY",
+    "AMOCO",
+    "CONOCO",
+    "MARATHON",
+    "GETTY"
+  ],
+  "chainConvenienceBrands": [
+    "7-ELEVEN",
+    "7 ELEVEN",
+    "SEVEN ELEVEN",
+    "DUANE READE",
+    "CVS",
+    "WALGREENS",
+    "RITE AID",
+    "WAWA",
+    "CIRCLE K",
+    "AMPM",
+    "QUICKCHEK"
   ]
 }
