@@ -99,7 +99,9 @@ export function normalizeVenueName(raw: string): string {
  *  untouched. Used only for Places-sourced names — DOHMH names keep the
  *  existing conservative rule. */
 export function normalizePlacesName(raw: string): string {
-  const s = normalizeVenueName(raw);
+  // Places listings carry stray trailing punctuation ("New York Deli & Smoke
+  // Zone," — July 14 live validation). Strip it before the shared cleanup.
+  const s = normalizeVenueName(raw.replace(/[\s,;·|·—-]+$/g, ""));
   return s
     .split(" ")
     .map((tok, i) => (tok === tok.toLowerCase() && /[a-z]/.test(tok) ? titleCaseToken(tok, i === 0) : tok))

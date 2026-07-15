@@ -65,5 +65,8 @@ test.describe("real bodegas still ingest, with clean display names", () => {
     expect(normalizePlacesName("lic gourmet organic & deli")).toBe("LIC Gourmet Organic & Deli");
     expect(normalizePlacesName("Court Square Deli")).toBe("Court Square Deli");
     expect(normalizePlacesName("CVS")).toBe("CVS"); // acronym map: never "Cvs"
+    // Trailing punctuation stripped (July 14 live: "New York Deli & Smoke Zone,")
+    expect(normalizePlacesName("New York Deli & Smoke Zone,")).toBe("New York Deli & Smoke Zone");
+    expect(normalizePlacesName("Corner Deli - ")).toBe("Corner Deli");
   });
 });
