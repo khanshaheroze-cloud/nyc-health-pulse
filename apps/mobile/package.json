@@ -1,6 +1,6 @@
 {
   "name": "pulsenyc-mobile",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -9,7 +9,17 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx",
+    "test": "jest",
     "eas-build-post-install": "node scripts/inject-plugins.js"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "setupFiles": [
+      "./jest.setup.js"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg)"
+    ]
   },
   "dependencies": {
     "@expo-google-fonts/dm-serif-display": "^0.4.2",
@@ -49,7 +59,11 @@
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
+    "@testing-library/react-native": "^14.0.1",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.0.0",
+    "jest": "^29.7.0",
+    "jest-expo": "~53.0.0",
     "typescript": "^5.7.0"
   }
 }
