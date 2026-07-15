@@ -39,11 +39,18 @@ export function useNearMe(meal: MealParam): NearMeState & { refresh: () => void 
     const reqId = ++seq.current;
     setState((s) => ({ ...s, status: s.data ? s.status : "loading", errorMessage: null }));
 
+    // Location must never gate the pipeline: race it with a hard 6s fallback.
+    // (July 14 emulator repro: a wedged AsyncStorage read inside the location
+    // cache left BOTH screens in skeletons forever. Results > precision.)
     let loc: LocationResult | null = null;
     try {
-      loc = await getUserLocation();
+      loc = await Promise.race([
+        getUserLocation(),
+        new Promise<null>((r) => setTimeout(() => r(null), 6000)),
+      ]);
     } catch {}
     const resolved = loc ?? { lat: NYC_DEFAULT.lat, lng: NYC_DEFAULT.lng, accuracy: null, source: "default" as const };
+    if (__DEV__) console.log(`[useNearMe] origin ${resolved.source} ${resolved.lat.toFixed(4)},${resolved.lng.toFixed(4)} meal=${meal}`);
     if (reqId !== seq.current) return; // superseded
 
     const origin = {
@@ -57,6 +64,7 @@ export function useNearMe(meal: MealParam): NearMeState & { refresh: () => void 
 
     try {
       const data = await fetchNearMe(resolved.lat, resolved.lng, meal);
+      if (__DEV__) console.log(`[useNearMe] ready ${data.restaurants.length} restaurants, ${data.excluded.length} excluded`);
       if (reqId !== seq.current) return; // superseded — stale response never renders
       setState({
         status: "ready",
@@ -69,6 +77,7 @@ export function useNearMe(meal: MealParam): NearMeState & { refresh: () => void 
       });
     } catch (e) {
       if (reqId !== seq.current) return;
+      if (__DEV__) console.warn(`[useNearMe] fetch failed (${e instanceof Error ? e.message : e}) — trying seed`);
       // Network/timeout → offline seed (real captured responses, same shape).
       const seeded = getSeedNearMe(resolved.lat, resolved.lng, meal);
       if (seeded) {
