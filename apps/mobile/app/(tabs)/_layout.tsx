@@ -104,7 +104,7 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: "600" as const,
-          fontFamily: "PlusJakartaSans_600SemiBold",
+          fontFamily: "Inter_600SemiBold",
           marginTop: 3,
         },
       }}

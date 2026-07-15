@@ -34,7 +34,8 @@ import { CommitmentRings } from "../../components/CommitmentRings";
 import { PicksNearYouCarousel } from "../../components/PicksNearYouCarousel";
 import { useEnvironment } from "../../lib/useEnvironment";
 import { useTimeTheme } from "../../lib/theme/useTimeTheme";
-import { getLocationDebug } from "../../lib/location";
+import { getLocationDebug, getUserLocation, NYC_DEFAULT } from "../../lib/location";
+import { apiFetch } from "../../lib/api";
 import { DebugOverlay } from "../../components/DebugOverlay";
 
 /* ------------------------------------------------------------------ */
@@ -207,6 +208,18 @@ interface Neighborhood {
   borough: string;
 }
 
+/** Real per-coords stats from the web's /api/neighborhood-health — the card
+ *  shows live values or "—", never an invented number. */
+interface HoodHealth {
+  name: string;
+  borough: string;
+  healthScore: number;
+  healthGrade: string;
+  aqi: number | null;
+  lifeExpectancy: number;
+  crashes12mo: number;
+}
+
 const DEFAULT_GOALS: NutritionGoals = { calories: 2000, protein: 150, carbs: 200, fat: 65 };
 
 /* ------------------------------------------------------------------ */
@@ -228,6 +241,25 @@ export default function HealthTab() {
   const [todayCarbs, setTodayCarbs] = useState(0);
   const [todayFat, setTodayFat] = useState(0);
   const [aqi, setAqi] = useState(43);
+  const [hoodHealth, setHoodHealth] = useState<HoodHealth | null>(null);
+  const [picksCount, setPicksCount] = useState<number | null>(null);
+
+  // Neighborhood card data — real values from the coords the user is at.
+  // Silent failure just hides the stats row; nothing is invented.
+  useEffect(() => {
+    (async () => {
+      try {
+        const loc = (await Promise.race([
+          getUserLocation(),
+          new Promise<null>((r) => setTimeout(() => r(null), 6000)),
+        ])) ?? { lat: NYC_DEFAULT.lat, lng: NYC_DEFAULT.lng };
+        const result = await apiFetch<HoodHealth>(
+          `/api/neighborhood-health?lat=${loc.lat}&lng=${loc.lng}`,
+        );
+        setHoodHealth(result);
+      } catch {}
+    })();
+  }, []);
 
   const loadData = useCallback(async () => {
     const [sName, sHood, sWorkout, sGoals, sLog] = await Promise.all([
@@ -304,6 +336,8 @@ export default function HealthTab() {
           <View style={styles.skyText}>
             <Text style={styles.heroDate}>{formatDateHeader()}</Text>
             <Text style={styles.heroGreeting}>{getGreeting()}{greetingName}</Text>
+            {/* Green underline accent — the web hero's "near you" treatment */}
+            <View style={styles.heroUnderline} />
             <TouchableOpacity
               activeOpacity={0.7}
               onLongPress={async () => {
@@ -335,7 +369,7 @@ export default function HealthTab() {
 
       {/* ── PICKS NEAR YOU ── */}
       <Animated.View entering={FadeInUp.delay(250).duration(500)}>
-      <PicksNearYouCarousel />
+      <PicksNearYouCarousel onRankedCount={setPicksCount} />
       </Animated.View>
 
       {/* ── 2. TODAY'S PROGRESS (3-ring widget) ── */}
@@ -424,33 +458,36 @@ export default function HealthTab() {
       </Card>
       </Animated.View>
 
-      {/* ── 6. YOUR NEIGHBORHOOD ── */}
-      {neighborhood && (
+      {/* ── 6. YOUR NEIGHBORHOOD (owner decision: card on Overview, no fifth
+             tab — taps into the stack route). Every number is live or "—". ── */}
+      {(hoodHealth || neighborhood) && (
         <>
           <SectionLabel icon="📍">YOUR NEIGHBORHOOD</SectionLabel>
           <TouchableOpacity
             style={styles.hoodCard}
             activeOpacity={0.8}
             onPress={() => router.push("/neighborhood" as any)}
+            accessibilityRole="button"
+            accessibilityLabel={`Neighborhood health for ${hoodHealth?.name ?? neighborhood?.name}. Open details.`}
           >
-            <Text style={styles.hoodName}>{neighborhood.name}</Text>
-            <Text style={styles.hoodBorough}>{neighborhood.borough}</Text>
+            <Text style={styles.hoodName}>{hoodHealth?.name ?? neighborhood?.name}</Text>
+            <Text style={styles.hoodBorough}>{hoodHealth?.borough ?? neighborhood?.borough}</Text>
             <View style={styles.hoodDivider} />
             <View style={styles.hoodStats}>
               <View style={styles.hoodStat}>
-                <Text style={styles.hoodStatVal}>{aqi}</Text>
+                <Text style={styles.hoodStatVal}>{hoodHealth?.aqi ?? aqi}</Text>
                 <Text style={styles.hoodStatLabel}>AQI</Text>
               </View>
               <View style={styles.hoodStat}>
-                <Text style={styles.hoodStatVal}>83.8</Text>
+                <Text style={styles.hoodStatVal}>{hoodHealth ? hoodHealth.lifeExpectancy : "—"}</Text>
                 <Text style={styles.hoodStatLabel}>LIFE EXP</Text>
               </View>
               <View style={styles.hoodStat}>
-                <Text style={styles.hoodStatVal}>92</Text>
-                <Text style={styles.hoodStatLabel}>WALK</Text>
+                <Text style={styles.hoodStatVal}>{hoodHealth ? hoodHealth.healthGrade : "—"}</Text>
+                <Text style={styles.hoodStatLabel}>HEALTH</Text>
               </View>
               <View style={styles.hoodStat}>
-                <Text style={styles.hoodStatVal}>12</Text>
+                <Text style={styles.hoodStatVal}>{picksCount ?? "—"}</Text>
                 <Text style={styles.hoodStatLabel}>PICKS</Text>
               </View>
             </View>
@@ -559,8 +596,16 @@ const styles = StyleSheet.create({
   },
   heroGreeting: {
     fontSize: 28,
+    lineHeight: 34,
     color: "#FFFFFF",
-    fontFamily: `${fonts.display}_400Regular`,
+    fontFamily: `${fonts.display}_600SemiBold`,
+  },
+  heroUnderline: {
+    width: 64,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.accentSageLight,
+    marginTop: 6,
   },
   heroSub: {
     fontSize: 13,

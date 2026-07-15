@@ -18,7 +18,7 @@ import { detectMealParam, mealLabel } from "../lib/daypart";
 import { readRemainingMacros, type RemainingMacros } from "../lib/fitsYourDay";
 import type { ApiRestaurant } from "../lib/types";
 
-export function PicksNearYouCarousel() {
+export function PicksNearYouCarousel({ onRankedCount }: { onRankedCount?: (n: number) => void }) {
   const router = useRouter();
   const meal = useMemo(() => detectMealParam(), []);
   const { status, data, offline, refresh, errorMessage } = useNearMe(meal);
@@ -33,6 +33,11 @@ export function PicksNearYouCarousel() {
     () => sectionResults(data?.restaurants ?? []).ranked,
     [data],
   );
+
+  // Real ranked count for the Overview neighborhood card ("PICKS" stat).
+  useEffect(() => {
+    if (status === "ready") onRankedCount?.(ranked.length);
+  }, [status, ranked.length, onRankedCount]);
 
   return (
     <View style={styles.wrap}>
