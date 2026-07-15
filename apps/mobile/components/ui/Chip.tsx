@@ -1,47 +1,108 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { fonts } from '../../theme/tokens';
+/* ── The one chip system — visual parity with the web's card chips ───────────
+ * Every tone maps 1:1 to a web chip (LiveResultsStrip/SpotModal, frozen July
+ * 14 2026). No inline hex anywhere else: cards compose these tones.
+ */
+import { View, Text, StyleSheet } from "react-native";
+import { colors, fonts, tabularNums } from "../../theme/tokens";
 
-interface ChipProps {
-  label: string;
-  variant: 'good' | 'warn' | 'alert';
-}
+export type ChipTone =
+  | "grade" // DOHMH letter grade — green, bordered
+  | "nys" // "NYS retail food store" — purple (never a fake grade)
+  | "hours-open"
+  | "hours-closed"
+  | "hours-unknown"
+  | "category" // uppercase label chip (icon + label from the API)
+  | "walk" // blue
+  | "protein" // green
+  | "cal" // amber
+  | "price" // neutral
+  | "est" // muted "est." qualifier
+  | "fits" // "✓ Fits your day" — green, bordered
+  | "verified" // "✓ Menu verified" — green, bordered
+  | "recheck" // "⟳ Verified — needs re-check" — amber
+  | "neutral";
 
-const chipTheme = {
-  good: { bg: '#E8F0EA', text: '#4A7C59', dot: '#4A7C59' },
-  warn: { bg: '#FBF1DD', text: '#8A6A2C', dot: '#C4964A' },
-  alert: { bg: '#FBE6E2', text: '#8B3A2E', dot: '#C45A4A' },
+const TONES: Record<ChipTone, { bg: string; fg: string; border?: string }> = {
+  grade: { bg: colors.accentSageBg, fg: colors.good, border: "rgba(47,143,77,0.25)" },
+  nys: { bg: colors.nysPurpleBg, fg: colors.nysPurple, border: "rgba(107,91,181,0.2)" },
+  "hours-open": { bg: colors.accentSageBg, fg: colors.good, border: "rgba(47,143,77,0.25)" },
+  "hours-closed": { bg: colors.alertBg, fg: colors.alert, border: "rgba(176,80,63,0.2)" },
+  "hours-unknown": { bg: colors.neutralChipBg, fg: colors.neutralChipText, border: colors.border },
+  category: { bg: "transparent", fg: colors.textTertiary },
+  walk: { bg: colors.accentSkyBg, fg: colors.accentSky },
+  protein: { bg: colors.accentSageBg, fg: colors.good },
+  cal: { bg: colors.cautionBg, fg: colors.caution },
+  price: { bg: colors.neutralChipBg, fg: colors.textPrimary },
+  est: { bg: "transparent", fg: colors.textMuted },
+  fits: { bg: colors.accentSageBg, fg: colors.good, border: "rgba(47,143,77,0.25)" },
+  verified: { bg: colors.accentSageBg, fg: colors.good, border: "rgba(47,143,77,0.25)" },
+  recheck: { bg: colors.verifiedAmberBg, fg: colors.verifiedAmber, border: "#F0E3B5" },
+  neutral: { bg: colors.neutralChipBg, fg: colors.textTertiary },
 };
 
-export function Chip({ label, variant }: ChipProps) {
-  const theme = chipTheme[variant];
+const BOLD_TONES = new Set<ChipTone>(["grade", "nys", "fits", "verified", "recheck", "hours-open", "hours-closed", "hours-unknown"]);
 
+export function Chip({
+  label,
+  tone,
+  icon,
+  accessibilityLabel,
+}: {
+  label: string;
+  tone: ChipTone;
+  icon?: string;
+  accessibilityLabel?: string;
+}) {
+  const t = TONES[tone];
+  const isCategory = tone === "category";
   return (
-    <View style={[styles.chip, { backgroundColor: theme.bg, borderColor: theme.bg }]}>
-      <View style={[styles.dot, { backgroundColor: theme.dot }]} />
-      <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
+    <View
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={accessibilityLabel ?? label}
+      style={[
+        styles.chip,
+        { backgroundColor: t.bg },
+        t.border ? { borderWidth: 1, borderColor: t.border } : null,
+        isCategory ? styles.categoryChip : null,
+      ]}
+    >
+      <Text
+        style={[
+          styles.label,
+          { color: t.fg },
+          BOLD_TONES.has(tone) ? styles.bold : null,
+          isCategory ? styles.categoryLabel : null,
+          tabularNums,
+        ]}
+        numberOfLines={1}
+      >
+        {icon ? `${icon} ` : ""}
+        {label}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: 999,
-    borderWidth: 1,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    alignSelf: 'flex-start',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    alignSelf: "flex-start",
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6,
-  },
+  categoryChip: { paddingHorizontal: 0, paddingVertical: 0 },
   label: {
     fontSize: 11,
-    fontWeight: '600',
-    fontFamily: `${fonts.body}_600SemiBold`,
+    fontFamily: `${fonts.body}_500Medium`,
+  },
+  bold: { fontFamily: `${fonts.body}_700Bold` },
+  categoryLabel: {
+    fontFamily: `${fonts.body}_700Bold`,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    fontSize: 10,
   },
 });

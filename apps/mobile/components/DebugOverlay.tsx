@@ -2,11 +2,11 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView } from "react-native";
 import * as Location from "expo-location";
 import { colors, fonts, radius } from "../theme/tokens";
-import { getBundledCount, getBundledNearby } from "../lib/bundledRestaurants";
+import { getSeedInfo, getSeedNearMe } from "../lib/bundledRestaurants";
 
 interface DebugInfo {
-  bundledTotal: number;
-  bundledNearby: number;
+  seedCells: number;
+  seedNearestCell: string;
   lat: number;
   lng: number;
   accuracy: number | null;
@@ -38,10 +38,10 @@ export function DebugOverlay() {
       }
     } catch {}
 
-    const nearby = getBundledNearby(lat, lng, 2500, 999);
+    const seeded = getSeedNearMe(lat, lng, "lunch");
     setInfo({
-      bundledTotal: getBundledCount(),
-      bundledNearby: nearby.length,
+      seedCells: getSeedInfo().cells,
+      seedNearestCell: seeded ? `${seeded.cellLabel} (${Math.round(seeded.cellDistanceM / 100) / 10}km)` : "none",
       lat,
       lng,
       accuracy,
@@ -72,8 +72,8 @@ export function DebugOverlay() {
 
             {info && (
               <ScrollView>
-                <Row label="Bundled total" value={`${info.bundledTotal}`} />
-                <Row label="Within 2.5km" value={`${info.bundledNearby}`} />
+                <Row label="Seed cells" value={`${info.seedCells}`} />
+                <Row label="Nearest cell" value={info.seedNearestCell} />
                 <Row label="Location" value={`${info.lat.toFixed(4)}, ${info.lng.toFixed(4)}`} />
                 <Row label="Source" value={info.source} />
                 <Row label="GPS accuracy" value={info.accuracy != null ? `${info.accuracy.toFixed(0)}m` : "N/A"} />

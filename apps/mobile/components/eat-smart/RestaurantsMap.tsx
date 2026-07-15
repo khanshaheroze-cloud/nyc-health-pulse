@@ -18,6 +18,11 @@ export interface MapPin {
   lng: number;
   score: number;
   name: string;
+  /** Liveness-gated / chain-convenience venues: dimmed gray pin, no score. */
+  dimmed?: boolean;
+  /** Honest reason shown on the dimmed pin's tap bubble ("Permanently
+   *  closed — report if wrong", "Chain convenience store — not ranked"…). */
+  label?: string | null;
 }
 
 interface Props {
@@ -37,10 +42,16 @@ export function RestaurantsMap({ pins, userLat, userLng, onPinPress }: Props) {
   }, []);
 
   const html = useMemo(() => {
+    const esc = (v: string) => v.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
     const markersJs = pins
       .map((p) => {
+        const escapedId = esc(p.id);
+        if (p.dimmed) {
+          // Excluded venues: dimmed, labeled, still tappable (opens the sheet
+          // with the same honest label — never a dead pin).
+          return `addDimmedPin(map,[${p.lng},${p.lat}],'${escapedId}','${esc(p.label ?? "Not ranked")}');`;
+        }
         const c = scoreColor(p.score);
-        const escapedId = p.id.replace(/'/g, "\\'");
         return `addPin(map,[${p.lng},${p.lat}],'${escapedId}','${c}',${p.score});`;
       })
       .join("\n");
@@ -59,6 +70,8 @@ export function RestaurantsMap({ pins, userLat, userLng, onPinPress }: Props) {
   .pin{width:30px;height:30px;border-radius:15px;display:flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:pointer;transition:transform .15s}
   .pin:active{transform:scale(1.2)}
   .pin-score{font-size:10px;font-weight:800;color:#fff;line-height:1}
+  .pin-dim{background:#9A9F9A;opacity:0.7;width:24px;height:24px;border-radius:12px}
+  .mapboxgl-popup-content{font-family:sans-serif;font-size:11px;color:#1A1A1A;padding:6px 10px;border-radius:8px}
 </style></head><body>
 <div id="map"></div>
 <script>
@@ -76,6 +89,17 @@ function addPin(map,lnglat,id,bg,score){
   new mapboxgl.Marker({element:el,anchor:'center'})
     .setLngLat(lnglat)
     .addTo(map);
+}
+
+function addDimmedPin(map,lnglat,id,label){
+  var el=document.createElement('div');
+  el.className='pin pin-dim';
+  el.innerHTML='<span class="pin-score">✕</span>';
+  el.addEventListener('click',function(){
+    window.ReactNativeWebView.postMessage(JSON.stringify({type:'pin',id:id}));
+  });
+  var m=new mapboxgl.Marker({element:el,anchor:'center'}).setLngLat(lnglat).addTo(map);
+  m.setPopup(new mapboxgl.Popup({offset:16,closeButton:false}).setText(label));
 }
 
 var map=new mapboxgl.Map({

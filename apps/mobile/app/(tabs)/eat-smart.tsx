@@ -1,301 +1,151 @@
-import { useState, useEffect, useCallback } from "react";
+/* ── Eat Smart — full parity with the frozen web product (July 14 2026) ──────
+ * Renders SERVER intelligence via useNearMe: ranked five (under-$15 anchor) →
+ * "Worth a splurge · over $15" → "Nearby · ordering guidance only". Sort +
+ * filter chips re-order/subset the fetched set client-side (idempotent, no
+ * refetch, no accumulation — web round-6 semantics). Keys are restaurantId,
+ * always. Excluded venues render dimmed on the map with their livenessLabel.
+ */
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
   RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import * as Location from "expo-location";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { colors, fonts, radius } from "../../theme/tokens";
-import { IconCamera, IconFileText, IconMap, IconBookmark } from "../../components/ui/Icons";
-import { PageTitle } from "../../components/ui/PageTitle";
-import { SectionLabel } from "../../components/ui/SectionLabel";
-import { Card } from "../../components/ui/Card";
-import { Badge } from "../../components/ui/Badge";
-import { ButtonOutline } from "../../components/ui/ButtonOutline";
-import { RestaurantsMap, type MapPin } from "../../components/eat-smart/RestaurantsMap";
-import { RestaurantDetailModal } from "../../components/RestaurantDetailModal";
-import { getMenuForRestaurant } from "../../lib/core/smart-menu/menuResolver";
-import { fetchNearbyRestaurants, detectChainSlug, ALL_CHAIN_ENTRIES, type DOHMHRestaurant } from "../../lib/nearbyRestaurants";
-import { getBundledNearby, type BundledRestaurant } from "../../lib/bundledRestaurants";
-import { getTopPicks } from "../../lib/core/smart-menu/topPicks";
-import type { RestaurantMenu } from "../../lib/core/smart-menu/types";
 import * as Haptics from "expo-haptics";
+import { colors, fonts, radius, typography } from "../../theme/tokens";
+import { IconCamera, IconFileText } from "../../components/ui/Icons";
+import { Card } from "../../components/ui/Card";
+import { SkeletonCard } from "../../components/ui/SkeletonShimmer";
+import { RestaurantsMap } from "../../components/eat-smart/RestaurantsMap";
+import { VenueCard } from "../../components/eat-smart/VenueCard";
+import { VenueSheet } from "../../components/eat-smart/VenueSheet";
+import { useNearMe } from "../../lib/useNearMe";
+import { sectionResults, hasPlacesData, SORT_OPTIONS, type FilterChip, type SortKey } from "../../lib/results";
+import { detectMealParam, mealLabel, MEAL_OPTIONS } from "../../lib/daypart";
+import { readRemainingMacros, type RemainingMacros } from "../../lib/fitsYourDay";
+import { resetLocationCache } from "../../lib/location";
+import { appendLogEntry } from "../../lib/foodLog";
+import { detectLogSlot } from "../../lib/daypart";
+import type { ApiRestaurant, MealParam } from "../../lib/types";
 
-/* ------------------------------------------------------------------ */
-/*  Data                                                               */
-/* ------------------------------------------------------------------ */
-
-interface Pick {
-  medal: string;
-  name: string;
-  cuisine: string;
-  item: string;
-  score: number;
-  cal: number;
-  protein: number;
-  distance: string;
-  distanceMeters: number;
-  badges: Array<"protein" | "fiber" | "smart">;
-  lat?: number;
-  lng?: number;
-  chainSlug: string | null;
-}
-
-const BADGE_LABELS: Record<string, string> = {
-  protein: "High Protein",
-  fiber: "High Fiber",
-  smart: "Smart Pick",
-};
-
-function formatDistance(m: number): string {
-  const blocks = Math.round(m / 80);
-  if (blocks <= 20) return `${blocks} blks`;
-  return `${(m / 1609).toFixed(1)} mi`;
-}
-
-function getMealIcon(): string {
-  const h = new Date().getHours();
-  if (h >= 5 && h < 11) return "☀️";
-  if (h >= 11 && h < 15) return "🥗";
-  if (h >= 15 && h < 20) return "🌙";
-  return "🌃";
-}
-
-function getMealLabel(): string {
-  const h = new Date().getHours();
-  if (h >= 5 && h < 11) return "Breakfast";
-  if (h >= 11 && h < 15) return "Lunch";
-  if (h >= 15 && h < 20) return "Dinner";
-  return "Late Night";
-}
-
-function buildPickFromDOHMH(r: DOHMHRestaurant, idx: number): Pick {
-  const slug = detectChainSlug(r.dba);
-  const menu = getMenuForRestaurant(slug, r.cuisine, r.dba);
-  const topPicks = menu ? getTopPicks(menu, 1) : [];
-  const top = topPicks[0];
-
-  const medals = ["🥇", "🥈", "🥉"];
-  const badges: Array<"protein" | "fiber" | "smart"> = [];
-  if (top) {
-    if (top.protein >= 25) badges.push("protein");
-    if (top.fiber != null && top.fiber >= 5) badges.push("fiber");
-    if (top.pulseScore >= 75) badges.push("smart");
-  }
-
-  return {
-    medal: idx < 3 ? medals[idx] : `${idx + 1}`,
-    name: r.dba,
-    cuisine: r.cuisine,
-    item: top?.name ?? "Menu item",
-    score: top?.pulseScore ?? 65,
-    cal: top?.calories ?? 400,
-    protein: top?.protein ?? 20,
-    distance: formatDistance(r.distance),
-    distanceMeters: r.distance,
-    badges: badges.slice(0, 2),
-    lat: r.lat,
-    lng: r.lng,
-    chainSlug: slug,
-  };
-}
-
-function buildPickFromBundled(r: BundledRestaurant, idx: number): Pick {
-  const slug = r.chainSlug ?? detectChainSlug(r.name);
-  const menu = getMenuForRestaurant(slug ?? null, r.cuisine, r.name);
-  const topPicks = menu ? getTopPicks(menu, 1) : [];
-  const top = topPicks[0];
-
-  const medals = ["🥇", "🥈", "🥉"];
-  const badges: Array<"protein" | "fiber" | "smart"> = [];
-  if (top) {
-    if (top.protein >= 25) badges.push("protein");
-    if (top.fiber != null && top.fiber >= 5) badges.push("fiber");
-    if (top.pulseScore >= 75) badges.push("smart");
-  }
-
-  return {
-    medal: idx < 3 ? medals[idx] : `${idx + 1}`,
-    name: r.name,
-    cuisine: r.cuisine,
-    item: top?.name ?? "Menu item",
-    score: top?.pulseScore ?? 65,
-    cal: top?.calories ?? 400,
-    protein: top?.protein ?? 20,
-    distance: formatDistance(r.distance),
-    distanceMeters: r.distance,
-    badges: badges.slice(0, 2),
-    lat: r.lat,
-    lng: r.lng,
-    chainSlug: slug ?? null,
-  };
-}
-
-function buildChainPicks(): Pick[] {
-  return ALL_CHAIN_ENTRIES.map((chain, idx) => {
-    const menu = getMenuForRestaurant(chain.slug, chain.cuisine, chain.name);
-    const topPicks = menu ? getTopPicks(menu, 1) : [];
-    const top = topPicks[0];
-    const badges: Array<"protein" | "fiber" | "smart"> = [];
-    if (top) {
-      if (top.protein >= 25) badges.push("protein");
-      if (top.pulseScore >= 75) badges.push("smart");
-    }
-    return {
-      medal: `${chain.icon}`,
-      name: chain.name,
-      cuisine: chain.cuisine,
-      item: top?.name ?? "Best pick",
-      score: top?.pulseScore ?? 70,
-      cal: top?.calories ?? 450,
-      protein: top?.protein ?? 25,
-      distance: "",
-      distanceMeters: 0,
-      badges: badges.slice(0, 2),
-      lat: undefined,
-      lng: undefined,
-      chainSlug: chain.slug,
-    };
-  }).sort((a, b) => b.score - a.score);
-}
-
-type Tab = "near" | "chains" | "saved";
-
-/* ------------------------------------------------------------------ */
-/*  Screen                                                             */
-/* ------------------------------------------------------------------ */
+const FILTER_CHIPS: { id: FilterChip; label: string }[] = [
+  { id: "high-protein", label: "High protein" },
+  { id: "under-15", label: "Under $15" },
+  { id: "quick", label: "Quick (<5 min)" },
+  { id: "open-now", label: "Open now" },
+];
 
 export default function EatSmartScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
-  const [activeTab, setActiveTab] = useState<Tab>("near");
-  const [picks, setPicks] = useState<Pick[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [locationError, setLocationError] = useState(false);
+
+  const [meal, setMeal] = useState<MealParam>(() => detectMealParam());
+  const { status, data, offline, offlineCellLabel, origin, refresh, errorMessage } = useNearMe(meal);
+
+  const [sortKey, setSortKey] = useState<SortKey>("score");
+  const [chips, setChips] = useState<Set<FilterChip>>(() => new Set<FilterChip>(["high-protein"]));
   const [refreshing, setRefreshing] = useState(false);
-  const [saved, setSaved] = useState<string[]>([]);
-  const [userLat, setUserLat] = useState(40.7440);
-  const [userLng, setUserLng] = useState(-73.9485);
-  const [modalPick, setModalPick] = useState<Pick | null>(null);
-  const [modalMenu, setModalMenu] = useState<RestaurantMenu | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [sheetVenue, setSheetVenue] = useState<ApiRestaurant | null>(null);
+  const [remaining, setRemaining] = useState<RemainingMacros | null>(null);
 
-  const openPickDetail = useCallback((pick: Pick) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const menu = getMenuForRestaurant(pick.chainSlug, pick.cuisine, pick.name);
-    setModalPick(pick);
-    setModalMenu(menu);
-    setModalVisible(true);
+  useEffect(() => {
+    readRemainingMacros().then(setRemaining).catch(() => setRemaining(null));
+  }, [data]);
+
+  const sections = useMemo(
+    () => sectionResults(data?.restaurants ?? [], { sort: sortKey, chips }),
+    [data, sortKey, chips],
+  );
+  const excluded = data?.excluded ?? [];
+  const showAttribution = data ? hasPlacesData(sections, excluded) : false;
+
+  const toggleChip = useCallback((id: FilterChip) => {
+    Haptics.selectionAsync();
+    setChips((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }, []);
-
-  const closeModal = useCallback(() => {
-    setModalVisible(false);
-    setModalPick(null);
-    setModalMenu(null);
-  }, []);
-
-  const loadSaved = useCallback(async () => {
-    const raw = await AsyncStorage.getItem("pulse-eat-saved");
-    if (raw) try { setSaved(JSON.parse(raw)); } catch {}
-  }, []);
-
-  const toggleSave = async (name: string) => {
-    const next = saved.includes(name)
-      ? saved.filter((s) => s !== name)
-      : [...saved, name];
-    setSaved(next);
-    await AsyncStorage.setItem("pulse-eat-saved", JSON.stringify(next));
-  };
-
-  const [chainPicks] = useState<Pick[]>(buildChainPicks);
-
-  const loadNearby = useCallback(async () => {
-    setFetchError(null);
-    setLocationError(false);
-    loadSaved();
-
-    let lat = userLat;
-    let lng = userLng;
-
-    // 1. IMMEDIATELY show bundled data — no waiting on network
-    const bundled = getBundledNearby(lat, lng, 2500, 50);
-    console.log("[EatSmart] bundled count:", bundled.length);
-    const bundledPicks = bundled.map((r, i) => buildPickFromBundled(r, i));
-    bundledPicks.sort((a, b) => b.score - a.score);
-    setPicks(bundledPicks.slice(0, 30));
-    setLoading(false);
-
-    // 2. Try to get real GPS coords
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        console.log("[EatSmart] location permission denied");
-        setLocationError(true);
-        return;
-      }
-      const loc = await Promise.race([
-        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-        new Promise<never>((_, rej) => setTimeout(() => rej(new Error("Location timeout")), 8000)),
-      ]);
-
-      lat = loc.coords.latitude;
-      lng = loc.coords.longitude;
-      console.log("[EatSmart] got GPS", { lat, lng, accuracy: loc.coords.accuracy });
-      setUserLat(lat);
-      setUserLng(lng);
-
-      // Re-sort bundled data by real location
-      const reSorted = getBundledNearby(lat, lng, 2500, 50);
-      const rePicks = reSorted.map((r, i) => buildPickFromBundled(r, i));
-      rePicks.sort((a, b) => b.score - a.score);
-      setPicks(rePicks.slice(0, 30));
-    } catch (e: any) {
-      console.warn("[EatSmart] GPS failed, keeping default coords", e?.message);
-    }
-
-    // 3. Try DOHMH live in background — merge extra results if it works
-    fetchNearbyRestaurants(lat, lng, 1500)
-      .then((live) => {
-        console.log("[EatSmart] DOHMH live count:", live.length);
-        if (live.length === 0) return;
-        const livePicks = live.map((r, i) => buildPickFromDOHMH(r, i));
-        setPicks((prev) => {
-          const seen = new Set(prev.map((p) => `${p.lat?.toFixed(4)},${p.lng?.toFixed(4)}`));
-          const merged = [...prev];
-          for (const lp of livePicks) {
-            const key = `${lp.lat?.toFixed(4)},${lp.lng?.toFixed(4)}`;
-            if (!seen.has(key)) { merged.push(lp); seen.add(key); }
-          }
-          merged.sort((a, b) => b.score - a.score);
-          return merged.slice(0, 40);
-        });
-      })
-      .catch((e) => {
-        console.warn("[EatSmart] DOHMH live failed (bundled still showing):", e?.message);
-      });
-  }, [loadSaved, userLat, userLng]);
-
-  useEffect(() => { loadNearby(); }, []);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadNearby();
-    setRefreshing(false);
-  }, [loadNearby]);
+    refresh();
+    setTimeout(() => setRefreshing(false), 800);
+  }, [refresh]);
 
-  const allKnown = [...picks, ...chainPicks];
-  const savedPicks = allKnown.filter((p) => saved.includes(p.name));
-  const displayPicks = activeTab === "chains" ? chainPicks : activeTab === "saved" ? savedPicks : picks;
+  const updateLocation = useCallback(() => {
+    Haptics.selectionAsync();
+    resetLocationCache();
+    refresh();
+  }, [refresh]);
+
+  const openSheet = useCallback((venue: ApiRestaurant) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSheetVenue(venue);
+  }, []);
+
+  const quickLog = useCallback(async (venue: ApiRestaurant) => {
+    const pick = venue.topPicks[0];
+    if (!pick) return;
+    await appendLogEntry({
+      name: `${venue.restaurantName} — ${pick.name}`,
+      calories: pick.calories,
+      protein: pick.protein,
+      carbs: pick.carbs ?? 0,
+      fat: pick.fat ?? 0,
+      mealSlot: detectLogSlot(),
+      source: "venue-pick",
+      restaurantId: venue.restaurantId,
+      restaurantName: venue.restaurantName,
+      pulseScore: pick.pulseScore,
+    });
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    readRemainingMacros().then(setRemaining).catch(() => {});
+  }, []);
+
+  // Map pins: ranked + splurge score bubbles, excluded dimmed + labeled.
+  const mapPins = useMemo(() => {
+    const ranked = [...sections.ranked, ...sections.splurge].map((r) => ({
+      id: r.restaurantId,
+      lat: r.lat,
+      lng: r.lng,
+      score: r.topPicks[0]?.pulseScore ?? 0,
+      name: r.restaurantName,
+    }));
+    const gated = excluded.map((r) => ({
+      id: r.restaurantId,
+      lat: r.lat,
+      lng: r.lng,
+      score: 0,
+      name: r.restaurantName,
+      dimmed: true,
+      label: r.livenessLabel ?? "Not ranked",
+    }));
+    return [...ranked, ...gated];
+  }, [sections, excluded]);
+
+  const onPinPress = useCallback(
+    (pin: { id: string }) => {
+      const all = [...(data?.restaurants ?? []), ...excluded];
+      const venue = all.find((r) => r.restaurantId === pin.id);
+      if (venue) openSheet(venue);
+    },
+    [data, excluded, openSheet],
+  );
+
+  const headline =
+    sections.ranked.length > 0
+      ? `${sections.ranked.length} ${mealLabel(meal).toLowerCase()} spot${sections.ranked.length === 1 ? "" : "s"} near you`
+      : "Spots near you";
 
   return (
     <ScrollView
@@ -304,172 +154,201 @@ export default function EatSmartScreen() {
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentSage} />}
     >
-      <PageTitle>Eat Smart</PageTitle>
-      <Text style={styles.subtitle}>Snack picks scored for your goals.</Text>
+      <Text style={styles.pageTitle}>Eat Smart</Text>
 
-      {/* ── Time-of-day pill ── */}
-      <View style={{flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14}}>
-        <View style={{backgroundColor: colors.accentSageBg, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", gap: 4}}>
-          <Text style={{fontSize: 12}}>{getMealIcon()}</Text>
-          <Text style={{fontSize: 11, fontWeight: "700", color: colors.accentSage, fontFamily: `${fonts.body}_700Bold`}}>{getMealLabel().toUpperCase()} · {new Date().toLocaleTimeString([], {hour: "numeric", minute: "2-digit"})}</Text>
-        </View>
-        <Text style={{fontSize: 11, color: colors.textTertiary, fontFamily: `${fonts.body}_400Regular`}}>{picks.length} picks within range</Text>
-      </View>
+      {/* Meal selector — the web's "When" control */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mealRow} contentContainerStyle={{ gap: 8 }}>
+        {MEAL_OPTIONS.map((opt) => {
+          const active = meal === opt.meal;
+          return (
+            <TouchableOpacity
+              key={opt.meal}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setMeal(opt.meal);
+              }}
+              style={[styles.mealChip, active && styles.mealChipActive]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={`Show ${mealLabel(opt.meal)} picks`}
+            >
+              <Text style={[styles.mealChipText, active && styles.mealChipTextActive]}>
+                {opt.icon} {mealLabel(opt.meal)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
-      {/* ── Top tabs ── */}
-      <View style={styles.tabBar}>
-        {(["near", "chains", "saved"] as Tab[]).map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tab, activeTab === tab && styles.tabActive]}
-            onPress={() => setActiveTab(tab)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-              {tab === "near" ? "Near Me" : tab === "chains" ? "Chains" : "Saved"}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* ── Mapbox map ── */}
-      {activeTab === "near" && (
-        <Card style={{ padding: 0, overflow: "hidden", marginBottom: 14, height: 180 }}>
-          <RestaurantsMap
-            userLat={userLat}
-            userLng={userLng}
-            pins={picks
-              .filter((p) => p.lat && p.lng)
-              .map((p) => ({
-                id: p.name,
-                lat: p.lat!,
-                lng: p.lng!,
-                score: p.score,
-                name: p.name,
-              }))}
-            onPinPress={(pin) => {
-              const pick = picks.find((p) => p.name === pin.id);
-              if (pick) openPickDetail(pick);
-            }}
-          />
-        </Card>
-      )}
-
-      {/* ── Section label ── */}
-      <SectionLabel icon="🥇">
-        {activeTab === "near" ? "TOP PICKS NEAR YOU" : activeTab === "chains" ? "ALL CHAINS" : "SAVED PICKS"}
-      </SectionLabel>
-
-      {/* ── Loading ── */}
-      {loading && activeTab === "near" && (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={colors.accentSage} />
-          <Text style={styles.loadingText}>Finding food near you...</Text>
-        </View>
-      )}
-
-      {/* ── Location error banner ── */}
-      {!loading && locationError && activeTab === "near" && (
-        <View style={styles.permBanner}>
-          <Text style={styles.permBannerText}>Location denied. Enable it to find food near you.</Text>
-          <TouchableOpacity
-            onPress={() => { Haptics.selectionAsync(); Location.requestForegroundPermissionsAsync().then(({ status }) => { if (status === "granted") setLocationError(false); }); }}
-            style={styles.permBtn}
-          >
-            <Text style={styles.permBtnText}>Open Settings</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* ── Fetch error banner ── */}
-      {!loading && fetchError && activeTab === "near" && !locationError && (
-        <View style={styles.permBanner}>
-          <Text style={[styles.permBannerText, { color: "#721c24" }]}>
-            Couldn't load nearby restaurants: {fetchError}
+      {/* Offline banner — honest about what's being shown */}
+      {offline && (
+        <View style={styles.offlineBanner} accessibilityRole="alert">
+          <Text style={styles.offlineText}>
+            Offline — showing saved results{offlineCellLabel ? ` near ${offlineCellLabel}` : ""}
           </Text>
-          <TouchableOpacity
-            onPress={() => { Haptics.selectionAsync(); loadNearby(); }}
-            style={[styles.permBtn, { backgroundColor: "#721c24" }]}
-          >
-            <Text style={styles.permBtnText}>Retry</Text>
-          </TouchableOpacity>
         </View>
       )}
 
-      {/* ── Empty saved state ── */}
-      {activeTab === "saved" && savedPicks.length === 0 && (
-        <Card>
-          <Text style={styles.emptyText}>
-            Save items by tapping the bookmark on any pick. They'll show up here for quick re-order.
+      {/* Origin transparency (web parity) */}
+      {origin && status === "ready" && (
+        <Text style={styles.originLine}>
+          Near <Text style={styles.originLabel}>{origin.label}</Text>
+          {" · wrong? "}
+          <Text style={styles.originUpdate} onPress={updateLocation} accessibilityRole="button">
+            Update location
           </Text>
-        </Card>
+        </Text>
       )}
 
-      {/* ── Picks list ── */}
-      {(!loading || activeTab !== "near") && displayPicks.length > 0 && (
-        <Card>
-          {displayPicks.map((pick, idx) => {
-            const isHero = activeTab === "near" && idx < 3;
-            const heroColors = ["#D4AF37", "#A8A8A8", "#CD7F32"];
+      {/* Map */}
+      {status === "ready" && mapPins.length > 0 && (
+        <>
+          <Card style={{ padding: 0, overflow: "hidden", marginBottom: 4, height: 190 }}>
+            <RestaurantsMap
+              userLat={origin?.lat ?? 40.744}
+              userLng={origin?.lng ?? -73.9485}
+              pins={mapPins}
+              onPinPress={onPinPress}
+            />
+          </Card>
+          {showAttribution && <Text style={styles.attribution}>Hours &amp; status via Google</Text>}
+        </>
+      )}
+
+      {/* Sort */}
+      <View style={styles.sortRow}>
+        <Text style={styles.sortLabel}>Sort:</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+          {SORT_OPTIONS.map((o) => {
+            const active = sortKey === o.key;
             return (
-              <View key={pick.name}>
-                {idx > 0 && <View style={styles.divider} />}
-                <TouchableOpacity
-                  style={[styles.pickRow, isHero && {borderLeftWidth: 3, borderLeftColor: heroColors[idx], paddingLeft: 10, marginLeft: -4}]}
-                  activeOpacity={0.7}
-                  onPress={() => openPickDetail(pick)}
-                >
-                  <Text style={styles.medal}>{pick.medal}</Text>
-                  <View style={styles.pickInfo}>
-                    <Text style={[styles.pickTitle, isHero && {fontSize: 15}]}>
-                      <Text style={styles.pickName}>{pick.name}</Text>
-                      {" — "}
-                      {pick.item}
-                    </Text>
-                    <Text style={styles.pickMeta}>
-                      {pick.cal} cal · {pick.protein}g protein · {pick.distance}
-                    </Text>
-                    {pick.badges.length > 0 && (
-                      <View style={styles.badgeRow}>
-                        {pick.badges.map((b) => (
-                          <Badge key={b} variant={b} label={BADGE_LABELS[b]} />
-                        ))}
-                      </View>
-                    )}
-                    {isHero && (
-                      <TouchableOpacity style={{marginTop: 6}} activeOpacity={0.7} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/log" as any); }}>
-                        <Text style={{fontSize: 11, fontWeight: "700", color: colors.accentSage, fontFamily: `${fonts.body}_700Bold`}}>Log this →</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                  <View style={styles.pickRight}>
-                    <View style={[styles.pulseScore, isHero && {backgroundColor: pick.score >= 80 ? "#E8F5E9" : pick.score >= 60 ? "#FFF8E1" : "#FFEBEE", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 4}]}>
-                      <Text style={[styles.scoreNum, {color: pick.score >= 80 ? colors.good : pick.score >= 60 ? colors.caution : colors.alert}]}>{pick.score}</Text>
-                      <Text style={styles.scoreLbl}>PULSE</Text>
-                    </View>
-                    <TouchableOpacity onPress={() => toggleSave(pick.name)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <IconBookmark
-                        size={16}
-                        color={saved.includes(pick.name) ? colors.accentSage : colors.textTertiary}
-                        filled={saved.includes(pick.name)}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                key={o.key}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setSortKey(o.key);
+                }}
+                style={[styles.sortChip, active && styles.sortChipActive]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <Text style={[styles.sortChipText, active && styles.sortChipTextActive]}>{o.label}</Text>
+              </TouchableOpacity>
             );
           })}
-        </Card>
+        </ScrollView>
+      </View>
+
+      {/* Filters */}
+      <View style={styles.filterRow}>
+        {FILTER_CHIPS.map((f) => {
+          const active = chips.has(f.id);
+          return (
+            <TouchableOpacity
+              key={f.id}
+              onPress={() => toggleChip(f.id)}
+              style={[styles.filterChip, active && styles.filterChipActive]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+            >
+              <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+                {active ? "✓ " : ""}
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Loading skeletons — never an infinite spinner */}
+      {status === "loading" && (
+        <View style={{ gap: 10 }}>
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </View>
       )}
 
-      {/* ── Action buttons (below picks) ── */}
-      <Text style={{fontSize: 11, color: colors.textTertiary, fontFamily: `${fonts.body}_400Regular`, textAlign: "center", marginTop: 14, marginBottom: 8}}>Can't find it?</Text>
+      {/* Error + retry (12s budget upstream) */}
+      {status === "error" && (
+        <View style={styles.errorBox} accessibilityRole="alert">
+          <Text style={styles.errorText}>Couldn't load spots{errorMessage ? ` — ${errorMessage}` : ""}.</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={refresh} accessibilityRole="button">
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Ranked five */}
+      {status === "ready" && (
+        <>
+          <Text style={styles.headline}>{headline}</Text>
+          {sections.ranked.length === 0 && (
+            <Card>
+              <Text style={styles.emptyText}>
+                No {mealLabel(meal).toLowerCase()} picks match these filters within a 10-minute walk. Try clearing a
+                filter.
+              </Text>
+            </Card>
+          )}
+          {sections.ranked.map((venue) => (
+            <VenueCard
+              key={venue.restaurantId}
+              venue={venue}
+              onPress={openSheet}
+              onLog={quickLog}
+              fitsCalLeft={remaining?.calLeft ?? null}
+            />
+          ))}
+
+          {/* Worth a splurge */}
+          {sections.splurge.length > 0 && (
+            <>
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>WORTH A SPLURGE · OVER $15</Text>
+                <View style={styles.dividerLine} />
+              </View>
+              {sections.splurge.map((venue) => (
+                <VenueCard
+                  key={venue.restaurantId}
+                  venue={venue}
+                  onPress={openSheet}
+                  onLog={quickLog}
+                  fitsCalLeft={remaining?.calLeft ?? null}
+                />
+              ))}
+            </>
+          )}
+
+          {/* Guidance only */}
+          {sections.guidance.length > 0 && (
+            <>
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>NEARBY · ORDERING GUIDANCE ONLY</Text>
+                <View style={styles.dividerLine} />
+              </View>
+              {sections.guidance.map((venue) => (
+                <VenueCard key={venue.restaurantId} venue={venue} onPress={openSheet} />
+              ))}
+            </>
+          )}
+
+          {showAttribution && (
+            <Text style={styles.attributionFooter}>Venue status, hours &amp; locations powered by Google</Text>
+          )}
+        </>
+      )}
+
+      {/* Fallback tools */}
+      <Text style={styles.cantFind}>Can't find it?</Text>
       <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/scan")} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/scan")} accessibilityRole="button" accessibilityLabel="Scan a barcode">
           <IconCamera size={18} color={colors.accentSage} />
           <Text style={styles.actionLabel}>Scan Barcode</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/ocr")} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/ocr")} accessibilityRole="button" accessibilityLabel="Read a menu with the camera">
           <IconFileText size={18} color={colors.accentSage} />
           <Text style={styles.actionLabel}>Read Menu</Text>
         </TouchableOpacity>
@@ -477,101 +356,114 @@ export default function EatSmartScreen() {
 
       <View style={{ height: tabBarHeight + 40 }} />
 
-      {/* ── Restaurant detail modal ── */}
-      <RestaurantDetailModal
-        restaurant={modalPick ? {
-          name: modalPick.name,
-          cuisine: modalPick.cuisine,
-          grade: null,
-          address: "",
-          lat: modalPick.lat ?? userLat,
-          lng: modalPick.lng ?? userLng,
-          distance: modalPick.distanceMeters,
-          chainSlug: modalPick.chainSlug,
-          isHealthy: modalPick.score >= 75,
-        } : null}
-        menu={modalMenu}
-        visible={modalVisible}
-        onClose={closeModal}
-      />
+      <VenueSheet venue={sheetVenue} visible={sheetVenue !== null} onClose={() => setSheetVenue(null)} />
     </ScrollView>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Styles                                                             */
-/* ------------------------------------------------------------------ */
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 20 },
-  subtitle: {
-    fontSize: 13, color: colors.textSecondary,
-    fontFamily: `${fonts.body}_400Regular`, marginTop: 4, marginBottom: 14,
-  },
+  pageTitle: { ...typography.hero, color: colors.textPrimary, marginBottom: 10 },
 
-  /* Tabs */
-  tabBar: {
-    flexDirection: "row", backgroundColor: colors.surfaceWarm,
-    borderRadius: 12, padding: 4, marginBottom: 14,
+  mealRow: { marginBottom: 10, flexGrow: 0 },
+  mealChip: {
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: colors.surfaceWarm,
+    minHeight: 36,
+    justifyContent: "center",
   },
-  tab: {
-    flex: 1, paddingVertical: 8, alignItems: "center", borderRadius: 10,
-  },
-  tabActive: {
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
-  },
-  tabText: {
-    fontSize: 12, fontWeight: "600", color: colors.textSecondary,
-    fontFamily: `${fonts.body}_600SemiBold`,
-  },
-  tabTextActive: { color: colors.textPrimary },
+  mealChipActive: { backgroundColor: colors.textPrimary },
+  mealChipText: { fontSize: 13, color: colors.textSecondary, fontFamily: `${fonts.body}_600SemiBold` },
+  mealChipTextActive: { color: "#FFFFFF" },
 
-  /* Actions */
-  actionRow: { flexDirection: "row", gap: 10, marginBottom: 14 },
+  offlineBanner: {
+    backgroundColor: colors.verifiedAmberBg,
+    borderWidth: 1,
+    borderColor: "#F0E3B5",
+    borderRadius: radius.sm,
+    padding: 10,
+    marginBottom: 10,
+  },
+  offlineText: { fontSize: 12, color: colors.verifiedAmber, fontFamily: `${fonts.body}_600SemiBold` },
+
+  originLine: { fontSize: 12, color: colors.textTertiary, fontFamily: `${fonts.body}_400Regular`, marginBottom: 10 },
+  originLabel: { color: colors.textPrimary, fontFamily: `${fonts.body}_700Bold` },
+  originUpdate: { color: colors.accentSky, fontFamily: `${fonts.body}_600SemiBold` },
+
+  attribution: { fontSize: 10, color: colors.textMuted, fontFamily: `${fonts.body}_400Regular`, marginBottom: 10 },
+  attributionFooter: { fontSize: 10, color: colors.textMuted, fontFamily: `${fonts.body}_400Regular`, marginTop: 6, marginBottom: 4 },
+
+  sortRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
+  sortLabel: { fontSize: 11, color: colors.textTertiary, fontFamily: `${fonts.body}_500Medium` },
+  sortChip: {
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    minHeight: 32,
+    justifyContent: "center",
+  },
+  sortChipActive: { backgroundColor: colors.accentSageBg, borderColor: colors.accentSage },
+  sortChipText: { fontSize: 12, color: colors.textSecondary, fontFamily: `${fonts.body}_500Medium` },
+  sortChipTextActive: { color: colors.accentSage, fontFamily: `${fonts.body}_700Bold` },
+
+  filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 14 },
+  filterChip: {
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    minHeight: 32,
+    justifyContent: "center",
+  },
+  filterChipActive: { backgroundColor: colors.accentSageBg, borderColor: colors.accentSage },
+  filterChipText: { fontSize: 12, color: colors.textSecondary, fontFamily: `${fonts.body}_500Medium` },
+  filterChipTextActive: { color: colors.accentSage, fontFamily: `${fonts.body}_700Bold` },
+
+  headline: { ...typography.section, color: colors.textPrimary, marginBottom: 10 },
+  emptyText: { fontSize: 13, color: colors.textTertiary, fontFamily: `${fonts.body}_400Regular`, textAlign: "center", paddingVertical: 8 },
+
+  errorBox: {
+    backgroundColor: colors.alertBg,
+    borderRadius: radius.sm,
+    padding: 16,
+    alignItems: "center",
+    gap: 10,
+  },
+  errorText: { fontSize: 13, color: colors.alert, fontFamily: `${fonts.body}_500Medium`, textAlign: "center" },
+  retryBtn: {
+    backgroundColor: colors.alert,
+    borderRadius: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  retryText: { fontSize: 13, color: "#FFFFFF", fontFamily: `${fonts.body}_700Bold` },
+
+  divider: { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 14 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  dividerText: { fontSize: 10, color: colors.textMuted, fontFamily: `${fonts.body}_700Bold`, letterSpacing: 1.2 },
+
+  cantFind: { fontSize: 11, color: colors.textTertiary, fontFamily: `${fonts.body}_400Regular`, textAlign: "center", marginTop: 16, marginBottom: 8 },
+  actionRow: { flexDirection: "row", gap: 10 },
   actionCard: {
-    flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderLight,
-    borderRadius: radius.sm, padding: 14, alignItems: "center", gap: 6,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    padding: 14,
+    alignItems: "center",
+    gap: 6,
+    minHeight: 64,
   },
-  actionLabel: {
-    fontSize: 12, fontWeight: "600", color: colors.textPrimary,
-    fontFamily: `${fonts.body}_600SemiBold`,
-  },
-
-  /* Map */
-  mapView: {
-    height: 180, borderRadius: radius.sm,
-  },
-
-  /* Loading / empty */
-  loadingWrap: { alignItems: "center", paddingVertical: 40 },
-  loadingText: { marginTop: 12, fontSize: 13, color: colors.textSecondary, fontFamily: `${fonts.body}_400Regular` },
-  locErrorText: { fontSize: 13, color: colors.textSecondary, fontFamily: `${fonts.body}_500Medium`, textAlign: "center" },
-  permBanner: {
-    backgroundColor: "#FEF3CD", borderRadius: radius.sm, padding: 14,
-    marginBottom: 14, flexDirection: "row", alignItems: "center", gap: 10,
-  },
-  permBannerText: { flex: 1, fontSize: 12, color: "#856404", fontFamily: `${fonts.body}_500Medium` },
-  permBtn: { backgroundColor: "#856404", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-  permBtnText: { fontSize: 11, fontWeight: "700", color: "#FFF" },
-  emptyText: { fontSize: 13, color: colors.textTertiary, fontFamily: `${fonts.body}_400Regular`, textAlign: "center", paddingVertical: 12 },
-
-  /* Picks */
-  divider: { height: 1, backgroundColor: colors.borderLight, marginVertical: 12 },
-  pickRow: { flexDirection: "row", alignItems: "flex-start" },
-  medal: { fontSize: 20, width: 28, marginTop: 2 },
-  pickInfo: { flex: 1, marginRight: 8 },
-  pickTitle: { fontSize: 14, color: colors.textPrimary, fontFamily: `${fonts.body}_400Regular` },
-  pickName: { fontWeight: "700", fontFamily: `${fonts.body}_700Bold` },
-  pickMeta: { fontSize: 11, color: colors.textTertiary, fontFamily: `${fonts.body}_400Regular`, marginTop: 3 },
-  badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
-
-  /* Pulse Score (stacked) */
-  pickRight: { alignItems: "center", gap: 6 },
-  pulseScore: { alignItems: "center" },
-  scoreNum: { fontSize: 22, color: colors.accentSage, fontFamily: `${fonts.display}_400Regular` },
-  scoreLbl: { fontSize: 9, fontWeight: "700", color: colors.textTertiary, letterSpacing: 0.5 },
+  actionLabel: { fontSize: 12, color: colors.textPrimary, fontFamily: `${fonts.body}_600SemiBold` },
 });
