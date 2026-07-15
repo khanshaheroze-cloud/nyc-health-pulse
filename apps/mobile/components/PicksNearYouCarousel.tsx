@@ -99,7 +99,26 @@ export function PicksNearYouCarousel({ onRankedCount }: { onRankedCount?: (n: nu
         />
       )}
 
-      <VenueSheet venue={sheetVenue} visible={sheetVenue !== null} onClose={() => setSheetVenue(null)} />
+      <VenueSheet
+        venue={sheetVenue}
+        visible={sheetVenue !== null}
+        onClose={() => setSheetVenue(null)}
+        onVerify={(v) => {
+          setSheetVenue(null);
+          router.push({
+            pathname: "/verify",
+            params: {
+              restaurantId: v.restaurantId,
+              camis: v.camis ?? "",
+              placeId: v.placeId ?? "",
+              name: v.restaurantName,
+              address: v.address,
+              lat: String(v.lat),
+              lng: String(v.lng),
+            },
+          } as never);
+        }}
+      />
     </View>
   );
 }

@@ -356,7 +356,26 @@ export default function EatSmartScreen() {
 
       <View style={{ height: tabBarHeight + 40 }} />
 
-      <VenueSheet venue={sheetVenue} visible={sheetVenue !== null} onClose={() => setSheetVenue(null)} />
+      <VenueSheet
+        venue={sheetVenue}
+        visible={sheetVenue !== null}
+        onClose={() => setSheetVenue(null)}
+        onVerify={(v) => {
+          setSheetVenue(null);
+          router.push({
+            pathname: "/verify",
+            params: {
+              restaurantId: v.restaurantId,
+              camis: v.camis ?? "",
+              placeId: v.placeId ?? "",
+              name: v.restaurantName,
+              address: v.address,
+              lat: String(v.lat),
+              lng: String(v.lng),
+            },
+          } as never);
+        }}
+      />
     </ScrollView>
   );
 }

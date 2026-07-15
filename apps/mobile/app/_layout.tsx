@@ -1,7 +1,9 @@
 import { useEffect } from "react";
+import { AppState } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
+import { flushAllQueues } from "../lib/offlineFlush";
 import { useFonts } from "expo-font";
 // Brand fonts (web parity since Round 3): Fraunces display + Inter body.
 // Splash is held until these load, so there is no FOUT flash.
@@ -38,6 +40,16 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
+  // Offline-first: drain queued food logs + verification photos on start and
+  // whenever the app returns to the foreground (phase 6).
+  useEffect(() => {
+    flushAllQueues();
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") flushAllQueues();
+    });
+    return () => sub.remove();
+  }, []);
+
   if (!fontsLoaded && !fontError) {
     return null;
   }
@@ -49,6 +61,8 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="scan" options={{ presentation: "fullScreenModal" }} />
         <Stack.Screen name="ocr" options={{ presentation: "fullScreenModal" }} />
+        <Stack.Screen name="verify" options={{ presentation: "fullScreenModal" }} />
+        <Stack.Screen name="privacy" options={{ presentation: "modal" }} />
         <Stack.Screen name="signin" options={{ presentation: "modal" }} />
         <Stack.Screen name="onboarding" options={{ presentation: "fullScreenModal" }} />
       </Stack>

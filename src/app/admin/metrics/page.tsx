@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { VerificationQueue } from "@/components/admin/VerificationQueue";
 
 export const dynamic = "force-dynamic";
 
@@ -186,9 +187,18 @@ export default async function MetricsPage({
         </p>
       )}
 
+      <h2 className="font-display text-[18px] text-text mt-10 mb-2">Community verification queue</h2>
+      <p className="text-[12px] text-dim mb-3">
+        Photo submissions from the app (&ldquo;Verify this spot&rdquo;). Approve builds the verified-menu
+        record to merge into verified-venues.json; REMOTE-flagged submissions were taken &gt;150m from
+        the venue — extra scrutiny.
+      </p>
+      <VerificationQueue adminKey={key} />
+
       <p className="text-[11px] text-muted mt-6">
         Events: Supabase `events` (cookieless, no PII). &ldquo;—&rdquo; = Supabase not configured or the
-        events migration hasn&apos;t run (hit-rate needs the 20260713_places_hits migration).
+        events migration hasn&apos;t run (hit-rate needs the 20260713_places_hits migration; the
+        verification queue needs 20260714_verification_submissions).
         Engaged-follower count is tracked manually (TikTok/IG).
       </p>
     </div>

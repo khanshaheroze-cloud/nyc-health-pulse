@@ -19,6 +19,7 @@ import { supabase } from "../../lib/supabase";
 import { colors, radius, fonts } from "../../theme/tokens";
 import { Card } from "../../components/ui/Card";
 import { SectionLabel } from "../../components/ui/SectionLabel";
+import { pendingCounts } from "../../lib/offlineFlush";
 import {
   IconTarget,
   IconMapPin,
@@ -77,12 +78,14 @@ const SETTINGS_ROWS: MenuRow[] = [
 const SUPPORT_AUTH: MenuRow[] = [
   { IconComp: IconHelpCircle, label: "Help & FAQ" },
   { IconComp: IconMessageSquare, label: "Send Feedback" },
+  { IconComp: IconHelpCircle, label: "Privacy" },
   { IconComp: IconLogOut, label: "Sign Out", isSignOut: true },
 ];
 
 const SUPPORT_GUEST: MenuRow[] = [
   { IconComp: IconHelpCircle, label: "Help & FAQ" },
   { IconComp: IconMessageSquare, label: "Send Feedback" },
+  { IconComp: IconHelpCircle, label: "Privacy" },
   { IconComp: IconLogIn, label: "Sign In", isSignIn: true },
 ];
 
@@ -96,6 +99,9 @@ export default function ProfileScreen() {
   const [height, setHeight] = useState<string | null>(null);
   const [weight, setWeight] = useState<string | null>(null);
   const [calGoal, setCalGoal] = useState<string>("2,000");
+  // Community Verification (phase 5): contributor credit + visible pending state
+  const [verifiedCount, setVerifiedCount] = useState(0);
+  const [pending, setPending] = useState<{ verifications: number; logSync: number }>({ verifications: 0, logSync: 0 });
 
   /* ── Modal state ── */
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
@@ -229,6 +235,15 @@ export default function ProfileScreen() {
         setCalGoal("2,000");
       }
     }
+
+    // Verification credit + visible offline-pending state (phases 5-6)
+    try {
+      const count = parseInt((await AsyncStorage.getItem("pulse-verify-count")) ?? "0", 10);
+      setVerifiedCount(Number.isFinite(count) ? count : 0);
+    } catch {}
+    try {
+      setPending(await pendingCounts());
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -284,6 +299,7 @@ export default function ProfileScreen() {
       else if (item.isSignIn) router.push("/signin");
       else if (item.label === "Goals & Targets") openModal("goals");
       else if (item.label === "Neighborhood") openModal("neighborhood");
+      else if (item.label === "Privacy") router.push("/privacy" as never);
       else if (item.label === "Workout Plan") openModal("workout");
       else if (item.label === "Notifications")
         Alert.alert("Coming Soon", "Push notifications coming soon!");
@@ -362,6 +378,24 @@ export default function ProfileScreen() {
           <Text style={styles.statLabel}>CAL GOAL</Text>
         </View>
       </View>
+
+      {/* ── Community verification credit (phase 5) ── */}
+      {(verifiedCount > 0 || pending.verifications > 0 || pending.logSync > 0) && (
+        <View style={{ backgroundColor: colors.accentSageBg, borderRadius: radius.md, padding: 14, marginTop: 10, marginBottom: 6 }}>
+          {verifiedCount > 0 && (
+            <Text style={{ fontSize: 13, color: colors.accentSage, fontFamily: `${fonts.body}_700Bold` }}>
+              📸 {verifiedCount} spot{verifiedCount === 1 ? "" : "s"} verified — thanks for keeping PulseNYC accurate
+            </Text>
+          )}
+          {(pending.verifications > 0 || pending.logSync > 0) && (
+            <Text style={{ fontSize: 11, color: colors.textTertiary, fontFamily: `${fonts.body}_400Regular`, marginTop: verifiedCount > 0 ? 4 : 0 }}>
+              Waiting to sync:{pending.verifications > 0 ? ` ${pending.verifications} verification photo${pending.verifications === 1 ? "" : "s"}` : ""}
+              {pending.verifications > 0 && pending.logSync > 0 ? " ·" : ""}
+              {pending.logSync > 0 ? ` ${pending.logSync} food log${pending.logSync === 1 ? "" : "s"}` : ""} — sends automatically when online
+            </Text>
+          )}
+        </View>
+      )}
 
       {/* ── Sign-in prompt for guests ── */}
       {!user && (
